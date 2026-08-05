@@ -1,0 +1,109 @@
+//
+//  RecordVideoView.swift
+//  HoMoold
+//
+
+import SwiftUI
+
+struct RecordVideoView: View {
+    @ObservedObject var flow: InspectionFlowState
+    @StateObject private var camera = CameraService()
+
+    private let guideSteps = [
+        "Mulai dari jendela atau ventilasi kamar ini",
+        "Ada AC? Arahkan ke situ sebentar",
+        "Sekarang geser pelan ke semua dinding & plafon",
+        "Kalau lihat retak, noda lembap, atau jamur — dekatkan kameranya ke situ",
+    ]
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            if camera.isSessionReady {
+                CameraPreviewView(session: camera.session)
+                    .ignoresSafeArea()
+            } else if camera.permissionDenied {
+                permissionDeniedView
+            } else {
+                ProgressView()
+                    .tint(.white)
+            }
+
+            RecordingGuideOverlay(steps: guideSteps, isActive: camera.isRecording)
+
+            VStack {
+                Spacer()
+                recordButton
+                    .padding(.bottom, 40)
+            }
+        }
+        .navigationTitle(flow.roomType?.rawValue ?? "Rekam Video")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .onAppear { camera.configureIfNeeded() }
+        .onDisappear { camera.stopSession() }
+        .onChange(of: camera.lastRecordedURL) { _, url in
+            guard let url else { return }
+            flow.recordedVideoURL = url
+            flow.path.append(.preview)
+        }
+    }
+
+    private var recordButton: some View {
+        Button {
+            if camera.isRecording {
+                camera.stopRecording()
+            } else {
+                camera.startRecording()
+            }
+        } label: {
+            ZStack {
+                Circle()
+                    .stroke(.white, lineWidth: 4)
+                    .frame(width: 76, height: 76)
+                if camera.isRecording {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(.red)
+                        .frame(width: 30, height: 30)
+                } else {
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 62, height: 62)
+                }
+            }
+        }
+        .accessibilityLabel(camera.isRecording ? "Berhenti merekam" : "Mulai merekam")
+        .disabled(!camera.isSessionReady)
+    }
+
+    private var permissionDeniedView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "video.slash.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.white)
+            Text("Akses kamera dibutuhkan")
+                .font(.headline)
+                .foregroundStyle(.white)
+            Text("Nyalakan akses kamera & mikrofon untuk HoMoold di Pengaturan iOS.")
+                .font(.subheadline)
+                .foregroundStyle(.white.opacity(0.8))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+            Button("Buka Pengaturan") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .buttonStyle(.pillProminent)
+            .padding(.horizontal, 40)
+            .padding(.top, 8)
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        RecordVideoView(flow: InspectionFlowState())
+    }
+}

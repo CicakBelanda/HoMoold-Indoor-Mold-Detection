@@ -253,9 +253,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 25HCRL7VJ3;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "HoMoold butuh akses kamera untuk merekam video kondisi ruangan yang mau diperiksa.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "HoMoold pakai lokasimu untuk mengisi otomatis kecamatan kos yang mau diperiksa.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HoMoold butuh akses mikrofon untuk merekam video kondisi ruangan (audio video).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -285,9 +288,12 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 25HCRL7VJ3;
+				DEVELOPMENT_TEAM = 6K36QX9QYF;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "HoMoold butuh akses kamera untuk merekam video kondisi ruangan yang mau diperiksa.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "HoMoold pakai lokasimu untuk mengisi otomatis kecamatan kos yang mau diperiksa.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HoMoold butuh akses mikrofon untuk merekam video kondisi ruangan (audio video).";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

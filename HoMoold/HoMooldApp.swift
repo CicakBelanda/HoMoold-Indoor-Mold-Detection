@@ -11,7 +11,9 @@ import SwiftUI
 struct HoMooldApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                // Cuma satu mode desain (light) buat sekarang — dark mode belum di-support.
+                .preferredColorScheme(.light)
         }
     }
 }
