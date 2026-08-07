@@ -2,31 +2,32 @@
 //  InspectionFlowView.swift
 //  HoMoold
 //
-//  Container navigasi untuk seluruh alur New Inspection (Bagian 4 & 5 spesifikasi):
-//  pilih kos -> pilih ruangan -> rekam -> preview -> loading -> report -> simpan.
+//  Container navigasi New Inspection. Dua mode:
+//  - existingProperty != nil: nempel ke kos yang sudah ada (dari tombol + di
+//    halaman detail kos) — Report langsung "Simpan", tanpa tanya nama lagi.
+//  - existingProperty == nil: kos baru (dari FAB Home) — nama & harga baru
+//    diisi di NewReportInfoView setelah lihat hasil Report.
 //
 
 import SwiftUI
 
 struct InspectionFlowView: View {
     let store: AppDataStore
-    private let detectionService: MoldDetectionService = MockMoldDetectionService()
+    private let detectionService: MoldDetectionService = RealMoldDetectionService()
 
-    @StateObject private var flow = InspectionFlowState()
+    @StateObject private var flow: InspectionFlowState
     @Environment(\.dismiss) private var dismiss
+
+    init(store: AppDataStore, existingProperty: KosProperty? = nil) {
+        self.store = store
+        _flow = StateObject(wrappedValue: InspectionFlowState(existingProperty: existingProperty))
+    }
 
     var body: some View {
         NavigationStack(path: $flow.path) {
-            SelectPropertyView(store: store, flow: flow)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Batal") { dismiss() }
-                    }
-                }
+            RoomTypeSelectionView(flow: flow)
                 .navigationDestination(for: InspectionStep.self) { step in
                     switch step {
-                    case .roomType:
-                        RoomTypeSelectionView(flow: flow)
                     case .record:
                         RecordVideoView(flow: flow)
                     case .preview:
@@ -35,12 +36,29 @@ struct InspectionFlowView: View {
                         AnalyzingLoadingView(flow: flow, detectionService: detectionService)
                     case .report:
                         if let inspection = flow.resultInspection {
-                            ReportView(
+                            if let existing = flow.existingProperty {
+                                ReportView(
+                                    store: store,
+                                    draftInspection: inspection,
+                                    existingPropertyID: existing.id,
+                                    onSaved: { dismiss() }
+                                )
+                            } else {
+                                ReportView(
+                                    store: store,
+                                    draftInspection: inspection,
+                                    onContinueToNaming: { flow.path.append(.newReportInfo) }
+                                )
+                            }
+                        }
+                    case .newReportInfo:
+                        if let inspection = flow.resultInspection {
+                            NewReportInfoView(
                                 store: store,
-                                draftInspection: inspection,
-                                propertyName: flow.propertyName,
-                                propertyLocation: flow.propertyLocation,
-                                onSaved: { dismiss() }
+                                inspection: inspection,
+                                autoDetectedLocation: flow.autoDetectedLocation,
+                                onSaved: { dismiss() },
+                                onCancel: { dismiss() }
                             )
                         }
                     }

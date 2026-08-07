@@ -8,8 +8,22 @@ import SwiftUI
 /// Menggambar kotak label deteksi (mis. "MOLD") di atas foto/frame, dengan
 /// `boundingBox` dalam koordinat ternormalisasi (0-1) relatif ke ukuran frame.
 struct BoundingBoxOverlay: View {
-    let findingClass: FindingClass
+    let label: String
+    let color: Color
     let boundingBox: CGRect
+
+    init(label: String, color: Color, boundingBox: CGRect) {
+        self.label = label
+        self.color = color
+        self.boundingBox = boundingBox
+    }
+
+    /// Convenience buat temuan hasil Report (Bagian 5.6) yang sudah punya `FindingClass`.
+    init(findingClass: FindingClass, boundingBox: CGRect) {
+        self.label = findingClass.rawValue
+        self.color = findingClass.color
+        self.boundingBox = boundingBox
+    }
 
     var body: some View {
         GeometryReader { geo in
@@ -22,19 +36,19 @@ struct BoundingBoxOverlay: View {
 
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .stroke(findingClass.color, lineWidth: 2.5)
+                    .stroke(color, lineWidth: 2.5)
                     .frame(width: rect.width, height: rect.height)
                     .position(x: rect.midX, y: rect.midY)
 
-                Text(findingClass.rawValue)
+                Text(label)
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(findingClass.color, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    .background(color, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                     .position(x: rect.minX + 24, y: max(rect.minY - 10, 10))
             }
-            .accessibilityLabel("Terdeteksi \(findingClass.displayNameID)")
+            .accessibilityLabel("Terdeteksi \(label)")
         }
     }
 }

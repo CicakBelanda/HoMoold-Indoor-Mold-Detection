@@ -9,6 +9,7 @@ struct KosProperty: Identifiable {
     let id = UUID()
     var name: String
     var location: String // kecamatan
+    var price: Int? // harga sewa (Rp/bulan), nil = belum diisi
     var thumbnail: UIImage
     var rooms: [RoomInspection]
 
@@ -18,5 +19,17 @@ struct KosProperty: Identifiable {
 
     var highestRiskLevel: RiskLevel? {
         rooms.map(\.riskLevel).max { $0.severity < $1.severity }
+    }
+
+    var anyRoomHasAC: Bool { rooms.contains { $0.hasAC } }
+    var anyRoomHasWindow: Bool { rooms.contains { $0.hasWindow } }
+
+    var priceText: String? {
+        guard let price else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.groupingSeparator = "."
+        let formatted = formatter.string(from: NSNumber(value: price)) ?? "\(price)"
+        return "Rp \(formatted) / bulan"
     }
 }

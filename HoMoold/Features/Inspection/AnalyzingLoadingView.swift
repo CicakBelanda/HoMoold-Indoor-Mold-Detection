@@ -48,6 +48,6 @@ struct AnalyzingLoadingView: View {
 
 #Preview {
     NavigationStack {
-        AnalyzingLoadingView(flow: InspectionFlowState(), detectionService: MockMoldDetectionService())
+        AnalyzingLoadingView(flow: InspectionFlowState(existingProperty: nil), detectionService: MockMoldDetectionService())
     }
 }

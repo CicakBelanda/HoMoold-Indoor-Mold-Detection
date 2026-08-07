@@ -8,18 +8,35 @@ import SwiftUI
 struct ReportView: View {
     @StateObject private var viewModel: ReportViewModel
     @State private var showRiskInfo = false
+    @State private var viewerItem: ImageViewerItem?
     @Environment(\.dismiss) private var dismiss
     private var onSaved: (() -> Void)?
+    private var onContinueToNaming: (() -> Void)?
 
-    /// Mode "draft": hasil analisis baru dari flow inspeksi, belum tersimpan.
-    init(store: AppDataStore, draftInspection: RoomInspection, propertyName: String, propertyLocation: String, onSaved: (() -> Void)? = nil) {
+    /// Mode "kos sudah ada": hasil analisis baru, tapi nempel ke properti yang sudah
+    /// diketahui — tombol Simpan langsung menyimpan.
+    init(store: AppDataStore, draftInspection: RoomInspection, existingPropertyID: UUID, onSaved: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: ReportViewModel(
             store: store,
             inspection: draftInspection,
-            source: .draft(propertyName: propertyName, propertyLocation: propertyLocation),
+            source: .draftExisting(propertyID: existingPropertyID),
             isReadOnly: false
         ))
         self.onSaved = onSaved
+        self.onContinueToNaming = nil
+    }
+
+    /// Mode "kos baru": hasil analisis baru, belum ada nama/harga — tombol Simpan
+    /// lanjut ke halaman isi nama & harga, bukan menyimpan di sini.
+    init(store: AppDataStore, draftInspection: RoomInspection, onContinueToNaming: @escaping () -> Void) {
+        _viewModel = StateObject(wrappedValue: ReportViewModel(
+            store: store,
+            inspection: draftInspection,
+            source: .pendingNaming,
+            isReadOnly: false
+        ))
+        self.onSaved = nil
+        self.onContinueToNaming = onContinueToNaming
     }
 
     /// Mode "saved": lihat ulang temuan yang sudah tersimpan, read-only (tanpa tombol Simpan).
@@ -33,6 +50,7 @@ struct ReportView: View {
             isReadOnly: true
         ))
         self.onSaved = nil
+        self.onContinueToNaming = nil
     }
 
     var body: some View {
@@ -79,11 +97,21 @@ struct ReportView: View {
         .sheet(isPresented: $showRiskInfo) {
             MoldRiskInfoSheet(explanation: viewModel.riskExplanation)
         }
+        .fullScreenCover(item: $viewerItem) { item in
+            FullScreenImageViewer(image: item.image)
+        }
         .safeAreaInset(edge: .bottom) {
             if !viewModel.isReadOnly {
                 Button("Simpan") {
-                    viewModel.save()
-                    onSaved?()
+                    switch viewModel.source {
+                    case .draftExisting:
+                        viewModel.save()
+                        onSaved?()
+                    case .pendingNaming:
+                        onContinueToNaming?()
+                    case .saved:
+                        break
+                    }
                 }
                 .buttonStyle(.pillProminent)
                 .padding(.horizontal, 24)
@@ -102,7 +130,11 @@ struct ReportView: View {
                     Image(uiImage: viewModel.inspection.thumbnail)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
+                        .onTapGesture {
+                            viewerItem = ImageViewerItem(image: viewModel.inspection.thumbnail)
+                        }
                     LinearGradient(colors: [.black.opacity(0.25), .clear], startPoint: .bottom, endPoint: .center)
+                        .allowsHitTesting(false)
                     VStack {
                         Spacer()
                         Text("Tidak ada tanda pra-jamur yang terdeteksi jelas")
@@ -122,9 +154,13 @@ struct ReportView: View {
                                 .aspectRatio(contentMode: .fill)
                                 .frame(height: 360)
                                 .clipped()
+                                .onTapGesture {
+                                    viewerItem = ImageViewerItem(image: finding.frameImage)
+                                }
 
                             BoundingBoxOverlay(findingClass: finding.findingClass, boundingBox: finding.boundingBox)
                                 .frame(height: 360)
+                                .allowsHitTesting(false)
 
                             Button {
                                 viewModel.toggleReviewed(finding.id)
@@ -227,6 +263,11 @@ struct ReportView: View {
             }
         }
     }
+}
+
+private struct ImageViewerItem: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }
 
 #Preview {

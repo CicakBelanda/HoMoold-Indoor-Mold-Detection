@@ -18,9 +18,9 @@ protocol MoldDetectionService {
     func analyze(videoURL: URL, roomType: RoomType) async -> RoomInspection
 }
 
-// TODO: ganti dengan model AI asli — buat `RealMoldDetectionService: MoldDetectionService`
-// yang menjalankan CoreML/YOLO di atas frame video, lalu ganti satu baris injeksi
-// dependency ini di HoMooldApp.swift. Tidak ada View yang perlu diubah.
+// Model AI asli ada di `RealMoldDetectionService` (pakai MoldDamp.mlpackage +
+// WindowAC.mlpackage, di-convert dari .pt lewat ultralytics). Mock ini masih
+// disimpan buat #Preview / testing tanpa perlu file video sungguhan.
 final class MockMoldDetectionService: MoldDetectionService {
 
     private let loadingMessages = [

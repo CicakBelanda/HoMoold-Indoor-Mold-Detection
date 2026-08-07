@@ -32,6 +32,7 @@ enum DummyDataFactory {
         let nuturale = KosProperty(
             name: "Kos Nuturale",
             location: "Kec. Cisauk",
+            price: 850_000,
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 1),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .high, riskScore: 82, findings: nuturaleBedroomFindings,
@@ -57,6 +58,7 @@ enum DummyDataFactory {
         let studentis = KosProperty(
             name: "Kos Studentis",
             location: "Kec. Cisauk",
+            price: 1_200_000,
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 3),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .medium, riskScore: 52, findings: studentisBedroomFindings,
@@ -78,6 +80,7 @@ enum DummyDataFactory {
         let echanto = KosProperty(
             name: "Kos Echanto",
             location: "Kec. Padegang",
+            price: nil,
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 5),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .high, riskScore: 76, findings: echantoBedroomFindings,
@@ -95,6 +98,7 @@ enum DummyDataFactory {
         let meilani = KosProperty(
             name: "Kos Meilani Residence",
             location: "Kec. Serpong",
+            price: 950_000,
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 6),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .low, riskScore: 24, findings: meilaniFindings,
@@ -114,6 +118,7 @@ enum DummyDataFactory {
         let bintang = KosProperty(
             name: "Kos Bintang Timur",
             location: "Kec. Pagedangan",
+            price: 700_000,
             thumbnail: PlaceholderImageFactory.roomImage(for: .bathroom, seed: 7),
             rooms: [
                 RoomInspection(roomType: .bathroom, riskLevel: .high, riskScore: 88, findings: bintangBathroomFindings,

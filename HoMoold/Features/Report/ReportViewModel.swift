@@ -9,7 +9,12 @@ import Foundation
 @MainActor
 final class ReportViewModel: ObservableObject {
     enum Source {
-        case draft(propertyName: String, propertyLocation: String)
+        /// Hasil analisis baru, nempel ke kos yang SUDAH ADA — bisa langsung disimpan.
+        case draftExisting(propertyID: UUID)
+        /// Hasil analisis baru, kos BARU — belum ada nama/harga, jadi belum bisa disimpan
+        /// di sini. Tombol Simpan lanjut ke NewReportInfoView.
+        case pendingNaming
+        /// Lihat ulang temuan yang sudah tersimpan — read-only.
         case saved(propertyID: UUID)
     }
 
@@ -77,8 +82,8 @@ final class ReportViewModel: ObservableObject {
     }
 
     func save() {
-        guard case .draft(let name, let location) = source else { return }
-        let propertyID = store.addInspection(inspection, toPropertyNamed: name, location: location)
+        guard case .draftExisting(let propertyID) = source else { return }
+        store.attachInspection(inspection, toExistingPropertyID: propertyID)
         store.lastSavedPropertyID = propertyID
         didSave = true
     }

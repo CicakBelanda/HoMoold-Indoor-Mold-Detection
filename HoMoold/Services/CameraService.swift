@@ -3,14 +3,15 @@
 //  HoMoold
 //
 //  Wrapper AVCaptureSession untuk rekam video sungguhan di layar "Rekam Video".
-//  Tidak ada mock di sini — sesi kamera & file output beneran jalan (butuh device fisik,
-//  simulator tidak punya kamera).
+//  Selain merekam ke file (buat disimpan/preview), sesi ini juga jalanin dua
+//  model YOLO (MoldDamp, WindowAC) secara live lewat AVCaptureVideoDataOutput,
+//  buat nge-drive panduan adaptif (lihat GuidedRecordingController).
 //
 //  AVCaptureSession harus dikonfigurasi/dijalankan di luar main thread, tapi
 //  CameraService sendiri @MainActor (buat @Published). Supaya closure di
-//  background queue tidak menyentuh state main-actor-isolated (yang bikin error
-//  "Sendable closure"), semua kerja AVFoundation dipisah ke `SessionController`
-//  yang bukan actor-isolated sama sekali.
+//  background queue tidak menyentuh state main-actor-isolated, semua kerja
+//  AVFoundation dipisah ke `SessionController` yang bukan actor-isolated sama
+//  sekali.
 //
 
 import AVFoundation
@@ -24,6 +25,7 @@ final class CameraService: ObservableObject {
     @Published var permissionDenied = false
     @Published var lastRecordedURL: URL?
     @Published var errorMessage: String?
+    @Published var liveDetections: [LiveDetection] = []
 
     private let controller = SessionController()
 
@@ -37,7 +39,11 @@ final class CameraService: ObservableObject {
                     self.permissionDenied = true
                     return
                 }
-                self.controller.configureAndStart()
+                self.controller.configureAndStart { [weak self] detections in
+                    Task { @MainActor in
+                        self?.liveDetections = detections
+                    }
+                }
                 self.isSessionReady = true
             }
         }
@@ -70,15 +76,26 @@ final class CameraService: ObservableObject {
 }
 
 /// Bukan actor-isolated sama sekali — semua pekerjaan AVFoundation berat
-/// (start/stop session, rekam) jalan di `queue` miliknya sendiri, bukan main thread.
+/// (start/stop session, rekam, deteksi live) jalan di queue miliknya sendiri,
+/// bukan main thread.
 private final class SessionController: NSObject, @unchecked Sendable {
     let session = AVCaptureSession()
     private let movieOutput = AVCaptureMovieFileOutput()
+    private let videoDataOutput = AVCaptureVideoDataOutput()
     private let queue = DispatchQueue(label: "com.homoold.camera.session")
+    private let detectionQueue = DispatchQueue(label: "com.homoold.camera.detection")
     private var recordingCompletion: (@Sendable (URL?, Error?) -> Void)?
+    private var onLiveDetections: (@Sendable ([LiveDetection]) -> Void)?
 
-    func configureAndStart() {
-        queue.async { [session, movieOutput] in
+    // TODO: ganti/tambah threshold per model kalau hasil training baru punya karakteristik beda.
+    private let windowACDetector = LiveObjectDetector(modelName: "WindowAC")
+    private let moldDampDetector = LiveObjectDetector(modelName: "MoldDamp")
+    private var lastDetectionTime = Date.distantPast
+    private let detectionInterval: TimeInterval = 0.35
+
+    func configureAndStart(onLiveDetections: @escaping @Sendable ([LiveDetection]) -> Void) {
+        self.onLiveDetections = onLiveDetections
+        queue.async { [session, movieOutput, videoDataOutput, detectionQueue] in
             session.beginConfiguration()
             session.sessionPreset = .high
 
@@ -96,6 +113,14 @@ private final class SessionController: NSObject, @unchecked Sendable {
 
             if session.canAddOutput(movieOutput) {
                 session.addOutput(movieOutput)
+            }
+
+            videoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
+            videoDataOutput.alwaysDiscardsLateVideoFrames = true
+            if session.canAddOutput(videoDataOutput) {
+                session.addOutput(videoDataOutput)
+                videoDataOutput.setSampleBufferDelegate(self, queue: detectionQueue)
+                videoDataOutput.connection(with: .video)?.videoRotationAngle = 90 // portrait
             }
 
             session.commitConfiguration()
@@ -130,6 +155,28 @@ extension SessionController: AVCaptureFileOutputRecordingDelegate {
     func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
         recordingCompletion?(error == nil ? outputFileURL : nil, error)
         recordingCompletion = nil
+    }
+}
+
+extension SessionController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        let now = Date()
+        guard now.timeIntervalSince(lastDetectionTime) >= detectionInterval else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        lastDetectionTime = now
+
+        // Buffer sudah diputar tegak lewat `videoRotationAngle = 90` di connection-nya
+        // (lihat configureAndStart), jadi orientasinya buat Vision sudah `.up` — bukan
+        // `.right` lagi. Sebelumnya dobel-rotasi di sini bikin frame yang dikirim ke
+        // model jadi miring, kemungkinan besar itu sebab AC/jendela suka gagal kedeteksi.
+        var combined: [LiveDetection] = []
+        if let windowACDetector {
+            combined += windowACDetector.detect(in: pixelBuffer, orientation: .up)
+        }
+        if let moldDampDetector {
+            combined += moldDampDetector.detect(in: pixelBuffer, orientation: .up)
+        }
+        onLiveDetections?(combined)
     }
 }
 

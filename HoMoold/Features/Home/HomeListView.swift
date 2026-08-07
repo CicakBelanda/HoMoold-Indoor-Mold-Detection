@@ -6,11 +6,14 @@
 import SwiftUI
 
 struct HomeListView: View {
-    private let store: AppDataStore
+    @ObservedObject private var store: AppDataStore
     @StateObject private var viewModel: HomeListViewModel
     @State private var path = NavigationPath()
     @State private var showNewInspection = false
     @State private var showFriendDemo = false
+    @State private var propertyPendingDelete: KosProperty?
+    @State private var propertyPendingRename: KosProperty?
+    @State private var renameText = ""
 
     init(store: AppDataStore) {
         self.store = store
@@ -19,26 +22,55 @@ struct HomeListView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
+            Group {
                 if viewModel.properties.isEmpty {
                     emptyState
                 } else {
-                    LazyVStack(spacing: 14) {
+                    List {
                         ForEach(viewModel.properties) { property in
-                            NavigationLink(value: property.id) {
+                            Button {
+                                path.append(property.id)
+                            } label: {
                                 PropertyCard(property: property)
                             }
                             .buttonStyle(.plain)
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    propertyPendingDelete = property
+                                } label: {
+                                    Label("Hapus", systemImage: "trash")
+                                }
+                            }
+                            .contextMenu {
+                                Button {
+                                    renameText = property.name
+                                    propertyPendingRename = property
+                                } label: {
+                                    Label("Ubah Nama", systemImage: "pencil")
+                                }
+                                Button(role: .destructive) {
+                                    propertyPendingDelete = property
+                                } label: {
+                                    Label("Hapus Kos", systemImage: "trash")
+                                }
+                            }
                         }
                     }
-                    .padding(16)
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Kos Kamu")
             .navigationBarTitleDisplayMode(.large)
             .navigationDestination(for: UUID.self) { propertyID in
-                PropertyDetailView(store: store, propertyID: propertyID)
+                PropertyDetailView(store: store, propertyID: propertyID, path: $path)
+            }
+            .navigationDestination(for: RoomNavigationTarget.self) { target in
+                ReportView(store: store, propertyID: target.propertyID, roomID: target.roomID)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -72,6 +104,39 @@ struct HomeListView: View {
                 }
                 .accessibilityLabel("Mulai pemeriksaan baru")
                 .padding(20)
+            }
+            .alert(
+                "Hapus Kos",
+                isPresented: Binding(
+                    get: { propertyPendingDelete != nil },
+                    set: { if !$0 { propertyPendingDelete = nil } }
+                )
+            ) {
+                Button("Batal", role: .cancel) {}
+                Button("Hapus", role: .destructive) {
+                    if let id = propertyPendingDelete?.id {
+                        store.deleteProperty(id: id)
+                    }
+                    propertyPendingDelete = nil
+                }
+            } message: {
+                Text("Semua data pemeriksaan di \"\(propertyPendingDelete?.name ?? "")\" akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.")
+            }
+            .alert(
+                "Ubah Nama Kos",
+                isPresented: Binding(
+                    get: { propertyPendingRename != nil },
+                    set: { if !$0 { propertyPendingRename = nil } }
+                )
+            ) {
+                TextField("Nama kos", text: $renameText)
+                Button("Batal", role: .cancel) {}
+                Button("Simpan") {
+                    if let id = propertyPendingRename?.id {
+                        store.renameProperty(id: id, to: renameText)
+                    }
+                    propertyPendingRename = nil
+                }
             }
         }
         .fullScreenCover(isPresented: $showNewInspection) {

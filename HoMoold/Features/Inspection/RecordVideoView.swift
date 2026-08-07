@@ -3,18 +3,20 @@
 //  HoMoold
 //
 
+import Combine
 import SwiftUI
 
 struct RecordVideoView: View {
     @ObservedObject var flow: InspectionFlowState
     @StateObject private var camera = CameraService()
+    @StateObject private var guide: GuidedRecordingController
 
-    private let guideSteps = [
-        "Mulai dari jendela atau ventilasi kamar ini",
-        "Ada AC? Arahkan ke situ sebentar",
-        "Sekarang geser pelan ke semua dinding & plafon",
-        "Kalau lihat retak, noda lembap, atau jamur — dekatkan kameranya ke situ",
-    ]
+    private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    init(flow: InspectionFlowState) {
+        self.flow = flow
+        _guide = StateObject(wrappedValue: GuidedRecordingController(roomType: flow.roomType))
+    }
 
     var body: some View {
         ZStack {
@@ -30,7 +32,16 @@ struct RecordVideoView: View {
                     .tint(.white)
             }
 
-            RecordingGuideOverlay(steps: guideSteps, isActive: camera.isRecording)
+            VStack {
+                GuidedInstructionBar(
+                    stepIndex: guide.stepIndex,
+                    totalSteps: guide.totalSteps,
+                    instructionText: guide.instructionText,
+                    canSkip: guide.canSkip,
+                    onSkip: { guide.skip() }
+                )
+                Spacer()
+            }
 
             VStack {
                 Spacer()
@@ -43,6 +54,12 @@ struct RecordVideoView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .onAppear { camera.configureIfNeeded() }
         .onDisappear { camera.stopSession() }
+        .onReceive(camera.$liveDetections) { detections in
+            guide.processDetections(detections)
+        }
+        .onReceive(tickTimer) { _ in
+            guide.tick()
+        }
         .onChange(of: camera.lastRecordedURL) { _, url in
             guard let url else { return }
             flow.recordedVideoURL = url
@@ -60,7 +77,7 @@ struct RecordVideoView: View {
         } label: {
             ZStack {
                 Circle()
-                    .stroke(.white, lineWidth: 4)
+                    .stroke(guide.showDoneHint ? Color.accentColor : .white, lineWidth: guide.showDoneHint ? 5 : 4)
                     .frame(width: 76, height: 76)
                 if camera.isRecording {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -75,6 +92,17 @@ struct RecordVideoView: View {
         }
         .accessibilityLabel(camera.isRecording ? "Berhenti merekam" : "Mulai merekam")
         .disabled(!camera.isSessionReady)
+        .overlay(alignment: .top) {
+            if guide.showDoneHint {
+                Text("Selesai?")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor, in: Capsule())
+                    .offset(y: -28)
+            }
+        }
     }
 
     private var permissionDeniedView: some View {
@@ -104,6 +132,6 @@ struct RecordVideoView: View {
 
 #Preview {
     NavigationStack {
-        RecordVideoView(flow: InspectionFlowState())
+        RecordVideoView(flow: InspectionFlowState(existingProperty: nil))
     }
 }

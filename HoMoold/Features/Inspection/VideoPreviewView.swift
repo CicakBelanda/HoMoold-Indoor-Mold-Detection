@@ -48,6 +48,6 @@ struct VideoPreviewView: View {
 
 #Preview {
     NavigationStack {
-        VideoPreviewView(flow: InspectionFlowState())
+        VideoPreviewView(flow: InspectionFlowState(existingProperty: nil))
     }
 }

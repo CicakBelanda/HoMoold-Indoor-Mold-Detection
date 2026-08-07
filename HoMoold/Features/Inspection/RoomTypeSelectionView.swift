@@ -7,6 +7,8 @@ import SwiftUI
 
 struct RoomTypeSelectionView: View {
     @ObservedObject var flow: InspectionFlowState
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var locationService = LocationService()
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -33,7 +35,7 @@ struct RoomTypeSelectionView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 120)
-                            .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                            .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                         }
                         .buttonStyle(.plain)
                     }
@@ -42,13 +44,26 @@ struct RoomTypeSelectionView: View {
             .padding(20)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Tipe Ruangan")
+        .navigationTitle(flow.existingProperty?.name ?? "Tipe Ruangan")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Batal") { dismiss() }
+            }
+        }
+        .task {
+            // Kos baru: ambil lokasi otomatis diam-diam di background, dipakai nanti
+            // pas NewReportInfoView beneran menyimpan. Kos yang sudah ada tidak perlu.
+            guard flow.existingProperty == nil else { return }
+            if let name = await locationService.fetchCurrentLocationName() {
+                flow.autoDetectedLocation = name
+            }
+        }
     }
 }
 
 #Preview {
     NavigationStack {
-        RoomTypeSelectionView(flow: InspectionFlowState())
+        RoomTypeSelectionView(flow: InspectionFlowState(existingProperty: nil))
     }
 }
