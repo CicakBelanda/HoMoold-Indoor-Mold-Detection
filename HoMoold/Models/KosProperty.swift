@@ -21,9 +21,6 @@ struct KosProperty: Identifiable {
         rooms.map(\.riskLevel).max { $0.severity < $1.severity }
     }
 
-    var anyRoomHasAC: Bool { rooms.contains { $0.hasAC } }
-    var anyRoomHasWindow: Bool { rooms.contains { $0.hasWindow } }
-
     var priceText: String? {
         guard let price else { return nil }
         let formatter = NumberFormatter()

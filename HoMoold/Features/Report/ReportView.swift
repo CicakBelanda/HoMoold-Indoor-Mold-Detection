@@ -42,7 +42,7 @@ struct ReportView: View {
     /// Mode "saved": lihat ulang temuan yang sudah tersimpan, read-only (tanpa tombol Simpan).
     init(store: AppDataStore, propertyID: UUID, roomID: UUID) {
         let existing = store.properties.first(where: { $0.id == propertyID })?.rooms.first(where: { $0.id == roomID })
-        let fallback = RoomInspection(roomType: .bedroom, riskLevel: .low, riskScore: 0, findings: [], ventilationWarning: nil, hasWindow: false, hasAC: false, videoURL: nil, date: Date())
+        let fallback = RoomInspection(roomType: .bedroom, riskLevel: .low, riskScore: 0, findings: [], videoURL: nil, date: Date())
         _viewModel = StateObject(wrappedValue: ReportViewModel(
             store: store,
             inspection: existing ?? fallback,
@@ -71,11 +71,6 @@ struct ReportView: View {
                     .accessibilityLabel("Penjelasan metodologi skor risiko")
                 }
                 .padding(.horizontal, 20)
-
-                if let warning = viewModel.inspection.ventilationWarning {
-                    warningBanner(warning)
-                        .padding(.horizontal, 20)
-                }
 
                 detectionChecklistSection
                     .padding(.horizontal, 20)
@@ -182,19 +177,6 @@ struct ReportView: View {
     }
 
     // MARK: - Sections
-
-    private func warningBanner(_ text: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .background(Color.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
 
     private var detectionChecklistSection: some View {
         VStack(alignment: .leading, spacing: 10) {

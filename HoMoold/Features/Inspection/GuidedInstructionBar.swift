@@ -3,9 +3,8 @@
 //  HoMoold
 //
 //  Bar instruksi live di atas layar rekam — ganti step otomatis berdasar hasil
-//  deteksi asli (bukan timer tetap), plus tombol Lewati buat kamar yang gak
-//  punya AC/jendela. Jumlah titik progress ngikutin jumlah step yang relevan
-//  buat tipe ruangan ini (lihat GuidedRecordingController).
+//  deteksi asli (bukan timer tetap). Jumlah titik progress ngikutin jumlah
+//  step di GuidedRecordingController.
 //
 
 import SwiftUI
@@ -14,8 +13,6 @@ struct GuidedInstructionBar: View {
     let stepIndex: Int
     let totalSteps: Int
     let instructionText: String
-    let canSkip: Bool
-    let onSkip: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -27,26 +24,15 @@ struct GuidedInstructionBar: View {
                 }
             }
 
-            HStack(spacing: 10) {
-                Text(instructionText)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                if canSkip {
-                    Button("Lewati", action: onSkip)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.white.opacity(0.25), in: Capsule())
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            Text(instructionText)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .padding(.top, 10)
         .padding(.horizontal, 16)
@@ -58,7 +44,7 @@ struct GuidedInstructionBar: View {
     ZStack {
         Color.black
         VStack {
-            GuidedInstructionBar(stepIndex: 0, totalSteps: 4, instructionText: "Arahkan kamera ke AC dulu, kalau kamar ini ada AC-nya", canSkip: true, onSkip: {})
+            GuidedInstructionBar(stepIndex: 0, totalSteps: 2, instructionText: "Geser pelan ke semua dinding & plafon")
             Spacer()
         }
     }

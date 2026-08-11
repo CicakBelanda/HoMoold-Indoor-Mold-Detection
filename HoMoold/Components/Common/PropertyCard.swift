@@ -22,17 +22,6 @@ struct PropertyCard: View {
                     RoomTagRow(roomType: room.roomType, riskLevel: room.riskLevel)
                 }
 
-                if property.anyRoomHasAC || property.anyRoomHasWindow {
-                    HStack(spacing: 6) {
-                        if property.anyRoomHasWindow {
-                            AmenityBadge(icon: "window.casement", label: "Jendela")
-                        }
-                        if property.anyRoomHasAC {
-                            AmenityBadge(icon: "wind", label: "AC")
-                        }
-                    }
-                }
-
                 Spacer(minLength: 0)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -67,20 +56,6 @@ struct PropertyCard: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
-    }
-}
-
-private struct AmenityBadge: View {
-    let icon: String
-    let label: String
-
-    var body: some View {
-        Label(label, systemImage: icon)
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(Color(uiColor: .tertiarySystemFill), in: Capsule())
     }
 }
 

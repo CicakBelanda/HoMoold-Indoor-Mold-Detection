@@ -11,16 +11,15 @@ import Foundation
 
 protocol MoldDetectionService {
     /// Ambil video hasil rekaman, kembalikan hasil deteksi.
-    /// Implementasi asli nanti akan: extract frame, jalankan model YOLO
-    /// (mold/damp/crack di satu model, window/ac di model terpisah), lalu
-    /// hitung skor risiko dari gabungan kondisi kerusakan + modul ventilasi
+    /// Implementasi asli nanti akan: extract frame, jalankan model deteksi
+    /// jamur, lalu hitung skor risiko dari kondisi kerusakan yang terdeteksi
     /// + data cuaca.
     func analyze(videoURL: URL, roomType: RoomType) async -> RoomInspection
 }
 
-// Model AI asli ada di `RealMoldDetectionService` (pakai MoldDamp.mlpackage +
-// WindowAC.mlpackage, di-convert dari .pt lewat ultralytics). Mock ini masih
-// disimpan buat #Preview / testing tanpa perlu file video sungguhan.
+// Model AI asli ada di `RealMoldDetectionService` (pakai MoldDamp.mlpackage,
+// di-convert dari .pt lewat ultralytics). Mock ini masih disimpan buat
+// #Preview / testing tanpa perlu file video sungguhan.
 final class MockMoldDetectionService: MoldDetectionService {
 
     private let loadingMessages = [
@@ -50,25 +49,15 @@ final class MockMoldDetectionService: MoldDetectionService {
             findings.append(Finding(boundingBox: box, frameImage: frame, findingClass: classType, locationNote: note))
         }
 
-        let hasWindow = Bool.random()
-        let hasAC = Bool.random()
-
-        // Makin banyak temuan & makin buruk ventilasi, makin tinggi skor.
-        let ventilationPenalty = (hasWindow ? 0 : 10) + (hasAC ? 0 : 5)
-        let baseScore = min(95, findingCount * 12 + ventilationPenalty + Int.random(in: 0...10))
+        // Makin banyak temuan, makin tinggi skor.
+        let baseScore = min(95, findingCount * 12 + Int.random(in: 0...10))
         let riskLevel = RiskLevel.level(forScore: baseScore)
-        let ventilationWarning = !hasWindow && !hasAC
-            ? "Ruangan ini nyaris tidak punya jalan keluar udara. Risiko bisa memburuk lebih cepat dari perkiraan."
-            : nil
 
         return RoomInspection(
             roomType: roomType,
             riskLevel: riskLevel,
             riskScore: baseScore,
             findings: findings,
-            ventilationWarning: ventilationWarning,
-            hasWindow: hasWindow,
-            hasAC: hasAC,
             videoURL: videoURL,
             date: Date()
         )

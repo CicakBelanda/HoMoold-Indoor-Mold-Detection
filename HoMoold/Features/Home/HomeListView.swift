@@ -11,6 +11,7 @@ struct HomeListView: View {
     @State private var path = NavigationPath()
     @State private var showNewInspection = false
     @State private var showFriendDemo = false
+    @State private var showMoldMeasureTest = false
     @State private var propertyPendingDelete: KosProperty?
     @State private var propertyPendingRename: KosProperty?
     @State private var renameText = ""
@@ -73,6 +74,16 @@ struct HomeListView: View {
                 ReportView(store: store, propertyID: target.propertyID, roomID: target.roomID)
             }
             .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showMoldMeasureTest = true
+                    } label: {
+                        Image(systemName: "arkit")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("Test ukur luas jamur pakai LiDAR")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showFriendDemo = true
@@ -141,6 +152,9 @@ struct HomeListView: View {
         }
         .fullScreenCover(isPresented: $showNewInspection) {
             InspectionFlowView(store: store)
+        }
+        .fullScreenCover(isPresented: $showMoldMeasureTest) {
+            MoldMeasureView()
         }
         .onChange(of: store.lastSavedPropertyID) { _, newValue in
             guard let newValue else { return }

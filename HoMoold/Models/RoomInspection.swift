@@ -17,9 +17,6 @@ struct RoomInspection: Identifiable {
     let riskLevel: RiskLevel
     let riskScore: Int // 0-100
     var findings: [Finding]
-    let ventilationWarning: String? // non-nil kalau ada override risiko (mis. ventilasi sangat buruk)
-    let hasWindow: Bool // hasil modul deteksi ventilasi (window/ac), lihat MoldDetectionService
-    let hasAC: Bool
     let videoURL: URL?
     let date: Date
 
@@ -40,8 +37,6 @@ struct RoomInspection: Identifiable {
     var detectionChecklist: [DetectionItem] {
         [
             DetectionItem(label: "Jamur", isPresent: findings.contains { $0.findingClass == .mold }),
-            DetectionItem(label: "AC", isPresent: hasAC),
-            DetectionItem(label: "Jendela", isPresent: hasWindow),
             DetectionItem(label: "Retak", isPresent: findings.contains { $0.findingClass == .crack }),
         ]
     }

@@ -2,12 +2,11 @@
 //  RealMoldDetectionService.swift
 //  HoMoold
 //
-//  Implementasi asli MoldDetectionService — pakai dua model YOLO yang sudah
-//  dilatih (MoldDamp.mlpackage: damp/mold, WindowAC.mlpackage: AC/Window,
-//  di-convert dari MoldDamp.pt & WindowAC.pt lewat ultralytics export ke
-//  CoreML). Video hasil rekaman di-sample tiap setengah detik, tiap frame
-//  dijalankan lewat kedua model, hasilnya digabung jadi Finding + status
-//  ventilasi + skor risiko.
+//  Implementasi asli MoldDetectionService — pakai model YOLO yang sudah
+//  dilatih (MoldDamp.mlpackage, tapi cuma kelas "mold" yang dipakai — lihat
+//  MoldDetector), di-convert dari .pt lewat ultralytics export ke CoreML.
+//  Video hasil rekaman di-sample tiap setengah detik, tiap frame dijalankan
+//  lewat model, hasilnya digabung jadi Finding + skor risiko.
 //
 
 import AVFoundation
@@ -16,8 +15,7 @@ import UIKit
 import Vision
 
 final class RealMoldDetectionService: MoldDetectionService {
-    private let windowACDetector = LiveObjectDetector(modelName: "WindowAC", confidenceThreshold: 0.4)
-    private let moldDampDetector = LiveObjectDetector(modelName: "MoldDamp", confidenceThreshold: 0.35)
+    private let moldDetector = MoldDetector(modelName: "MoldDamp", confidenceThreshold: 0.35)
 
     private let sampleInterval: Double = 0.5
     private let maxFindings = 8
@@ -33,23 +31,15 @@ final class RealMoldDetectionService: MoldDetectionService {
         generator.requestedTimeToleranceAfter = .zero
 
         var findings: [Finding] = []
-        var hasWindow = false
-        var hasAC = false
 
         let sampleCount = max(1, Int(durationSeconds / sampleInterval))
         for index in 0..<sampleCount {
             let time = CMTime(seconds: Double(index) * sampleInterval, preferredTimescale: 600)
             guard let cgImage = try? generator.copyCGImage(at: time, actualTime: nil) else { continue }
 
-            if let windowACDetector {
-                let detections = windowACDetector.detect(in: cgImage)
-                if detections.contains(where: { $0.label == "AC" }) { hasAC = true }
-                if detections.contains(where: { $0.label == "Window" }) { hasWindow = true }
-            }
-
-            guard let moldDampDetector, findings.count < maxFindings else { continue }
+            guard let moldDetector, findings.count < maxFindings else { continue }
             let uiImage = UIImage(cgImage: cgImage)
-            for detection in moldDampDetector.detect(in: cgImage) {
+            for detection in moldDetector.detect(in: cgImage) {
                 guard let findingClass = FindingClass(rawValue: detection.label.uppercased()) else { continue }
                 let box = detection.uiKitBoundingBox
                 let isDuplicate = findings.contains { existing in
@@ -65,21 +55,14 @@ final class RealMoldDetectionService: MoldDetectionService {
             }
         }
 
-        let ventilationPenalty = (hasWindow ? 0 : 10) + (hasAC ? 0 : 5)
-        let baseScore = min(95, findings.count * 12 + ventilationPenalty)
+        let baseScore = min(95, findings.count * 12)
         let riskLevel = RiskLevel.level(forScore: baseScore)
-        let ventilationWarning = (!hasWindow && !hasAC)
-            ? "Ruangan ini nyaris tidak punya jalan keluar udara. Risiko bisa memburuk lebih cepat dari perkiraan."
-            : nil
 
         return RoomInspection(
             roomType: roomType,
             riskLevel: riskLevel,
             riskScore: baseScore,
             findings: findings,
-            ventilationWarning: ventilationWarning,
-            hasWindow: hasWindow,
-            hasAC: hasAC,
             videoURL: videoURL,
             date: Date()
         )

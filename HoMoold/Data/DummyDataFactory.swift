@@ -36,10 +36,9 @@ enum DummyDataFactory {
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 1),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .high, riskScore: 82, findings: nuturaleBedroomFindings,
-                                ventilationWarning: "Ruangan ini nyaris tidak punya jalan keluar udara. Risiko bisa memburuk lebih cepat dari perkiraan.",
-                                hasWindow: true, hasAC: false, videoURL: nil, date: today),
+                                videoURL: nil, date: today),
                 RoomInspection(roomType: .bathroom, riskLevel: .medium, riskScore: 58, findings: nuturaleBathroomFindings,
-                                ventilationWarning: nil, hasWindow: false, hasAC: false, videoURL: nil, date: daysAgo(1)),
+                                videoURL: nil, date: daysAgo(1)),
             ]
         )
 
@@ -62,9 +61,9 @@ enum DummyDataFactory {
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 3),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .medium, riskScore: 52, findings: studentisBedroomFindings,
-                                ventilationWarning: nil, hasWindow: true, hasAC: true, videoURL: nil, date: daysAgo(32)),
+                                videoURL: nil, date: daysAgo(32)),
                 RoomInspection(roomType: .bathroom, riskLevel: .medium, riskScore: 61, findings: studentisBathroomFindings,
-                                ventilationWarning: nil, hasWindow: false, hasAC: false, videoURL: nil, date: daysAgo(32)),
+                                videoURL: nil, date: daysAgo(32)),
             ]
         )
 
@@ -84,10 +83,9 @@ enum DummyDataFactory {
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 5),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .high, riskScore: 76, findings: echantoBedroomFindings,
-                                ventilationWarning: "Jendela kamar ini kecil dan jarang dibuka — sirkulasi udaranya minim.",
-                                hasWindow: true, hasAC: false, videoURL: nil, date: daysAgo(4)),
+                                videoURL: nil, date: daysAgo(4)),
                 RoomInspection(roomType: .bathroom, riskLevel: .low, riskScore: 18, findings: echantoBathroomFindings,
-                                ventilationWarning: nil, hasWindow: true, hasAC: false, videoURL: nil, date: daysAgo(4)),
+                                videoURL: nil, date: daysAgo(4)),
             ]
         )
 
@@ -102,7 +100,7 @@ enum DummyDataFactory {
             thumbnail: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 6),
             rooms: [
                 RoomInspection(roomType: .bedroom, riskLevel: .low, riskScore: 24, findings: meilaniFindings,
-                                ventilationWarning: nil, hasWindow: true, hasAC: true, videoURL: nil, date: daysAgo(9)),
+                                videoURL: nil, date: daysAgo(9)),
             ]
         )
 
@@ -122,8 +120,7 @@ enum DummyDataFactory {
             thumbnail: PlaceholderImageFactory.roomImage(for: .bathroom, seed: 7),
             rooms: [
                 RoomInspection(roomType: .bathroom, riskLevel: .high, riskScore: 88, findings: bintangBathroomFindings,
-                                ventilationWarning: "Kamar mandi ini tidak punya ventilasi ke luar sama sekali — udara lembap terjebak di dalam.",
-                                hasWindow: false, hasAC: false, videoURL: nil, date: daysAgo(2)),
+                                videoURL: nil, date: daysAgo(2)),
             ]
         )
 

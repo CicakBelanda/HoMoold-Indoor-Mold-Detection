@@ -3,9 +3,9 @@
 //  HoMoold
 //
 //  Wrapper AVCaptureSession untuk rekam video sungguhan di layar "Rekam Video".
-//  Selain merekam ke file (buat disimpan/preview), sesi ini juga jalanin dua
-//  model YOLO (MoldDamp, WindowAC) secara live lewat AVCaptureVideoDataOutput,
-//  buat nge-drive panduan adaptif (lihat GuidedRecordingController).
+//  Selain merekam ke file (buat disimpan/preview), sesi ini juga jalanin model
+//  deteksi jamur secara live lewat AVCaptureVideoDataOutput, buat nge-drive
+//  panduan adaptif (lihat GuidedRecordingController).
 //
 //  AVCaptureSession harus dikonfigurasi/dijalankan di luar main thread, tapi
 //  CameraService sendiri @MainActor (buat @Published). Supaya closure di
@@ -87,9 +87,8 @@ private final class SessionController: NSObject, @unchecked Sendable {
     private var recordingCompletion: (@Sendable (URL?, Error?) -> Void)?
     private var onLiveDetections: (@Sendable ([LiveDetection]) -> Void)?
 
-    // TODO: ganti/tambah threshold per model kalau hasil training baru punya karakteristik beda.
-    private let windowACDetector = LiveObjectDetector(modelName: "WindowAC")
-    private let moldDampDetector = LiveObjectDetector(modelName: "MoldDamp")
+    // TODO: ganti threshold kalau hasil training baru punya karakteristik beda.
+    private let moldDetector = MoldDetector(modelName: "MoldDamp")
     private var lastDetectionTime = Date.distantPast
     private let detectionInterval: TimeInterval = 0.35
 
@@ -167,14 +166,10 @@ extension SessionController: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         // Buffer sudah diputar tegak lewat `videoRotationAngle = 90` di connection-nya
         // (lihat configureAndStart), jadi orientasinya buat Vision sudah `.up` — bukan
-        // `.right` lagi. Sebelumnya dobel-rotasi di sini bikin frame yang dikirim ke
-        // model jadi miring, kemungkinan besar itu sebab AC/jendela suka gagal kedeteksi.
+        // `.right` lagi.
         var combined: [LiveDetection] = []
-        if let windowACDetector {
-            combined += windowACDetector.detect(in: pixelBuffer, orientation: .up)
-        }
-        if let moldDampDetector {
-            combined += moldDampDetector.detect(in: pixelBuffer, orientation: .up)
+        if let moldDetector {
+            combined += moldDetector.detect(in: pixelBuffer, orientation: .up)
         }
         onLiveDetections?(combined)
     }

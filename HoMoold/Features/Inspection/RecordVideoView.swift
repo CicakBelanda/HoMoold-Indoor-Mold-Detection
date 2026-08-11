@@ -9,14 +9,9 @@ import SwiftUI
 struct RecordVideoView: View {
     @ObservedObject var flow: InspectionFlowState
     @StateObject private var camera = CameraService()
-    @StateObject private var guide: GuidedRecordingController
+    @StateObject private var guide = GuidedRecordingController()
 
     private let tickTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
-    init(flow: InspectionFlowState) {
-        self.flow = flow
-        _guide = StateObject(wrappedValue: GuidedRecordingController(roomType: flow.roomType))
-    }
 
     var body: some View {
         ZStack {
@@ -36,9 +31,7 @@ struct RecordVideoView: View {
                 GuidedInstructionBar(
                     stepIndex: guide.stepIndex,
                     totalSteps: guide.totalSteps,
-                    instructionText: guide.instructionText,
-                    canSkip: guide.canSkip,
-                    onSkip: { guide.skip() }
+                    instructionText: guide.instructionText
                 )
                 Spacer()
             }

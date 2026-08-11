@@ -36,7 +36,7 @@ final class ReportViewModel: ObservableObject {
     }
 
     var riskExplanation: String {
-        "Skor ini dihitung dari tiga hal: kondisi kerusakan/lembap yang terlihat, seberapa baik ventilasi ruangan (jendela, AC, arah bukaan), dan kondisi cuaca daerah ini. Skor tinggi berarti ruangan berisiko lembap terus-menerus meskipun jamurnya belum kelihatan."
+        "Skor ini dihitung dari kondisi kerusakan/lembap yang terlihat dan kondisi cuaca daerah ini. Skor tinggi berarti ruangan berisiko lembap terus-menerus meskipun jamurnya belum kelihatan."
     }
 
     /// Satu paragraf dampak kesehatan (bukan tabel jangka pendek/panjang) —
@@ -60,9 +60,6 @@ final class ReportViewModel: ObservableObject {
 
     var preventionTips: [PreventionTip] {
         var tips: [PreventionTip] = []
-        if inspection.ventilationWarning != nil {
-            tips.append(PreventionTip(icon: "wind", label: "Perbaiki ventilasi ruangan"))
-        }
         tips.append(PreventionTip(icon: "magnifyingglass", label: "Cari sumber lembapnya"))
         tips.append(PreventionTip(icon: "tshirt", label: "Jangan jemur baju di kamar ini"))
         tips.append(PreventionTip(icon: "arrow.left.and.right", label: "Geser furnitur dari dinding lembap"))
