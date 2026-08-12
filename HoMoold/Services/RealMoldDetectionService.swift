@@ -3,7 +3,8 @@
 //  HoMoold
 //
 //  Implementasi asli MoldDetectionService — pakai model YOLO yang sudah
-//  dilatih (MoldDamp.mlpackage, tapi cuma kelas "mold" yang dipakai — lihat
+//  dilatih (nama file model-nya bisa MoldDamp ATAU MoldDampSeg tergantung
+//  export mana yang lagi di-bundle, cuma kelas "mold" yang dipakai — lihat
 //  MoldDetector), di-convert dari .pt lewat ultralytics export ke CoreML.
 //  Video hasil rekaman di-sample tiap setengah detik, tiap frame dijalankan
 //  lewat model, hasilnya digabung jadi Finding + skor risiko.
@@ -15,7 +16,7 @@ import UIKit
 import Vision
 
 final class RealMoldDetectionService: MoldDetectionService {
-    private let moldDetector = MoldDetector(modelName: "MoldDamp", confidenceThreshold: 0.35)
+    private let moldDetector = MoldDetector(modelName: "MoldDampSeg", confidenceThreshold: 0.35)
 
     private let sampleInterval: Double = 0.5
     private let maxFindings = 8

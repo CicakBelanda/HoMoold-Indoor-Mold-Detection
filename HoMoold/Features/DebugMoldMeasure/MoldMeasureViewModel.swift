@@ -4,14 +4,15 @@
 //
 //  Layar test terpisah — BUKAN bagian dari flow inspeksi asli. Tujuannya cuma
 //  buat ngetes: bisa gak model + depth LiDAR ngasih angka luas jamur yang
-//  masuk akal. Tiap ~0.4 detik: ambil ARFrame terbaru, jalanin deteksi (bounding
-//  box aja, bukan mask — lebih ringan & stabil) + kalkulasi luas dari depth di
-//  dalam box, publish hasilnya buat MoldMeasureView gambar box + angka live.
+//  masuk akal. Tiap ~0.4 detik: ambil ARFrame terbaru, jalanin deteksi
+//  (dengan mask kalau model-nya segmentasi — lihat MoldDetector) + kalkulasi
+//  luas dari depth di dalam mask/box, publish hasilnya buat MoldMeasureView
+//  gambar overlay + angka live.
 //
-//  Kotaknya di-smoothing (lerp ke posisi baru, bukan lompat langsung) dan ada
-//  grace period sebelum kotak dihapus kalau sempat kelewat sekali/dua kali —
-//  ini yang bikin box gak lagi "berganti-ganti"/flicker tiap tick kayak
-//  sebelumnya.
+//  Posisi box di-smoothing (lerp ke posisi baru, bukan lompat langsung) dan
+//  ada grace period sebelum box dihapus kalau sempat kelewat sekali/dua kali
+//  — ini yang bikin box gak lagi "berganti-ganti"/flicker tiap tick. Mask-nya
+//  sendiri gak di-smoothing (cukup stabil secara visual di throttle 0.4s).
 //
 
 import ARKit
@@ -22,6 +23,7 @@ struct TrackedDetection: Identifiable {
     let id: UUID
     var findingClass: FindingClass
     var box: CGRect // UIKit-style normalized (origin kiri-atas), sudah di-smoothing
+    var mask: SegmentationInstance? // ada kalau model-nya segmentasi & mask-nya gak kosong
     var areaText: String?
     var rangeWarning: String?
     var missedTicks: Int
@@ -33,10 +35,17 @@ final class MoldMeasureViewModel: ObservableObject {
     @Published var isFrozen = false
     @Published private(set) var isWaitingForDepth = false
     @Published private(set) var modelUnavailable = false
+    /// Ringkasan tick terakhir dari MoldDetector, ditampilin langsung di layar
+    /// (bukan cuma console) biar bisa didiagnosa dari HP tanpa Xcode.
+    @Published private(set) var debugText = ""
 
     let arSession = ARDepthCaptureSession()
 
-    private let detector = MoldDetector(modelName: "MoldDamp", confidenceThreshold: 0.35)
+    // Threshold sengaja diturunin jauh (harusnya 0.35) — ini murni buat
+    // diagnosa: kalau di sini aja masih gak ada yang muncul, berarti masalahnya
+    // bukan soal confidence/threshold, ada yang lebih dasar gak jalan. Naikin
+    // lagi begitu udah kelihatan overlay muncul.
+    private let detector = MoldDetector(modelName: "MoldDampSeg", confidenceThreshold: 0.02)
     private var timer: Timer?
     private var isProcessing = false
     private let tickInterval: TimeInterval = 0.4
@@ -70,6 +79,14 @@ final class MoldMeasureViewModel: ObservableObject {
         isFrozen.toggle()
     }
 
+    private struct FreshDetection {
+        let findingClass: FindingClass
+        let box: CGRect
+        let mask: SegmentationInstance?
+        let areaText: String?
+        let rangeWarning: String?
+    }
+
     private func tick() {
         guard !isFrozen, !isProcessing, let detector, let frame = arSession.currentFrame() else { return }
         guard let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth else {
@@ -87,22 +104,33 @@ final class MoldMeasureViewModel: ObservableObject {
             // Device dipegang portrait, tapi capturedImage itu buffer sensor mentah
             // (landscape) — orientation .right biar Vision balikin koordinat yang
             // udah tegak, sama seperti konvensi ARKit+Vision pada umumnya.
-            let raw = detector.detect(in: pixelBuffer, orientation: .right)
+            let raw = detector.detectWithMasks(in: pixelBuffer, orientation: .right)
+            let diagnostics = detector.lastDiagnostics
 
-            var results: [(findingClass: FindingClass, box: CGRect, areaText: String?, rangeWarning: String?)] = []
-            for detection in raw {
-                guard let findingClass = FindingClass(rawValue: detection.label.uppercased()) else { continue }
-                let box = detection.uiKitBoundingBox
+            var results: [FreshDetection] = []
+            for instance in raw {
+                guard let findingClass = FindingClass(rawValue: instance.label.uppercased()) else { continue }
+                let box = CGRect(
+                    x: instance.boundingBox.minX,
+                    y: 1 - instance.boundingBox.maxY,
+                    width: instance.boundingBox.width,
+                    height: instance.boundingBox.height
+                )
+                let hasMask = instance.maskPixelCount > 0
+
+                let measurement = hasMask
+                    ? ARAreaCalculator.measure(
+                        mask: instance, depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
+                        intrinsics: intrinsics, imageResolution: imageResolution
+                    )
+                    : ARAreaCalculator.measure(
+                        box: box, depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
+                        intrinsics: intrinsics, imageResolution: imageResolution
+                    )
 
                 var areaText: String?
                 var rangeWarning: String?
-                if let measurement = ARAreaCalculator.measure(
-                    box: box,
-                    depthMap: depthData.depthMap,
-                    confidenceMap: depthData.confidenceMap,
-                    intrinsics: intrinsics,
-                    imageResolution: imageResolution
-                ) {
+                if let measurement {
                     if measurement.depthMeters < Self.minRangeMeters {
                         rangeWarning = "Terlalu dekat — jauhkan kamera dikit"
                     } else if measurement.depthMeters > Self.maxRangeMeters {
@@ -111,21 +139,27 @@ final class MoldMeasureViewModel: ObservableObject {
                         areaText = String(format: "%.0f cm²", measurement.areaCM2)
                     }
                 }
-                results.append((findingClass, box, areaText, rangeWarning))
+
+                results.append(FreshDetection(
+                    findingClass: findingClass, box: box, mask: hasMask ? instance : nil,
+                    areaText: areaText, rangeWarning: rangeWarning
+                ))
             }
 
             await MainActor.run {
                 guard let self else { return }
                 self.applySmoothing(results)
+                self.debugText = diagnostics
                 self.isProcessing = false
             }
         }
     }
 
     /// Matching sederhana berdasar kelas + jarak center ke deteksi tick sebelumnya.
-    /// Yang ke-match di-lerp ke posisi baru (bukan lompat langsung); yang gak
-    /// ke-match dikasih grace period beberapa tick sebelum bener-bener dihapus.
-    private func applySmoothing(_ fresh: [(findingClass: FindingClass, box: CGRect, areaText: String?, rangeWarning: String?)]) {
+    /// Posisi box yang ke-match di-lerp ke posisi baru (bukan lompat langsung);
+    /// yang gak ke-match dikasih grace period beberapa tick sebelum bener-bener
+    /// dihapus.
+    private func applySmoothing(_ fresh: [FreshDetection]) {
         var matchedIndices = Set<Int>()
         var updated: [TrackedDetection] = []
 
@@ -145,6 +179,7 @@ final class MoldMeasureViewModel: ObservableObject {
                 matchedIndices.insert(bestIndex)
                 let match = fresh[bestIndex]
                 existing.box = lerp(existing.box, match.box, Self.smoothingFactor)
+                existing.mask = match.mask
                 existing.areaText = match.areaText
                 existing.rangeWarning = match.rangeWarning
                 existing.missedTicks = 0
@@ -162,6 +197,7 @@ final class MoldMeasureViewModel: ObservableObject {
                 id: UUID(),
                 findingClass: detection.findingClass,
                 box: detection.box,
+                mask: detection.mask,
                 areaText: detection.areaText,
                 rangeWarning: detection.rangeWarning,
                 missedTicks: 0

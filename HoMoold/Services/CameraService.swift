@@ -88,7 +88,7 @@ private final class SessionController: NSObject, @unchecked Sendable {
     private var onLiveDetections: (@Sendable ([LiveDetection]) -> Void)?
 
     // TODO: ganti threshold kalau hasil training baru punya karakteristik beda.
-    private let moldDetector = MoldDetector(modelName: "MoldDamp")
+    private let moldDetector = MoldDetector(modelName: "MoldDampSeg")
     private var lastDetectionTime = Date.distantPast
     private let detectionInterval: TimeInterval = 0.35
 

@@ -2,32 +2,25 @@
 //  MoldDetector.swift
 //  HoMoold
 //
-//  Wrapper Vision + CoreML buat MoldDamp (YOLO, di-export dari .pt lewat
-//  ultralytics ke .mlpackage, task=detect). Cuma kelas "mold" yang dipakai —
-//  lihat catatan di bawah.
+//  Wrapper Vision + CoreML buat model deteksi jamur (di-export dari .pt lewat
+//  ultralytics ke .mlpackage). Adaptif ke DUA bentuk export yang udah pernah
+//  dipakai di project ini — task=detect (mis. MoldDamp, 960x960, tensor
+//  [1,6,N] — 4 box + 2 kelas, TANPA mask) dan task=segment (mis. MoldDampSeg,
+//  640x640, tensor [1,38,N] — 4 box + 2 kelas + 32 koefisien mask, plus
+//  tensor proto mask [1,32,H,W] terpisah). Bedanya cuma dari BENTUK output
+//  yang dibaca run-time (lihat `decode`), bukan hardcode nama/ukuran model —
+//  jadi kalau modelnya di-swap lagi antara dua bentuk ini, gak perlu ubah
+//  kode lagi.
 //
-//  Export ini TIDAK dapet NMS pipeline dari Ultralytics (metadata export-nya
-//  nunjukin `nms=False`), jadi Vision gak bisa auto-decode ke
-//  VNRecognizedObjectObservation. Box decode + NMS dikerjain manual di sini.
-//
-//  Output model (dikonfirmasi lewat inspeksi .mlpackage, input 960x960):
-//  satu tensor deteksi, shape [1, 6, 18900]: per anchor = 4 box (cx,cy,w,h,
-//  piksel 960-space, sudah didecode) + 2 skor kelas — {0: damp, 1: mold},
-//  sudah disigmoid. Gak ada koefisien mask (task=detect, bukan segment).
-//  Tensor dicari lewat jumlah dimensi (== 3), bukan nama fitur — nama
-//  aslinya ("var_1225" dst.) di-generate coremltools dan bisa berubah tiap
-//  re-export.
+//  Kedua bentuk export TIDAK dapet NMS pipeline dari Ultralytics kalau
+//  di-export dengan `nms=False` (dikonfirmasi lewat metadata `.mlpackage`,
+//  key `args`) — jadi Vision gak bisa auto-decode ke
+//  VNRecognizedObjectObservation. Box decode + NMS dikerjain manual di sini,
+//  buat kedua bentuk.
 //
 //  App-nya cuma mau deteksi jamur, bukan "lembap" — jadi channel kelas
 //  "damp" (index 0) di-skip total di decode, model-nya efektif dipakai
 //  single-class walau dilatih 2 kelas.
-//
-//  PENTING kalau model di-ganti/re-export lagi: nama file ("MoldDamp"),
-//  ukuran input (960), dan jumlah channel (6 = 4 box + 2 kelas, TANPA mask)
-//  semuanya di-hardcode di bawah — kalau modelnya beda arsitektur/ukuran,
-//  konstanta ini harus disesuaikan lagi (lihat log `[MoldDetector]` di
-//  console buat verifikasi cepat: "channel count mismatch" artinya
-//  konstanta di sini udah gak cocok sama model yang di-bundle).
 //
 
 import CoreML
@@ -37,22 +30,35 @@ final class MoldDetector: @unchecked Sendable {
     private let request: VNCoreMLRequest
     private let confidenceThreshold: Float
     private let iouThreshold: Float = 0.45
+    /// Ukuran input model (persegi — 640 buat MoldDampSeg, 960 buat MoldDamp,
+    /// dst.), dibaca dari model description pas load, bukan di-hardcode.
+    private let inputSize: CGFloat
+
+    /// Ringkasan tick terakhir buat ditampilin di layar (bukan cuma console) —
+    /// biar bisa didiagnosa dari HP langsung tanpa perlu buka Xcode. Ditulis di
+    /// background queue lewat `decode`, dibaca setelahnya di call site yang sama
+    /// (bukan concurrent read/write), jadi aman walau bukan actor-isolated.
+    private(set) var lastDiagnostics = "belum ada frame diproses"
 
     private static let trainedClassCount = 2 // {0: damp, 1: mold} — cuma index 1 yang dipakai
     private static let moldClassIndex = 1
     private static let moldLabel = "mold"
-    private static let inputSize: CGFloat = 960
+    /// Jumlah prototype mask standar YOLO-seg (Ultralytics) — dipakai buat
+    /// nebak apakah tensor deteksi-nya bentuk "segment" (ada koefisien mask)
+    /// atau "detect" biasa (gak ada), lihat `decode`.
+    private static let standardMaskCoefficientCount = 32
 
     /// Nil kalau model belum ada di bundle — caller harus handle nil dengan
     /// graceful degradation, bukan crash.
     init?(modelName: String, confidenceThreshold: Float = 0.35) {
-        // .cpuOnly: model sebelumnya (export coremltools 9.0 dari torch 2.13,
-        // "not tested with coremltools" waktu export) bikin runtime CoreML
-        // crash SIGABRT ("MPSGraphExecutable ... MLIR pass manager failed")
-        // kalau dijalanin lewat compute unit default (.all, coba ANE/GPU
-        // dulu). Dipertahankan di sini sebagai default aman — kalau model
-        // barunya ternyata gak kena masalah yang sama, ini cuma bikin
-        // inference sedikit lebih lambat, bukan salah.
+        // .cpuOnly: model-model yang udah dicoba di project ini (export
+        // coremltools 9.0 dari torch 2.13, "not tested with coremltools"
+        // waktu export) bikin runtime CoreML crash SIGABRT
+        // ("MPSGraphExecutable ... MLIR pass manager failed") kalau
+        // dijalanin lewat compute unit default (.all, coba ANE/GPU dulu).
+        // Dipertahankan sebagai default aman — kalau model barunya ternyata
+        // gak kena masalah yang sama, ini cuma bikin inference sedikit lebih
+        // lambat, bukan salah.
         let config = MLModelConfiguration()
         config.computeUnits = .cpuOnly
 
@@ -71,7 +77,14 @@ final class MoldDetector: @unchecked Sendable {
             print("[MoldDetector] VNCoreMLModel wrap failed.")
             return nil
         }
-        print("[MoldDetector] loaded \(modelName), inputs: \(mlModel.modelDescription.inputDescriptionsByName.keys), "
+        guard let inputDescription = mlModel.modelDescription.inputDescriptionsByName.values.first,
+              inputDescription.type == .image,
+              let imageConstraint = inputDescription.imageConstraint else {
+            print("[MoldDetector] model input bukan image type, gak bisa baca ukurannya.")
+            return nil
+        }
+        self.inputSize = CGFloat(imageConstraint.pixelsWide)
+        print("[MoldDetector] loaded \(modelName), input size \(imageConstraint.pixelsWide)x\(imageConstraint.pixelsHigh), "
             + "outputs: \(mlModel.modelDescription.outputDescriptionsByName.keys)")
 
         let req = VNCoreMLRequest(model: visionModel)
@@ -80,69 +93,114 @@ final class MoldDetector: @unchecked Sendable {
         self.confidenceThreshold = confidenceThreshold
     }
 
-    /// Sinkron — panggil dari background queue, bukan main thread.
+    /// Sinkron — panggil dari background queue, bukan main thread. Box aja,
+    /// mask (kalau ada) diabaikan — lebih ringan buat live guidance.
     func detect(in pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation) -> [LiveDetection] {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
-        return decode(handler)
+        return decode(handler, wantMasks: false).map(\.asLiveDetection)
     }
 
     func detect(in cgImage: CGImage) -> [LiveDetection] {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
-        return decode(handler)
+        return decode(handler, wantMasks: false).map(\.asLiveDetection)
+    }
+
+    /// Versi lengkap dengan mask piksel — dipakai buat overlay + kalkulasi
+    /// luas LiDAR (lihat ARAreaCalculator). Kalau model yang di-bundle gak
+    /// punya output proto mask (task=detect biasa), mask-nya bakal kosong
+    /// (maskWidth/maskHeight 0) — caller harus fallback ke box aja.
+    func detectWithMasks(in pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation) -> [SegmentationInstance] {
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+        return decode(handler, wantMasks: true).map(\.asSegmentationInstance)
     }
 
     // MARK: - Decode pipeline
 
-    private struct RawDetection {
-        let boxPixels: CGRect // origin kiri-atas, koordinat input model (Self.inputSize x Self.inputSize)
+    private struct Decoded {
+        let label: String
         let confidence: Float
-    }
+        let visionBoundingBox: CGRect
+        let mask: (values: [Bool], width: Int, height: Int)?
 
-    private func decode(_ handler: VNImageRequestHandler) -> [LiveDetection] {
-        do {
-            try handler.perform([request])
-        } catch {
-            print("[MoldDetector] Vision request failed: \(error)")
-            return []
-        }
-        guard let results = request.results else {
-            print("[MoldDetector] request.results is nil")
-            return []
-        }
-        guard let observations = results as? [VNCoreMLFeatureValueObservation] else {
-            print("[MoldDetector] unexpected result type: \(type(of: results)) — \(results)")
-            return []
-        }
-        let arrays = observations.compactMap(\.featureValue.multiArrayValue)
-        guard let detectionArray = arrays.first(where: { $0.shape.count == 3 }) else {
-            print("[MoldDetector] no 3D output found. Got shapes: \(arrays.map { $0.shape.map(\.intValue) })")
-            return []
+        var asLiveDetection: LiveDetection {
+            LiveDetection(label: label, confidence: confidence, boundingBox: visionBoundingBox)
         }
 
-        let kept = nonMaxSuppress(decodeDetections(detectionArray))
-        return kept.map { detection in
-            LiveDetection(
-                label: Self.moldLabel,
-                confidence: detection.confidence,
-                boundingBox: visionBoundingBox(for: detection.boxPixels)
+        var asSegmentationInstance: SegmentationInstance {
+            SegmentationInstance(
+                label: label,
+                confidence: confidence,
+                boundingBox: visionBoundingBox,
+                mask: mask?.values ?? [],
+                maskWidth: mask?.width ?? 0,
+                maskHeight: mask?.height ?? 0
             )
         }
     }
 
-    private func decodeDetections(_ array: MLMultiArray) -> [RawDetection] {
+    private struct RawDetection {
+        let boxPixels: CGRect // origin kiri-atas, koordinat input model (inputSize x inputSize)
+        let confidence: Float
+        let maskCoefficients: [Float] // kosong kalau model-nya gak punya proto mask
+    }
+
+    private func decode(_ handler: VNImageRequestHandler, wantMasks: Bool) -> [Decoded] {
+        do {
+            try handler.perform([request])
+        } catch {
+            lastDiagnostics = "Vision request GAGAL: \(error.localizedDescription)"
+            print("[MoldDetector] \(lastDiagnostics)")
+            return []
+        }
+        guard let results = request.results else {
+            lastDiagnostics = "request.results nil — Vision gak balikin apa-apa"
+            print("[MoldDetector] \(lastDiagnostics)")
+            return []
+        }
+        guard let observations = results as? [VNCoreMLFeatureValueObservation] else {
+            lastDiagnostics = "hasil Vision tipe gak terduga: \(type(of: results))"
+            print("[MoldDetector] \(lastDiagnostics) — \(results)")
+            return []
+        }
+        let arrays = observations.compactMap(\.featureValue.multiArrayValue)
+        guard let detectionArray = arrays.first(where: { $0.shape.count == 3 }) else {
+            lastDiagnostics = "gak ketemu output 3D. Shape yang ada: \(arrays.map { $0.shape.map(\.intValue) })"
+            print("[MoldDetector] \(lastDiagnostics)")
+            return []
+        }
+        // Proto mask tensor (task=segment) selalu 4D [1, 32, H, W]; model
+        // task=detect biasa gak punya tensor ini sama sekali.
+        let protoArray = arrays.first(where: { $0.shape.count == 4 })
+        let maskCoefficientCount = protoArray != nil ? Self.standardMaskCoefficientCount : 0
+
+        let kept = nonMaxSuppress(decodeDetections(detectionArray, maskCoefficientCount: maskCoefficientCount))
+        return kept.map { detection in
+            Decoded(
+                label: Self.moldLabel,
+                confidence: detection.confidence,
+                visionBoundingBox: visionBoundingBox(for: detection.boxPixels),
+                mask: (wantMasks && !detection.maskCoefficients.isEmpty)
+                    ? protoArray.map { decodeMask(coefficients: detection.maskCoefficients, proto: $0, box: detection.boxPixels) }
+                    : nil
+            )
+        }
+    }
+
+    private func decodeDetections(_ array: MLMultiArray, maskCoefficientCount: Int) -> [RawDetection] {
         let shape = array.shape.map(\.intValue)
         guard shape.count == 3 else { return [] }
         let channelCount = shape[1]
         let anchorCount = shape[2]
-        let numClasses = channelCount - 4
+        let numClasses = channelCount - 4 - maskCoefficientCount
         guard numClasses == Self.trainedClassCount else {
-            print("[MoldDetector] channel count mismatch: got \(channelCount) channels "
-                + "(expected 4 + \(Self.trainedClassCount) = \(4 + Self.trainedClassCount), no mask channels) "
-                + "— model output shape changed?")
+            lastDiagnostics = "channel count mismatch: \(channelCount) channels, asumsi \(maskCoefficientCount) "
+                + "mask coeffs -> \(numClasses) kelas (harusnya \(Self.trainedClassCount)) — shape model berubah?"
+            print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
         guard array.dataType == .float32 else {
-            print("[MoldDetector] unexpected dataType: \(array.dataType.rawValue), expected float32")
+            lastDiagnostics = "dataType gak terduga: \(array.dataType.rawValue), harusnya float32"
+            print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
 
@@ -166,14 +224,21 @@ final class MoldDetector: @unchecked Sendable {
             let h = CGFloat(value(3, anchor))
             let box = CGRect(x: cx - w / 2, y: cy - h / 2, width: w, height: h)
 
-            results.append(RawDetection(boxPixels: box, confidence: moldScore))
+            var coefficients: [Float] = []
+            if maskCoefficientCount > 0 {
+                coefficients = (0..<maskCoefficientCount).map { value(4 + numClasses + $0, anchor) }
+            }
+
+            results.append(RawDetection(boxPixels: box, confidence: moldScore, maskCoefficients: coefficients))
         }
         // Log walau gak ada yang lolos threshold — biar keliatan model-nya "hampir yakin"
         // (skor deket threshold, tuning issue) vs "gak ngerti sama sekali" (skor deket 0,
         // kemungkinan besar bug preprocessing/orientasi, bukan cuma soal threshold).
-        print("[MoldDetector] \(anchorCount) anchors, max mold score = "
+        let summary = "\(anchorCount) anchors, mask coeffs = \(maskCoefficientCount), max mold score = "
             + String(format: "%.3f", maxScoreSeen) + ", threshold = \(confidenceThreshold), "
-            + "kept before NMS = \(results.count)")
+            + "kept before NMS = \(results.count)"
+        print("[MoldDetector] \(summary)")
+        lastDiagnostics = summary
         return results
     }
 
@@ -198,15 +263,51 @@ final class MoldDetector: @unchecked Sendable {
         return Float(intersectionArea / unionArea)
     }
 
-    /// Box piksel (Self.inputSize-space, origin kiri-atas) -> normalized
-    /// koordinat Vision (origin kiri-bawah, y ke atas) — sama seperti yang
-    /// dulu dikasih otomatis oleh VNRecognizedObjectObservation, biar
-    /// `LiveDetection` konsisten di seluruh app.
+    /// Box piksel (inputSize-space, origin kiri-atas) -> normalized koordinat
+    /// Vision (origin kiri-bawah, y ke atas) — sama seperti yang dulu dikasih
+    /// otomatis oleh VNRecognizedObjectObservation, biar `LiveDetection`
+    /// konsisten di seluruh app.
     private func visionBoundingBox(for boxPixels: CGRect) -> CGRect {
-        let xMinN = boxPixels.minX / Self.inputSize
-        let yMinTopN = boxPixels.minY / Self.inputSize
-        let widthN = boxPixels.width / Self.inputSize
-        let heightN = boxPixels.height / Self.inputSize
+        let xMinN = boxPixels.minX / inputSize
+        let yMinTopN = boxPixels.minY / inputSize
+        let widthN = boxPixels.width / inputSize
+        let heightN = boxPixels.height / inputSize
         return CGRect(x: xMinN, y: 1 - yMinTopN - heightN, width: widthN, height: heightN)
+    }
+
+    /// mask = sigmoid(coeff . proto), di-crop ke box-nya sendiri (di luar box
+    /// dianggap false biar gak nge-leak ke instance lain yang overlap).
+    private func decodeMask(coefficients: [Float], proto: MLMultiArray, box: CGRect) -> (values: [Bool], width: Int, height: Int) {
+        let shape = proto.shape.map(\.intValue)
+        guard shape.count == 4, proto.dataType == .float32 else { return ([], 0, 0) }
+        let channelCount = shape[1]
+        let height = shape[2]
+        let width = shape[3]
+        guard channelCount == coefficients.count else { return ([], 0, 0) }
+
+        let channelStride = proto.strides[1].intValue
+        let rowStride = proto.strides[2].intValue
+        let colStride = proto.strides[3].intValue
+        let ptr = proto.dataPointer.bindMemory(to: Float32.self, capacity: proto.count)
+
+        let scale = CGFloat(width) / inputSize // proto biasanya 1/4 resolusi input model
+        let boxInProto = CGRect(
+            x: box.minX * scale, y: box.minY * scale,
+            width: box.width * scale, height: box.height * scale
+        )
+
+        var values = [Bool](repeating: false, count: width * height)
+        for y in 0..<height {
+            guard CGFloat(y) >= boxInProto.minY, CGFloat(y) < boxInProto.maxY else { continue }
+            for x in 0..<width {
+                guard CGFloat(x) >= boxInProto.minX, CGFloat(x) < boxInProto.maxX else { continue }
+                var sum: Float = 0
+                for c in 0..<channelCount {
+                    sum += coefficients[c] * ptr[c * channelStride + y * rowStride + x * colStride]
+                }
+                values[y * width + x] = (1 / (1 + exp(-sum))) > 0.5
+            }
+        }
+        return (values, width, height)
     }
 }

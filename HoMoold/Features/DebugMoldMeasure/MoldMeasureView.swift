@@ -2,11 +2,12 @@
 //  MoldMeasureView.swift
 //  HoMoold
 //
-//  Layar test standalone: arahkan kamera ke noda jamur/lembap, bounding
-//  box-nya digambar live di atas feed kamera, dan luasnya (cm²) muncul terus
-//  ter-update selama belum di-"Bekukan". Cuma buat validasi teknis (LiDAR +
-//  deteksi), BUKAN bagian dari flow inspeksi asli — masuknya lewat tombol
-//  debug kecil di HomeListView, bukan dari alur "+ Mulai pemeriksaan".
+//  Layar test standalone: arahkan kamera ke noda jamur, outline-nya digambar
+//  live di atas feed kamera (mask kalau model-nya segmentasi, bounding box
+//  kalau enggak — lihat TrackedDetection.mask), dan luasnya (cm²) muncul
+//  terus ter-update selama belum di-"Bekukan". Cuma buat validasi teknis
+//  (LiDAR + deteksi), BUKAN bagian dari flow inspeksi asli — masuknya lewat
+//  tombol debug kecil di HomeListView, bukan dari alur "+ Mulai pemeriksaan".
 //
 
 import SwiftUI
@@ -31,9 +32,14 @@ struct MoldMeasureView: View {
                     .ignoresSafeArea()
 
                 ForEach(viewModel.instances) { instance in
-                    BoundingBoxOverlay(findingClass: instance.findingClass, boundingBox: instance.box)
-                        .ignoresSafeArea()
-                        .animation(.linear(duration: 0.3), value: instance.box)
+                    if let mask = instance.mask {
+                        MaskOverlayView(instances: [mask])
+                            .ignoresSafeArea()
+                    } else {
+                        BoundingBoxOverlay(findingClass: instance.findingClass, boundingBox: instance.box)
+                            .ignoresSafeArea()
+                            .animation(.linear(duration: 0.3), value: instance.box)
+                    }
                 }
                 .allowsHitTesting(false)
             } else {
@@ -42,6 +48,9 @@ struct MoldMeasureView: View {
 
             VStack {
                 topBar
+                if arSession.isLiDARSupported {
+                    debugPanel
+                }
                 Spacer()
                 if let banner = statusBannerText {
                     statusBanner(banner)
@@ -57,6 +66,22 @@ struct MoldMeasureView: View {
         .onAppear { viewModel.start() }
         .onDisappear { viewModel.stop() }
         .statusBarHidden()
+    }
+
+    /// Ringkasan tiap tick (anchor count, skor mold tertinggi, threshold, dst.)
+    /// langsung di layar — biar bisa didiagnosa dari HP tanpa buka console Xcode.
+    /// Kalau tulisannya gak berubah-ubah tiap ~0.4 detik, berarti `tick()` gak
+    /// pernah kepanggil sama sekali (beda masalah lagi dari model-nya sendiri).
+    private var debugPanel: some View {
+        Text(viewModel.debugText.isEmpty ? "menunggu frame pertama..." : viewModel.debugText)
+            .font(.system(size: 11, design: .monospaced))
+            .foregroundStyle(.green)
+            .multilineTextAlignment(.leading)
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .padding(.horizontal, 12)
+            .padding(.top, 6)
     }
 
     private var statusBannerText: String? {
@@ -93,10 +118,22 @@ struct MoldMeasureView: View {
 
             Spacer()
 
-            Color.clear.frame(width: 36, height: 36)
+            detectionIndicator
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+    }
+
+    /// Titik gede yang jelas ijo/merah — jauh lebih gampang diliat sekilas
+    /// daripada baca teks angka. Ijo = ada sesuatu yang lolos threshold tick
+    /// ini (walau area-nya masih dihitung/di luar jangkauan LiDAR). Merah =
+    /// belum ada apa-apa yang lolos threshold sama sekali.
+    private var detectionIndicator: some View {
+        Circle()
+            .fill(viewModel.instances.isEmpty ? Color.red : Color.green)
+            .frame(width: 20, height: 20)
+            .overlay(Circle().stroke(.white, lineWidth: 1.5))
+            .animation(.easeInOut(duration: 0.2), value: viewModel.instances.isEmpty)
     }
 
     private func statusBanner(_ text: String) -> some View {
