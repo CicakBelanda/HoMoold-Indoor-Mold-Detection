@@ -5,20 +5,39 @@
 
 import UIKit
 
+/// Lokasi kos, diisi manual sama user di form Location (dengan prefill dari
+/// GPS kalau berhasil — lihat LocationService), bukan diam-diam auto-fill.
+struct KosLocation {
+    var region: String // provinsi
+    var city: String // kota/kabupaten
+    var district: String // kecamatan
+
+    var isEmpty: Bool { region.isEmpty && city.isEmpty && district.isEmpty }
+
+    /// Teks ringkas buat ditampilin di card/list, mis. "Kec. Cisauk, Tangerang".
+    var displayText: String {
+        let parts = [district, city].filter { !$0.isEmpty }
+        return parts.isEmpty ? "Lokasi belum diisi" : parts.joined(separator: ", ")
+    }
+}
+
 struct KosProperty: Identifiable {
     let id = UUID()
     var name: String
-    var location: String // kecamatan
+    var location: KosLocation
     var price: Int? // harga sewa (Rp/bulan), nil = belum diisi
-    var thumbnail: UIImage
     var rooms: [RoomInspection]
+
+    /// Kos dibuat dulu lewat "Save a house" (nama doang), ruangan nyusul lewat
+    /// "Tambah Ruangan" — jadi belum tentu ada foto pas properti baru dibuat.
+    /// Diambil dari ruangan pertama yang punya foto, fallback ke ilustrasi
+    /// rumah generik (lihat PlaceholderImageFactory).
+    var thumbnail: UIImage {
+        rooms.first?.thumbnail ?? PlaceholderImageFactory.houseOutline()
+    }
 
     var lastInspectionDate: Date {
         rooms.map(\.date).max() ?? Date()
-    }
-
-    var highestRiskLevel: RiskLevel? {
-        rooms.map(\.riskLevel).max { $0.severity < $1.severity }
     }
 
     var priceText: String? {

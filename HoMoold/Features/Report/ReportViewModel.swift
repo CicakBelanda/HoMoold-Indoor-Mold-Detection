@@ -9,11 +9,9 @@ import Foundation
 @MainActor
 final class ReportViewModel: ObservableObject {
     enum Source {
-        /// Hasil analisis baru, nempel ke kos yang SUDAH ADA — bisa langsung disimpan.
-        case draftExisting(propertyID: UUID)
-        /// Hasil analisis baru, kos BARU — belum ada nama/harga, jadi belum bisa disimpan
-        /// di sini. Tombol Simpan lanjut ke NewReportInfoView.
-        case pendingNaming
+        /// Hasil analisis baru, nempel ke rumah yang sudah ada — bisa langsung disimpan.
+        /// `location` ikut disimpan ke properti (rumah baru yang belum punya lokasi).
+        case draftExisting(propertyID: UUID, location: KosLocation)
         /// Lihat ulang temuan yang sudah tersimpan — read-only.
         case saved(propertyID: UUID)
     }
@@ -22,7 +20,6 @@ final class ReportViewModel: ObservableObject {
     let source: Source
     let isReadOnly: Bool
     @Published var inspection: RoomInspection
-    @Published var didSave = false
 
     init(store: AppDataStore, inspection: RoomInspection, source: Source, isReadOnly: Bool) {
         self.store = store
@@ -31,12 +28,49 @@ final class ReportViewModel: ObservableObject {
         self.isReadOnly = isReadOnly
     }
 
-    var riskTitle: String {
-        "Risiko Pertumbuhan Jamur \(inspection.riskLevel.labelID)"
-    }
-
     var riskExplanation: String {
         "Skor ini dihitung dari kondisi kerusakan/lembap yang terlihat dan kondisi cuaca daerah ini. Skor tinggi berarti ruangan berisiko lembap terus-menerus meskipun jamurnya belum kelihatan."
+    }
+
+    /// Total luas jamur yang kedeteksi, diformat "0,96 m²" — nil kalau gak ada
+    /// satu pun temuan yang berhasil diukur (LiDAR gagal baca depth-nya).
+    var totalAreaText: String? {
+        guard let cm2 = inspection.totalAreaCM2 else { return nil }
+        let m2 = cm2 / 10_000
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 2
+        formatter.decimalSeparator = ","
+        let formatted = formatter.string(from: NSNumber(value: m2)) ?? String(format: "%.2f", m2)
+        return "\(formatted) m²"
+    }
+
+    /// Ringkasan temuan visual — cuma kelas "mold" yang dideteksi model saat
+    /// ini, jadi disusun dari jumlah temuan + kondisi retak dinding yang
+    /// dilaporkan manual (bukan daftar per-kelas seperti dulu).
+    var visualFindingsText: String {
+        var lines: [String] = []
+        if !inspection.findings.isEmpty {
+            lines.append(inspection.findings.count == 1 ? "Noda jamur di 1 titik" : "Noda jamur di \(inspection.findings.count) titik")
+        }
+        if inspection.wallCrack {
+            lines.append("Ada retak dinding")
+        }
+        return lines.isEmpty ? "Gak ada temuan visual yang mencolok" : lines.joined(separator: "\n")
+    }
+
+    /// Faktor lingkungan yang berkontribusi ke risiko — disusun dari kondisi
+    /// ruangan yang dilaporkan manual di ConditionFormView.
+    var environmentalFactorsText: String {
+        var lines: [String] = []
+        if inspection.dampness {
+            lines.append("Kelembapan tinggi di ruangan ini")
+        }
+        if !inspection.hasWindow {
+            lines.append("Ventilasi ruang kurang baik")
+        }
+        return lines.isEmpty ? "Gak ada faktor lingkungan yang mencolok" : lines.joined(separator: "\n")
     }
 
     /// Satu paragraf dampak kesehatan (bukan tabel jangka pendek/panjang) —
@@ -63,7 +97,7 @@ final class ReportViewModel: ObservableObject {
         tips.append(PreventionTip(icon: "magnifyingglass", label: "Cari sumber lembapnya"))
         tips.append(PreventionTip(icon: "tshirt", label: "Jangan jemur baju di kamar ini"))
         tips.append(PreventionTip(icon: "arrow.left.and.right", label: "Geser furnitur dari dinding lembap"))
-        if inspection.findings.contains(where: { $0.findingClass == .crack }) {
+        if inspection.wallCrack {
             tips.append(PreventionTip(icon: "bandage", label: "Cek riwayat retakan ke pemilik"))
         }
         tips.append(PreventionTip(icon: "person.fill.questionmark", label: "Tanya riwayat bocor ke pemilik"))
@@ -79,9 +113,8 @@ final class ReportViewModel: ObservableObject {
     }
 
     func save() {
-        guard case .draftExisting(let propertyID) = source else { return }
-        store.attachInspection(inspection, toExistingPropertyID: propertyID)
+        guard case .draftExisting(let propertyID, let location) = source else { return }
+        store.attachInspection(inspection, toExistingPropertyID: propertyID, location: location)
         store.lastSavedPropertyID = propertyID
-        didSave = true
     }
 }

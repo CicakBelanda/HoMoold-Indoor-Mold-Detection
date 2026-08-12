@@ -8,7 +8,6 @@ import SwiftUI
 struct RoomTypeSelectionView: View {
     @ObservedObject var flow: InspectionFlowState
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var locationService = LocationService()
 
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
@@ -23,7 +22,7 @@ struct RoomTypeSelectionView: View {
                     ForEach(RoomType.allCases) { type in
                         Button {
                             flow.roomType = type
-                            flow.path.append(.record)
+                            flow.path.append(.capture)
                         } label: {
                             VStack(spacing: 10) {
                                 Image(systemName: type.iconName)
@@ -44,26 +43,19 @@ struct RoomTypeSelectionView: View {
             .padding(20)
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle(flow.existingProperty?.name ?? "Tipe Ruangan")
+        .navigationTitle(flow.existingProperty.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Batal") { dismiss() }
             }
         }
-        .task {
-            // Kos baru: ambil lokasi otomatis diam-diam di background, dipakai nanti
-            // pas NewReportInfoView beneran menyimpan. Kos yang sudah ada tidak perlu.
-            guard flow.existingProperty == nil else { return }
-            if let name = await locationService.fetchCurrentLocationName() {
-                flow.autoDetectedLocation = name
-            }
-        }
     }
 }
 
 #Preview {
-    NavigationStack {
-        RoomTypeSelectionView(flow: InspectionFlowState(existingProperty: nil))
+    let property = KosProperty(name: "Kos Contoh", location: KosLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    return NavigationStack {
+        RoomTypeSelectionView(flow: InspectionFlowState(existingProperty: property))
     }
 }

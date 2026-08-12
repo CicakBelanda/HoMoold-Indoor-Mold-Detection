@@ -79,5 +79,5 @@ struct FullScreenImageViewer: View {
 }
 
 #Preview {
-    FullScreenImageViewer(image: DummyDataFactory.seedProperties()[0].rooms[0].thumbnail)
+    FullScreenImageViewer(image: PlaceholderImageFactory.roomImage(for: .bedroom, seed: 1))
 }

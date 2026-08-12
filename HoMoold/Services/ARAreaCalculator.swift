@@ -33,14 +33,9 @@ import CoreVideo
 /// dari upright -> raw (yang dibutuhin di sini buat nyocokin sama depth map)
 /// perlu rotasi kebalikannya, 90° CCW.
 private enum FrameRotation {
-    /// Titik ternormalisasi (origin kiri-atas) dari ruang "upright" (hasil
-    /// Vision, orientation .right) -> ruang "raw" (sensor asli, sama kayak
-    /// capturedImage & depthMap ARKit).
-    static func rawPoint(fromUpright u: CGFloat, _ v: CGFloat) -> (CGFloat, CGFloat) {
-        (v, 1 - u)
-    }
-
-    /// Kebalikannya: raw -> upright.
+    /// Titik ternormalisasi (origin kiri-atas) dari ruang "raw" (sensor asli,
+    /// sama kayak capturedImage & depthMap ARKit) -> ruang "upright" (hasil
+    /// Vision, orientation .right).
     static func uprightPoint(fromRaw u: CGFloat, _ v: CGFloat) -> (CGFloat, CGFloat) {
         (1 - v, u)
     }
@@ -56,7 +51,6 @@ enum ARAreaCalculator {
     struct Measurement {
         let areaCM2: Double
         let depthMeters: Float
-        let sampledPixelCount: Int
     }
 
     /// - Parameters:
@@ -82,7 +76,7 @@ enum ARAreaCalculator {
         let box = FrameRotation.rawRect(fromUpright: uprightBox)
 
         guard let depthSamples = sampleDepths(inRegion: box, depthMap: depthMap, confidenceMap: confidenceMap, isInside: nil),
-              let medianDepth = median(depthSamples.values)
+              let medianDepth = median(depthSamples)
         else { return nil }
 
         let widthPx = Float(box.width * imageResolution.width)
@@ -92,8 +86,7 @@ enum ARAreaCalculator {
 
         return Measurement(
             areaCM2: Double(realWidthM * realHeightM) * 10_000,
-            depthMeters: medianDepth,
-            sampledPixelCount: depthSamples.values.count
+            depthMeters: medianDepth
         )
     }
 
@@ -136,21 +129,20 @@ enum ARAreaCalculator {
         }
 
         guard let samples = sampleDepths(inRegion: fullFrame, depthMap: depthMap, confidenceMap: confidenceMap, isInside: isInside),
-              !samples.values.isEmpty
+              !samples.isEmpty
         else { return nil }
 
         // Per-pixel differential area: tiap piksel depth punya Z sendiri, jadi
         // sudut pandang miring otomatis ikut terhitung (piksel yang lebih jauh
         // "mewakili" area fisik yang lebih besar).
         var totalAreaM2: Double = 0
-        for z in samples.values {
+        for z in samples {
             totalAreaM2 += Double(z / fx) * Double(z / fy)
         }
 
         return Measurement(
             areaCM2: totalAreaM2 * 10_000,
-            depthMeters: median(samples.values) ?? samples.values[0],
-            sampledPixelCount: samples.values.count
+            depthMeters: median(samples) ?? samples[0]
         )
     }
 
@@ -176,7 +168,7 @@ enum ARAreaCalculator {
         depthMap: CVPixelBuffer,
         confidenceMap: CVPixelBuffer?,
         isInside: ((CGFloat, CGFloat) -> Bool)?
-    ) -> (values: [Float], count: Int)? {
+    ) -> [Float]? {
         CVPixelBufferLockBaseAddress(depthMap, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(depthMap, .readOnly) }
         guard let depthBase = CVPixelBufferGetBaseAddress(depthMap) else { return nil }
@@ -223,6 +215,6 @@ enum ARAreaCalculator {
             }
         }
         guard !values.isEmpty else { return nil }
-        return (values, values.count)
+        return values
     }
 }
