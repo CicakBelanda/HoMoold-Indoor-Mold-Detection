@@ -2,8 +2,9 @@
 //  LocationService.swift
 //  HoMoold
 //
-//  Ambil lokasi (kecamatan) otomatis pas nambah kos baru, biar user gak perlu
-//  ngetik manual. Kalau ditolak/gagal, tetap bisa isi manual.
+//  Ambil lokasi (region/kota/kecamatan) otomatis pas nambah rumah baru, buat
+//  nge-prefill ConditionFormView — user tetap bisa edit/isi manual kalau GPS
+//  gagal atau salah.
 //
 
 import Combine
@@ -23,8 +24,10 @@ final class LocationService: NSObject, ObservableObject {
         manager.delegate = self
     }
 
-    /// Kembalikan nama kecamatan/lokasi dari posisi user saat ini, atau nil kalau gagal.
-    func fetchCurrentLocationName() async -> String? {
+    /// Kembalikan region/kota/kecamatan dari posisi user saat ini, atau nil kalau gagal
+    /// (izin ditolak, GPS gagal, dst.) — caller-nya (ConditionFormView) tetap bisa
+    /// lanjut isi manual.
+    func fetchCurrentLocation() async -> KosLocation? {
         isFetching = true
         errorMessage = nil
         defer { isFetching = false }
@@ -41,13 +44,19 @@ final class LocationService: NSObject, ObservableObject {
         do {
             let location = try await requestLocation()
             let placemarks = try await CLGeocoder().reverseGeocodeLocation(location)
-            guard let placemark = placemarks.first else { return nil }
-            let name = placemark.subLocality ?? placemark.locality ?? placemark.administrativeArea
-            guard let name else {
+            guard let placemark = placemarks.first else {
+                errorMessage = "Lokasi tidak ditemukan. Isi manual, ya."
+                return nil
+            }
+            let district = placemark.subLocality ?? placemark.subAdministrativeArea ?? ""
+            let city = placemark.locality ?? placemark.subAdministrativeArea ?? ""
+            let region = placemark.administrativeArea ?? ""
+            guard !district.isEmpty || !city.isEmpty || !region.isEmpty else {
                 errorMessage = "Nama lokasi tidak ditemukan. Isi manual, ya."
                 return nil
             }
-            return name.hasPrefix("Kec.") ? name : "Kec. \(name)"
+            let districtText = district.isEmpty || district.hasPrefix("Kec.") ? district : "Kec. \(district)"
+            return KosLocation(region: region, city: city, district: districtText)
         } catch {
             errorMessage = "Tidak bisa ambil lokasi sekarang. Isi manual, ya."
             return nil

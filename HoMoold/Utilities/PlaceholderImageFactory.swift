@@ -3,18 +3,19 @@
 //  HoMoold
 //
 //  Menghasilkan ilustrasi kamar sederhana secara prosedural (bukan foto asli)
-//  supaya data dummy tidak butuh aset gambar. Cukup untuk preview UI.
+//  — dipakai sebagai fallback pas ruangan/rumah belum punya foto asli sama
+//  sekali (mis. baru dibuat, atau capture-nya 0 deteksi).
 //
 
 import UIKit
 
 enum PlaceholderImageFactory {
 
-    private static let palettes: [(top: UIColor, bottom: UIColor, wall: UIColor)] = [
-        (UIColor(red: 0.96, green: 0.86, blue: 0.72, alpha: 1), UIColor(red: 0.89, green: 0.71, blue: 0.52, alpha: 1), UIColor(red: 0.93, green: 0.80, blue: 0.64, alpha: 1)),
-        (UIColor(red: 0.90, green: 0.84, blue: 0.87, alpha: 1), UIColor(red: 0.76, green: 0.66, blue: 0.72, alpha: 1), UIColor(red: 0.85, green: 0.78, blue: 0.81, alpha: 1)),
-        (UIColor(red: 0.85, green: 0.90, blue: 0.86, alpha: 1), UIColor(red: 0.65, green: 0.76, blue: 0.68, alpha: 1), UIColor(red: 0.80, green: 0.86, blue: 0.82, alpha: 1)),
-        (UIColor(red: 0.93, green: 0.90, blue: 0.80, alpha: 1), UIColor(red: 0.80, green: 0.74, blue: 0.58, alpha: 1), UIColor(red: 0.90, green: 0.87, blue: 0.76, alpha: 1)),
+    private static let palettes: [(top: UIColor, bottom: UIColor)] = [
+        (UIColor(red: 0.96, green: 0.86, blue: 0.72, alpha: 1), UIColor(red: 0.89, green: 0.71, blue: 0.52, alpha: 1)),
+        (UIColor(red: 0.90, green: 0.84, blue: 0.87, alpha: 1), UIColor(red: 0.76, green: 0.66, blue: 0.72, alpha: 1)),
+        (UIColor(red: 0.85, green: 0.90, blue: 0.86, alpha: 1), UIColor(red: 0.65, green: 0.76, blue: 0.68, alpha: 1)),
+        (UIColor(red: 0.93, green: 0.90, blue: 0.80, alpha: 1), UIColor(red: 0.80, green: 0.74, blue: 0.58, alpha: 1)),
     ]
 
     static func roomImage(for roomType: RoomType, seed: Int, size: CGSize = CGSize(width: 480, height: 480)) -> UIImage {
@@ -87,8 +88,6 @@ enum PlaceholderImageFactory {
             // Plant accent
             let plantX = mirrored ? size.width * 0.1 : size.width * 0.82
             drawPlant(in: cg, at: CGPoint(x: plantX, y: size.height * 0.5))
-
-            palette.wall.withAlphaComponent(0.0).setFill() // no-op keeps palette referenced
         }
     }
 
@@ -123,6 +122,24 @@ enum PlaceholderImageFactory {
                                           locations: [0, 1]) {
                 cg.drawRadialGradient(gradient, startCenter: center, startRadius: 0, endCenter: center, endRadius: 46, options: [])
             }
+        }
+    }
+
+    /// Placeholder thumbnail rumah yang baru dibuat lewat "Simpan Rumah" — belum
+    /// ada ruangan/foto sama sekali, jadi cuma ikon rumah outline (sesuai
+    /// Figma), bukan ilustrasi kamar.
+    static func houseOutline(size: CGSize = CGSize(width: 480, height: 480)) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            UIColor(white: 0.93, alpha: 1).setFill()
+            UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
+
+            let config = UIImage.SymbolConfiguration(pointSize: size.width * 0.34, weight: .light)
+            guard let symbol = UIImage(systemName: "house", withConfiguration: config)?
+                .withTintColor(UIColor(white: 0.55, alpha: 1), renderingMode: .alwaysOriginal)
+            else { return }
+            let origin = CGPoint(x: (size.width - symbol.size.width) / 2, y: (size.height - symbol.size.height) / 2)
+            symbol.draw(at: origin)
         }
     }
 }

@@ -22,6 +22,12 @@
 //  "damp" (index 0) di-skip total di decode, model-nya efektif dipakai
 //  single-class walau dilatih 2 kelas.
 //
+//  Request-nya pakai `.scaleFill` (stretch langsung ke kotak inputSize,
+//  bukan letterbox) — sempat dicoba ganti ke `.scaleFit` + unletterbox
+//  koordinatnya buat coba benerin akurasi deteksi yang jelek, tapi ternyata
+//  bikin deteksi yang tadinya jalan jadi berhenti sama sekali. Dibalikin ke
+//  `.scaleFill` + mapping langsung (`box / inputSize`, tanpa letterbox).
+//
 
 import CoreML
 import Vision
@@ -100,6 +106,12 @@ final class MoldDetector: @unchecked Sendable {
         return decode(handler, wantMasks: false).map(\.asLiveDetection)
     }
 
+    /// Versi CGImage — dipakai dari frame yang UDAH di-render tegak (lihat
+    /// FrameImageRenderer di CaptureViewModel), `orientation: .up` karena
+    /// gambarnya udah pasti bener orientasinya, gak perlu dirotate lagi. Ini
+    /// jalur yang sama kayak alur video lama (RealMoldDetectionService) yang
+    /// kebukti akurat — dipakai lagi di sini karena jalur pixelBuffer mentah
+    /// + rotasi manual di atas ternyata kurang bisa diandalkan buat model ini.
     func detect(in cgImage: CGImage) -> [LiveDetection] {
         let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
         return decode(handler, wantMasks: false).map(\.asLiveDetection)
@@ -111,6 +123,12 @@ final class MoldDetector: @unchecked Sendable {
     /// (maskWidth/maskHeight 0) — caller harus fallback ke box aja.
     func detectWithMasks(in pixelBuffer: CVPixelBuffer, orientation: CGImagePropertyOrientation) -> [SegmentationInstance] {
         let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: orientation, options: [:])
+        return decode(handler, wantMasks: true).map(\.asSegmentationInstance)
+    }
+
+    /// Versi CGImage dari `detectWithMasks` — lihat catatan di `detect(in cgImage:)`.
+    func detectWithMasks(in cgImage: CGImage) -> [SegmentationInstance] {
+        let handler = VNImageRequestHandler(cgImage: cgImage, orientation: .up, options: [:])
         return decode(handler, wantMasks: true).map(\.asSegmentationInstance)
     }
 
@@ -212,10 +230,16 @@ final class MoldDetector: @unchecked Sendable {
         }
 
         var results: [RawDetection] = []
-        var maxScoreSeen: Float = -1
+        var maxScoreSeen: Float = -.infinity
+        var minScoreSeen: Float = .infinity
+        var maxDampSeen: Float = -.infinity
+        var bestAnchor: Int?
         for anchor in 0..<anchorCount {
             let moldScore = value(4 + Self.moldClassIndex, anchor)
-            maxScoreSeen = max(maxScoreSeen, moldScore)
+            let dampScore = value(4, anchor) // index 0 = damp, dipakai cuma buat diagnostik di sini
+            if moldScore > maxScoreSeen { maxScoreSeen = moldScore; bestAnchor = anchor }
+            minScoreSeen = min(minScoreSeen, moldScore)
+            maxDampSeen = max(maxDampSeen, dampScore)
             guard moldScore >= confidenceThreshold else { continue }
 
             let cx = CGFloat(value(0, anchor))
@@ -234,9 +258,21 @@ final class MoldDetector: @unchecked Sendable {
         // Log walau gak ada yang lolos threshold — biar keliatan model-nya "hampir yakin"
         // (skor deket threshold, tuning issue) vs "gak ngerti sama sekali" (skor deket 0,
         // kemungkinan besar bug preprocessing/orientasi, bukan cuma soal threshold).
-        let summary = "\(anchorCount) anchors, mask coeffs = \(maskCoefficientCount), max mold score = "
-            + String(format: "%.3f", maxScoreSeen) + ", threshold = \(confidenceThreshold), "
-            + "kept before NMS = \(results.count)"
+        //
+        // min/max mold score dicetak buat cek satu hal spesifik: kalau ADA nilai NEGATIF
+        // atau di luar rentang 0...1, berarti output model ini masih LOGIT MENTAH (belum
+        // lewat sigmoid) dan kode ini salah nganggepnya udah jadi probabilitas — beda bug
+        // sama sekali dari threshold/orientasi/preprocessing yang udah dicoba.
+        var boxDump = ""
+        if let bestAnchor {
+            let cx = value(0, bestAnchor), cy = value(1, bestAnchor)
+            let w = value(2, bestAnchor), h = value(3, bestAnchor)
+            boxDump = String(format: ", box anchor terbaik: cx=%.3f cy=%.3f w=%.3f h=%.3f", cx, cy, w, h)
+        }
+        let summary = "\(anchorCount) anchors, mask coeffs = \(maskCoefficientCount), mold score min="
+            + String(format: "%.4f", minScoreSeen) + " max=" + String(format: "%.4f", maxScoreSeen)
+            + ", max damp score=" + String(format: "%.4f", maxDampSeen)
+            + ", threshold = \(confidenceThreshold), kept before NMS = \(results.count)" + boxDump
         print("[MoldDetector] \(summary)")
         lastDiagnostics = summary
         return results

@@ -10,16 +10,11 @@ struct RootView: View {
     @StateObject private var store = AppDataStore()
 
     var body: some View {
-        Group {
-            if hasSeenOnboarding {
-                HomeListView(store: store)
-                    .transition(.opacity)
-            } else {
+        HomeListView(store: store)
+            .sheet(isPresented: Binding(get: { !hasSeenOnboarding }, set: { _ in })) {
                 OnboardingView()
-                    .transition(.opacity)
+                    .interactiveDismissDisabled()
             }
-        }
-        .animation(.easeInOut, value: hasSeenOnboarding)
     }
 }
 

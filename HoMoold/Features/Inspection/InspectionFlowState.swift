@@ -5,31 +5,40 @@
 
 import Combine
 import Foundation
+import UIKit
 
 enum InspectionStep: Hashable {
-    case record
-    case preview
-    case loading
+    case capture
+    case condition // termasuk lokasi rumah kalau propertinya belum punya lokasi
     case report
-    case newReportInfo // cuma dipakai kalau existingProperty == nil (kos baru)
 }
 
 @MainActor
 final class InspectionFlowState: ObservableObject {
     @Published var path: [InspectionStep] = []
     @Published var roomType: RoomType?
-    @Published var recordedVideoURL: URL?
+    @Published var capturedFindings: [Finding] = []
+    /// Foto yang diambil tapi 0 jamur kedeteksi — lihat CaptureViewModel.Outcome.
+    @Published var capturedPhotos: [UIImage] = []
     @Published var resultInspection: RoomInspection?
 
-    /// Kalau ada, inspeksi ini nempel ke kos yang sudah ada (nama/lokasi sudah tahu,
-    /// jadi Report bisa langsung "Simpan"). Kalau nil, ini kos baru — nama & harga
-    /// baru diisi belakangan di NewReportInfoView.
-    let existingProperty: KosProperty?
+    /// Rumahnya selalu sudah ada duluan — dibuat lewat "Simpan Rumah" dari FAB
+    /// Home SEBELUM masuk ke flow ini (lihat SaveHouseSheet), jadi Report di
+    /// sini selalu langsung "Simpan", gak perlu tanya nama lagi belakangan.
+    let existingProperty: KosProperty
 
-    /// Diisi otomatis lewat GPS pas flow kos-baru dimulai (lihat RoomTypeSelectionView).
-    @Published var autoDetectedLocation: String = ""
+    /// Diisi di ConditionFormView (prefill dari `existingProperty.location` —
+    /// dengan prefill GPS kalau rumahnya belum punya lokasi sama sekali).
+    @Published var location: KosLocation
 
-    init(existingProperty: KosProperty?) {
+    // Diisi di ConditionFormView — kondisi ruangan yang dilaporin manual sama user.
+    @Published var hasAC = false
+    @Published var hasWindow = false
+    @Published var dampness = false
+    @Published var wallCrack = false
+
+    init(existingProperty: KosProperty) {
         self.existingProperty = existingProperty
+        self.location = existingProperty.location
     }
 }

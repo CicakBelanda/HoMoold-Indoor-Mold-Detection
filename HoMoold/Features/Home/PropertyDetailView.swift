@@ -13,6 +13,7 @@ struct PropertyDetailView: View {
 
     @State private var showAddInspection = false
     @State private var roomPendingDelete: RoomInspection?
+    @State private var roomPendingEdit: RoomInspection?
     @State private var showDeletePropertyConfirm = false
     @State private var showRenameAlert = false
     @State private var renameText = ""
@@ -41,17 +42,20 @@ struct PropertyDetailView: View {
                     Text("Tambah Ruangan")
                 }
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.accentColor)
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
                 .background {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
-                        .foregroundStyle(Color(uiColor: .tertiaryLabel))
+                        .fill(Color.white.opacity(0.5))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+                        )
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Tambah ruangan yang diperiksa di kos ini")
+            .accessibilityLabel("Tambah ruangan yang diperiksa di rumah ini")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
@@ -74,12 +78,24 @@ struct PropertyDetailView: View {
                             Label("Hapus", systemImage: "trash")
                         }
                     }
+                    .contextMenu {
+                        Button {
+                            roomPendingEdit = room
+                        } label: {
+                            Label("Ubah Kondisi", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            roomPendingDelete = room
+                        } label: {
+                            Label("Hapus Ruangan", systemImage: "trash")
+                        }
+                    }
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(LinearGradient.hoomoldHome.ignoresSafeArea())
         .navigationTitle(viewModel.property?.name ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -89,22 +105,32 @@ struct PropertyDetailView: View {
                         renameText = viewModel.property?.name ?? ""
                         showRenameAlert = true
                     } label: {
-                        Label("Ubah Nama Kos", systemImage: "pencil")
+                        Label("Ubah Nama Rumah", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
                         showDeletePropertyConfirm = true
                     } label: {
-                        Label("Hapus Kos", systemImage: "trash")
+                        Label("Hapus Rumah", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                .accessibilityLabel("Opsi kos")
+                .accessibilityLabel("Opsi rumah")
             }
         }
         .fullScreenCover(isPresented: $showAddInspection) {
             if let property = viewModel.property {
                 InspectionFlowView(store: store, existingProperty: property)
+            }
+        }
+        .sheet(item: $roomPendingEdit) { room in
+            EditRoomConditionSheet(room: room) { hasAC, hasWindow, dampness, wallCrack in
+                if let propertyID = viewModel.property?.id {
+                    store.updateRoomCondition(
+                        roomID: room.id, ofProperty: propertyID,
+                        hasAC: hasAC, hasWindow: hasWindow, dampness: dampness, wallCrack: wallCrack
+                    )
+                }
             }
         }
         .alert(
@@ -124,7 +150,7 @@ struct PropertyDetailView: View {
         } message: {
             Text("Hasil pemeriksaan ruangan ini akan dihapus. Tindakan ini tidak bisa dibatalkan.")
         }
-        .alert("Hapus Kos", isPresented: $showDeletePropertyConfirm) {
+        .alert("Hapus Rumah", isPresented: $showDeletePropertyConfirm) {
             Button("Batal", role: .cancel) {}
             Button("Hapus", role: .destructive) {
                 if let id = viewModel.property?.id {
@@ -135,8 +161,8 @@ struct PropertyDetailView: View {
         } message: {
             Text("Semua data pemeriksaan di \"\(viewModel.property?.name ?? "")\" akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.")
         }
-        .alert("Ubah Nama Kos", isPresented: $showRenameAlert) {
-            TextField("Nama kos", text: $renameText)
+        .alert("Ubah Nama Rumah", isPresented: $showRenameAlert) {
+            TextField("Nama rumah", text: $renameText)
             Button("Batal", role: .cancel) {}
             Button("Simpan") {
                 if let id = viewModel.property?.id {
@@ -147,54 +173,126 @@ struct PropertyDetailView: View {
     }
 }
 
-/// Sengaja beda layout dari PropertyCard di Home — foto besar di atas (dengan
-/// badge risiko & kotak temuan overlay langsung di foto), baru info di bawah.
+/// Thumbnail di kiri + checklist kondisi & badge Mold Grow Rate di kanan.
 private struct RoomInspectionCard: View {
     let room: RoomInspection
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        HStack(alignment: .top, spacing: 14) {
             ZStack(alignment: .topLeading) {
                 Image(uiImage: room.thumbnail)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
-                    .frame(height: 190)
-                    .clipped()
+                    .frame(width: 132, height: 166)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(.black.opacity(0.12))
+                    )
                     .accessibilityHidden(true)
 
                 if let topFinding = room.findings.first {
                     BoundingBoxOverlay(findingClass: topFinding.findingClass, boundingBox: topFinding.boundingBox)
-                        .frame(height: 190)
+                        .frame(width: 132, height: 166)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(room.roomType.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 8)
+                    Text(relativeDate(room.date))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
-                RiskBadge(level: room.riskLevel)
-                    .padding(10)
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(room.detectionChecklist) { item in
+                        HStack {
+                            Text(item.label)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer(minLength: 8)
+                            Image(systemName: item.isPresent ? "checkmark.square" : "xmark.square")
+                                .font(.caption)
+                                .foregroundStyle(item.isPresent ? .secondary : Color.secondary.opacity(0.4))
+                        }
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                moldGrowRateBadge
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Label(room.roomType.rawValue, systemImage: room.roomType.iconName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Text("Detected Mold")
-                    .font(.headline)
-
-                Text(room.summaryText)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(3)
-            }
-            .padding(14)
         }
-        .background(Color(uiColor: .systemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func relativeDate(_ date: Date) -> String {
+        if Calendar.current.isDateInToday(date) { return "Hari ini" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: date)
+    }
+
+    private var moldGrowRateBadge: some View {
+        HStack(spacing: 6) {
+            Text("Mold Grow Rate")
+                .font(.caption2)
+                .foregroundStyle(.white)
+            Text(room.riskLevel.labelID)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+            SignalBars(level: room.riskLevel)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+    }
+}
+
+/// Mini bar-chart 3-batang (rendah/sedang/tinggi) yang nunjukin RiskLevel —
+/// dipakai di badge "Mold Grow Rate".
+private struct SignalBars: View {
+    let level: RiskLevel
+
+    private var activeBars: Int {
+        switch level {
+        case .low: return 1
+        case .medium: return 2
+        case .high: return 3
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 2) {
+            ForEach(0..<3, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(.white.opacity(index < activeBars ? 1 : 0.35))
+                    .frame(width: 3, height: 6 + CGFloat(index) * 4)
+            }
+        }
     }
 }
 
 #Preview {
-    let store = AppDataStore()
+    let room = RoomInspection(
+        roomType: .bedroom, riskLevel: .high, riskScore: 82, findings: [],
+        hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
+    )
+    let property = KosProperty(
+        name: "Kos Contoh", location: KosLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        price: 850_000, rooms: [room]
+    )
+    let store = AppDataStore(properties: [property])
     return NavigationStack {
-        PropertyDetailView(store: store, propertyID: store.properties[0].id, path: .constant(NavigationPath()))
+        PropertyDetailView(store: store, propertyID: property.id, path: .constant(NavigationPath()))
     }
 }

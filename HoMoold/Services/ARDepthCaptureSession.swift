@@ -2,13 +2,13 @@
 //  ARDepthCaptureSession.swift
 //  HoMoold
 //
-//  Wrapper ARSession buat layar test pengukuran luas jamur (lihat
-//  Features/DebugMoldMeasure). Cuma butuh passthrough kamera + sceneDepth
-//  LiDAR, bukan anchor/konten 3D apa pun.
+//  Wrapper ARSession buat layar ambil foto jamur pas inspeksi (lihat
+//  Features/Inspection/CaptureView.swift). Cuma butuh passthrough kamera +
+//  sceneDepth LiDAR, bukan anchor/konten 3D apa pun.
 //
-//  Sama seperti CameraService/SessionController: ARSession delegate dipanggil
-//  di queue milik ARKit sendiri, bukan main thread, jadi kerjanya dipisah ke
-//  `ARController` yang bukan actor-isolated sama sekali.
+//  ARSession delegate dipanggil di queue milik ARKit sendiri, bukan main
+//  thread, jadi kerjanya dipisah ke `ARController` yang bukan actor-isolated
+//  sama sekali.
 //
 
 import ARKit

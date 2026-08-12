@@ -12,13 +12,6 @@ struct BoundingBoxOverlay: View {
     let color: Color
     let boundingBox: CGRect
 
-    init(label: String, color: Color, boundingBox: CGRect) {
-        self.label = label
-        self.color = color
-        self.boundingBox = boundingBox
-    }
-
-    /// Convenience buat temuan hasil Report (Bagian 5.6) yang sudah punya `FindingClass`.
     init(findingClass: FindingClass, boundingBox: CGRect) {
         self.label = findingClass.rawValue
         self.color = findingClass.color
