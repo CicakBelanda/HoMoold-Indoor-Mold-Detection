@@ -88,7 +88,7 @@ struct ConditionFormView: View {
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: KosLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return NavigationStack {
         ConditionFormView(flow: InspectionFlowState(existingProperty: property))
     }

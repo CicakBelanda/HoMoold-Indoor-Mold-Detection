@@ -2,9 +2,11 @@
 //  AppDataStore.swift
 //  HoMoold
 //
-//  Sumber data in-memory untuk seluruh app (Non-Goal: tidak ada backend/API).
-//  Mulai kosong — semua KosProperty dibuat dari hasil inspeksi asli lewat
-//  InspectionFlowView, bukan data dummy.
+//  Sumber data buat seluruh app (Non-Goal: tidak ada backend/API — datanya
+//  cuma disimpan LOKAL di device ini, bukan di server). Disimpan sebagai satu
+//  file JSON di folder Application Support (termasuk foto-fotonya, dikodekan
+//  jadi JPEG Data), jadi tetap ada walau app ditutup/dibuka lagi — auto-load
+//  pas store dibuat, auto-save tiap kali `properties` berubah.
 //
 
 import Combine
@@ -13,19 +15,49 @@ import SwiftUI
 
 @MainActor
 final class AppDataStore: ObservableObject {
-    @Published var properties: [KosProperty]
+    @Published var properties: [KosProperty] {
+        didSet { save() }
+    }
     /// Diset setelah inspeksi baru disimpan, supaya Home bisa langsung membuka
     /// halaman detail rumah yang bersangkutan.
     @Published var lastSavedPropertyID: UUID?
 
-    init(properties: [KosProperty] = []) {
-        self.properties = properties
+    private static let fileURL: URL = {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("properties.json")
+    }()
+
+    /// `properties: nil` (dipakai app beneran, lihat HoMooldApp/RootView) —
+    /// load dari disk. Preview/test bisa passing array eksplisit biar gak
+    /// kesenggol data asli di device.
+    init(properties: [KosProperty]? = nil) {
+        self.properties = properties ?? Self.loadFromDisk()
+    }
+
+    private static func loadFromDisk() -> [KosProperty] {
+        guard let data = try? Data(contentsOf: fileURL) else { return [] }
+        do {
+            return try JSONDecoder().decode([KosProperty].self, from: data)
+        } catch {
+            print("[AppDataStore] gagal load data tersimpan: \(error)")
+            return []
+        }
+    }
+
+    private func save() {
+        do {
+            let data = try JSONEncoder().encode(properties)
+            try data.write(to: Self.fileURL, options: .atomic)
+        } catch {
+            print("[AppDataStore] gagal nyimpen data: \(error)")
+        }
     }
 
     /// Tambah inspeksi ke rumah yang sudah ada. `location` ditulis ulang ke
     /// properti-nya juga — no-op kalau rumahnya sudah punya lokasi (ConditionFormView
     /// cuma isi field ini kalau propertinya belum punya lokasi sama sekali).
-    func attachInspection(_ inspection: RoomInspection, toExistingPropertyID propertyID: UUID, location: KosLocation) {
+    func attachInspection(_ inspection: RoomInspection, toExistingPropertyID propertyID: UUID, location: HomeLocation) {
         guard let index = properties.firstIndex(where: { $0.id == propertyID }) else { return }
         properties[index].rooms.append(inspection)
         properties[index].location = location
@@ -35,7 +67,7 @@ final class AppDataStore: ObservableObject {
     /// Home). Lokasi & ruangan nyusul belakangan lewat "Tambah Ruangan".
     @discardableResult
     func createProperty(name: String) -> UUID {
-        let newProperty = KosProperty(name: name, location: KosLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+        let newProperty = KosProperty(name: name, location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
         properties.append(newProperty)
         return newProperty.id
     }

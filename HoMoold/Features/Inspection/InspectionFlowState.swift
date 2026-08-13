@@ -29,7 +29,7 @@ final class InspectionFlowState: ObservableObject {
 
     /// Diisi di ConditionFormView (prefill dari `existingProperty.location` —
     /// dengan prefill GPS kalau rumahnya belum punya lokasi sama sekali).
-    @Published var location: KosLocation
+    @Published var location: HomeLocation
 
     // Diisi di ConditionFormView — kondisi ruangan yang dilaporin manual sama user.
     @Published var hasAC = false

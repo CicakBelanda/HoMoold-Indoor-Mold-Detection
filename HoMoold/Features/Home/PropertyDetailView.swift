@@ -288,7 +288,7 @@ private struct SignalBars: View {
         hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: KosLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     let store = AppDataStore(properties: [property])

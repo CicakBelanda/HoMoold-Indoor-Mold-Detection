@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum FindingClass: String {
+enum FindingClass: String, Codable {
     case mold = "MOLD"
     case damp = "DAMP"
     case crack = "CRACK"

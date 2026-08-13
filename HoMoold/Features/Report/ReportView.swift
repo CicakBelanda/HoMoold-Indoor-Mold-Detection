@@ -15,7 +15,7 @@ struct ReportView: View {
     /// Mode draft: hasil analisis baru, nempel ke rumah yang sudah ada — tombol
     /// Simpan langsung menyimpan (`location` cuma beneran ditulis kalau
     /// rumahnya belum punya lokasi, lihat AppDataStore.attachInspection).
-    init(store: AppDataStore, draftInspection: RoomInspection, existingPropertyID: UUID, location: KosLocation, onSaved: (() -> Void)? = nil) {
+    init(store: AppDataStore, draftInspection: RoomInspection, existingPropertyID: UUID, location: HomeLocation, onSaved: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: ReportViewModel(
             store: store,
             inspection: draftInspection,
@@ -340,7 +340,7 @@ private struct ImageViewerItem: Identifiable {
         hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: KosLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     let store = AppDataStore(properties: [property])

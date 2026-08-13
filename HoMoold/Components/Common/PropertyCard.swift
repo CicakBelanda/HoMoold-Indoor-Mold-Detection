@@ -82,7 +82,7 @@ struct PropertyCard: View {
         hasAC: true, hasWindow: true, dampness: true, wallCrack: false, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: KosLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     return PropertyCard(property: property)

@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum RiskLevel: String {
+enum RiskLevel: String, Codable {
     case low = "Low"
     case medium = "Medium"
     case high = "High"
