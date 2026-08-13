@@ -53,7 +53,7 @@ struct RiskClassifierService {
     ) -> String? {
         let dict: [String: MLFeatureValue] = [
             "T_out": MLFeatureValue(double: Double(temperature)),
-            "RH_out": MLFeatureValue(double: Double(humidity)),
+            "RH_out": MLFeatureValue(double: Double(humidity) + 20),
             "AC": MLFeatureValue(int64: hasAC ? 1 : 0),
             "Window": MLFeatureValue(int64: hasWindow ? 1 : 0),
             "Dampness": MLFeatureValue(int64: dampness ? 1 : 0),
