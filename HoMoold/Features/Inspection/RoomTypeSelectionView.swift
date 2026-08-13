@@ -54,7 +54,7 @@ struct RoomTypeSelectionView: View {
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: KosLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return NavigationStack {
         RoomTypeSelectionView(flow: InspectionFlowState(existingProperty: property))
     }

@@ -7,7 +7,7 @@ import UIKit
 
 /// Lokasi kos, diisi manual sama user di form Location (dengan prefill dari
 /// GPS kalau berhasil — lihat LocationService), bukan diam-diam auto-fill.
-struct KosLocation {
+struct HomeLocation: Codable {
     var region: String // provinsi
     var city: String // kota/kabupaten
     var district: String // kecamatan
@@ -21,10 +21,14 @@ struct KosLocation {
     }
 }
 
-struct KosProperty: Identifiable {
+/// `Codable` disintesis otomatis compiler — `thumbnail` di bawah itu computed
+/// property (bukan stored), jadi diabaikan sama sintesis Codable, gak perlu
+/// custom encode/decode kayak `Finding`/`RoomInspection` yang punya UIImage
+/// sebagai STORED property.
+struct KosProperty: Identifiable, Codable {
     let id = UUID()
     var name: String
-    var location: KosLocation
+    var location: HomeLocation
     var price: Int? // harga sewa (Rp/bulan), nil = belum diisi
     var rooms: [RoomInspection]
 

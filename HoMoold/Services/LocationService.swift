@@ -27,7 +27,7 @@ final class LocationService: NSObject, ObservableObject {
     /// Kembalikan region/kota/kecamatan dari posisi user saat ini, atau nil kalau gagal
     /// (izin ditolak, GPS gagal, dst.) — caller-nya (ConditionFormView) tetap bisa
     /// lanjut isi manual.
-    func fetchCurrentLocation() async -> KosLocation? {
+    func fetchCurrentLocation() async -> HomeLocation? {
         isFetching = true
         errorMessage = nil
         defer { isFetching = false }
@@ -56,7 +56,7 @@ final class LocationService: NSObject, ObservableObject {
                 return nil
             }
             let districtText = district.isEmpty || district.hasPrefix("Kec.") ? district : "Kec. \(district)"
-            return KosLocation(region: region, city: city, district: districtText)
+            return HomeLocation(region: region, city: city, district: districtText)
         } catch {
             errorMessage = "Tidak bisa ambil lokasi sekarang. Isi manual, ya."
             return nil

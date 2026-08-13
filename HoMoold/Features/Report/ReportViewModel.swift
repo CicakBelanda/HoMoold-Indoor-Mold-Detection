@@ -11,7 +11,7 @@ final class ReportViewModel: ObservableObject {
     enum Source {
         /// Hasil analisis baru, nempel ke rumah yang sudah ada — bisa langsung disimpan.
         /// `location` ikut disimpan ke properti (rumah baru yang belum punya lokasi).
-        case draftExisting(propertyID: UUID, location: KosLocation)
+        case draftExisting(propertyID: UUID, location: HomeLocation)
         /// Lihat ulang temuan yang sudah tersimpan — read-only.
         case saved(propertyID: UUID)
     }
