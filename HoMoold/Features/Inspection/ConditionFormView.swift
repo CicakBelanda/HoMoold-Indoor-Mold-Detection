@@ -5,18 +5,21 @@
 //  Kondisi ruangan diisi MANUAL sama user (bukan hasil AI) — jamur/luas yang
 //  AI deteksi cuma soal titik noda di CaptureView, sementara ini soal kondisi
 //  umum ruangannya (ada AC/jendela, lembap, retak dinding) buat konteks
-//  tambahan di Report. Kalau rumahnya belum punya lokasi sama sekali, lokasi
-//  juga ditanya di sini (satu layar, sesuai Figma "Condition") — coba prefill
-//  lewat GPS diam-diam pas layar muncul, user tetap bisa edit atau skip.
+//  tambahan di Report.
 //
+//  Bagian "Kondisi Cuaca" menggantikan input lokasi (provinsi/kabupaten/
+//  kecamatan) — sekarang cuaca di tempat user diambil OTOMATIS lewat
+//  LocationService (koordinat) + WeatherService (Open-Meteo: suhu & kelembapan),
+//  gak perlu diketik manual. UI-nya tetap Form/Section sama kayak sebelumnya:
+//  header + footer yang nunjukin status mengambil/error/opsional.
 
 import SwiftUI
+import CoreLocation
 
 struct ConditionFormView: View {
     @ObservedObject var flow: InspectionFlowState
     @StateObject private var locationService = LocationService()
-
-    private var showsLocationSection: Bool { flow.existingProperty.location.isEmpty }
+    private let weatherService = WeatherService()
 
     var body: some View {
         Form {
@@ -31,23 +34,32 @@ struct ConditionFormView: View {
                 Text("Isi sesuai yang kamu lihat langsung di ruangan ini.")
             }
 
-            if showsLocationSection {
-                Section {
-                    TextField("Provinsi", text: $flow.location.region)
-                    TextField("Kota/Kabupaten", text: $flow.location.city)
-                    TextField("Kecamatan", text: $flow.location.district)
-                } header: {
-                    Text("Lokasi Rumah")
-                } footer: {
-                    if locationService.isFetching {
-                        Label("Mengambil lokasi otomatis...", systemImage: "location.fill")
-                            .foregroundStyle(.secondary)
-                    } else if let error = locationService.errorMessage {
-                        Text(error)
-                            .foregroundStyle(.orange)
-                    } else {
-                        Text("Opsional — boleh dilewati, bisa diisi belakangan.")
-                    }
+            Section {
+                HStack {
+                    Text("Suhu")
+                    Spacer()
+                    Text(weatherText(flow.temperature, unit: "°C"))
+                        .foregroundStyle(.secondary)
+                }
+                HStack {
+                    Text("Kelembapan")
+                    Spacer()
+                    Text(weatherText(flow.humidity, unit: "%"))
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Kondisi Cuaca")
+            } footer: {
+                if locationService.isFetching {
+                    Label("Mengambil cuaca otomatis...", systemImage: "location.fill")
+                        .foregroundStyle(.secondary)
+                } else if let error = locationService.errorMessage {
+                    Text(error)
+                        .foregroundStyle(.orange)
+                } else if flow.temperature == nil && flow.humidity == nil {
+                    Text("Cuaca gak bisa diambil. Lanjut aja, nggak masalah.")
+                } else {
+                    Text("Diambil otomatis dari lokasimu saat ini.")
                 }
             }
         }
@@ -55,10 +67,7 @@ struct ConditionFormView: View {
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .task {
-            guard showsLocationSection else { return }
-            if let found = await locationService.fetchCurrentLocation() {
-                flow.location = found
-            }
+            await refreshWeather()
         }
         .safeAreaInset(edge: .bottom) {
             Button("Lanjut") { proceed() }
@@ -66,6 +75,22 @@ struct ConditionFormView: View {
                 .padding(.horizontal, 24)
                 .padding(.bottom, 12)
                 .background(.bar)
+        }
+    }
+
+    private func weatherText(_ value: Float?, unit: String) -> String {
+        guard let value else { return "—" }
+        return String(format: "%.0f %@", value, unit)
+    }
+
+    private func refreshWeather() async {
+        guard let coord = await locationService.fetchCurrentCoordinate() else { return }
+        do {
+            let snap = try await weatherService.fetchCurrent(lat: coord.latitude, lon: coord.longitude)
+            flow.temperature = snap.temperature
+            flow.humidity = snap.humidity
+        } catch {
+            locationService.errorMessage = "Cuaca gak bisa diambil: \(error.localizedDescription)"
         }
     }
 
