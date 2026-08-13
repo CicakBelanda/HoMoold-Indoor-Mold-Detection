@@ -148,17 +148,19 @@ struct CaptureView: View {
                     .padding(.top, 16)
 
                 // Gambar + overlay dibungkus ZStack ber-aspect-ratio yang sama
-                // dengan gambarnya, supaya koordinat ternormalisasi box/mask
+                // dengan gambarnya, supaya koordinat ternormalisasi box
                 // persis nempel di gambarnya (bukan di frame yang lebih besar).
+                //
+                // Mask (kalau modelnya punya) sengaja CUMA dipakai buat hitung
+                // luas di ARAreaCalculator (lihat CaptureViewModel.capture()),
+                // gak digambar ke layar — yang ditampilin ke user tetap kotak
+                // deteksi biasa (BoundingBoxOverlay), bukan bentuk mask-nya.
                 ZStack {
                     Image(uiImage: result.image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
 
                     ForEach(result.detections) { detection in
-                        if let mask = detection.mask {
-                            MaskOverlayView(instances: [mask])
-                        }
                         BoundingBoxOverlay(findingClass: .mold, boundingBox: detection.box)
                     }
                 }

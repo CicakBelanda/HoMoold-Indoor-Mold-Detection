@@ -102,15 +102,14 @@ final class CaptureViewModel: ObservableObject {
 
     let arSession = ARDepthCaptureSession()
 
-    // "MoldDampSeg" (model segmentasi, ditambahin di commit "feat: added seg")
-    // ternyata belum kelar training-nya — dites langsung lewat ultralytics di
-    // Python (di luar app sama sekali), skornya gak pernah lewat ~3% di gambar
-    // apa pun. "MoldDamp" (versi deteksi biasa, dipakai di commit sebelumnya)
-    // dites dengan cara sama dan confidence-nya bisa sampai 59% — balik pakai
-    // ini. Konsekuensinya: gak ada mask/segmentasi (MoldDetector otomatis
-    // fallback ke box aja, lihat header file itu), luas LiDAR dihitung dari
-    // bounding box bukan bentuk mask presisi — tapi minimal DETECT-nya jalan.
-    private let detector = MoldDetector(modelName: "MoldDamp", confidenceThreshold: 0.35)
+    // Riwayat model yang udah dicoba: "MoldDampSeg" (2 kelas, segmentasi) —
+    // belum kelar training-nya, skor gak pernah lewat ~3% di gambar apa pun.
+    // "MoldDamp" (2 kelas, box doang) — confidence-nya OK (bisa 59%), tapi gak
+    // ada mask jadi luas LiDAR dihitung dari box, bukan bentuk noda asli.
+    // "Mold" (SEKARANG, 1 kelas single-class + segmentasi) — model paling baru,
+    // MoldDetector otomatis baca jumlah kelasnya dari shape tensor (lihat
+    // decodeDetections), jadi gak perlu ubah kode lain pas ganti model lagi.
+    private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: 0.35)
     private var timer: Timer?
     private var isProcessing = false
     private let tickInterval: TimeInterval = 0.4
