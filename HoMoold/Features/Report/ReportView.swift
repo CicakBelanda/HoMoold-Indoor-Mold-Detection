@@ -281,15 +281,15 @@ struct ReportView: View {
                     }
                 }
                 HStack {
-                    Text(viewModel.inspection.riskLevel.labelID)
+                    Text(viewModel.riskClass ?? "—")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(viewModel.inspection.riskLevel.color)
+                        .foregroundStyle(viewModel.riskClassColor)
                     Spacer(minLength: 0)
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.title3)
-                        .foregroundStyle(viewModel.inspection.riskLevel.color)
+                        .foregroundStyle(viewModel.riskClassColor)
                         .frame(width: 40, height: 40)
-                        .background(viewModel.inspection.riskLevel.color.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(viewModel.riskClassColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             .padding(14)

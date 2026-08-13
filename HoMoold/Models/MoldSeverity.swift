@@ -42,6 +42,16 @@ enum MoldSeverity {
         }
     }
 
+    /// Level 0–3 buat input model RiskClassifier (`Mold`): none=0, L1=1, L2=2, L3=3.
+    var level: Int {
+        switch self {
+        case .none: return 0
+        case .level1: return 1
+        case .level2: return 2
+        case .level3: return 3
+        }
+    }
+
     var color: Color {
         switch self {
         case .none: return .gray

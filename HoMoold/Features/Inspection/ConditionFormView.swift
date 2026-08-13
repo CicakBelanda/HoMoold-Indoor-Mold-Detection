@@ -96,6 +96,9 @@ struct ConditionFormView: View {
 
     private func proceed() {
         let score = min(95, flow.capturedFindings.count * 12)
+        // Level keparahan (0–3) dari total luas jamur — input `Mold` model.
+        let totalArea = flow.capturedFindings.compactMap(\.areaCM2).reduce(0, +)
+        let moldLevel = totalArea > 0 ? MoldSeverity.severity(fromAreaCM2: totalArea).level : 0
         flow.resultInspection = RoomInspection(
             roomType: flow.roomType ?? .bedroom,
             riskLevel: RiskLevel.level(forScore: score),
@@ -106,7 +109,10 @@ struct ConditionFormView: View {
             hasWindow: flow.hasWindow,
             dampness: flow.dampness,
             wallCrack: flow.wallCrack,
-            date: Date()
+            date: Date(),
+            temperature: flow.temperature,
+            humidity: flow.humidity,
+            moldSeverityLevel: moldLevel
         )
         flow.path.append(.report)
     }
