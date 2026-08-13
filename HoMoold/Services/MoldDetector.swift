@@ -3,24 +3,25 @@
 //  HoMoold
 //
 //  Wrapper Vision + CoreML buat model deteksi jamur (di-export dari .pt lewat
-//  ultralytics ke .mlpackage). Adaptif ke DUA bentuk export yang udah pernah
-//  dipakai di project ini — task=detect (mis. MoldDamp, 960x960, tensor
-//  [1,6,N] — 4 box + 2 kelas, TANPA mask) dan task=segment (mis. MoldDampSeg,
-//  640x640, tensor [1,38,N] — 4 box + 2 kelas + 32 koefisien mask, plus
-//  tensor proto mask [1,32,H,W] terpisah). Bedanya cuma dari BENTUK output
-//  yang dibaca run-time (lihat `decode`), bukan hardcode nama/ukuran model —
-//  jadi kalau modelnya di-swap lagi antara dua bentuk ini, gak perlu ubah
-//  kode lagi.
+//  ultralytics ke .mlpackage). Adaptif ke bentuk-bentuk export yang udah
+//  pernah dipakai di project ini — task=detect (mis. MoldDamp, 960x960,
+//  tensor [1,6,N] — 4 box + 2 kelas, TANPA mask), task=segment 2-kelas (mis.
+//  MoldDampSeg, [1,38,N] — 4 box + 2 kelas + 32 koefisien mask), dan
+//  task=segment 1-kelas (mis. Mold, [1,37,N] — 4 box + 1 kelas + 32 koefisien
+//  mask, model-nya dilatih cuma buat "mold" doang, gak ada kelas "damp" lagi).
+//  Jumlah kelas DIHITUNG dari shape tensor run-time (lihat `decodeDetections`),
+//  bukan di-hardcode — jadi kalau modelnya di-swap lagi ke bentuk lain, gak
+//  perlu ubah kode ini.
 //
-//  Kedua bentuk export TIDAK dapet NMS pipeline dari Ultralytics kalau
+//  Semua bentuk export TIDAK dapet NMS pipeline dari Ultralytics kalau
 //  di-export dengan `nms=False` (dikonfirmasi lewat metadata `.mlpackage`,
 //  key `args`) — jadi Vision gak bisa auto-decode ke
-//  VNRecognizedObjectObservation. Box decode + NMS dikerjain manual di sini,
-//  buat kedua bentuk.
+//  VNRecognizedObjectObservation. Box decode + NMS dikerjain manual di sini.
 //
-//  App-nya cuma mau deteksi jamur, bukan "lembap" — jadi channel kelas
-//  "damp" (index 0) di-skip total di decode, model-nya efektif dipakai
-//  single-class walau dilatih 2 kelas.
+//  App-nya cuma mau deteksi jamur, bukan "lembap": kalau model-nya 2 kelas
+//  (konvensi lama {0: damp, 1: mold}), channel "damp" di-skip total. Kalau
+//  model-nya udah 1 kelas (dilatih single-class buat mold doang), kelas
+//  satu-satunya itu ya dianggap "mold".
 //
 //  Request-nya pakai `.scaleFill` (stretch langsung ke kotak inputSize,
 //  bukan letterbox) — sempat dicoba ganti ke `.scaleFit` + unletterbox
@@ -46,8 +47,6 @@ final class MoldDetector: @unchecked Sendable {
     /// (bukan concurrent read/write), jadi aman walau bukan actor-isolated.
     private(set) var lastDiagnostics = "belum ada frame diproses"
 
-    private static let trainedClassCount = 2 // {0: damp, 1: mold} — cuma index 1 yang dipakai
-    private static let moldClassIndex = 1
     private static let moldLabel = "mold"
     /// Jumlah prototype mask standar YOLO-seg (Ultralytics) — dipakai buat
     /// nebak apakah tensor deteksi-nya bentuk "segment" (ada koefisien mask)
@@ -210,9 +209,17 @@ final class MoldDetector: @unchecked Sendable {
         let channelCount = shape[1]
         let anchorCount = shape[2]
         let numClasses = channelCount - 4 - maskCoefficientCount
-        guard numClasses == Self.trainedClassCount else {
-            lastDiagnostics = "channel count mismatch: \(channelCount) channels, asumsi \(maskCoefficientCount) "
-                + "mask coeffs -> \(numClasses) kelas (harusnya \(Self.trainedClassCount)) — shape model berubah?"
+        // Model 1-kelas (dilatih single-class buat "mold" doang) -> kelas
+        // satu-satunya itu index 0. Model 2-kelas (konvensi lama, {0: damp,
+        // 1: mold}) -> mold ada di index 1. Bentuk lain (0 atau >2 kelas)
+        // gak didukung, kemungkinan besar shape model-nya berubah drastis.
+        let moldClassIndex: Int
+        switch numClasses {
+        case 1: moldClassIndex = 0
+        case 2: moldClassIndex = 1
+        default:
+            lastDiagnostics = "channel count gak didukung: \(channelCount) channels, asumsi \(maskCoefficientCount) "
+                + "mask coeffs -> \(numClasses) kelas (cuma dukung 1 atau 2) — shape model berubah drastis?"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
@@ -235,11 +242,14 @@ final class MoldDetector: @unchecked Sendable {
         var maxDampSeen: Float = -.infinity
         var bestAnchor: Int?
         for anchor in 0..<anchorCount {
-            let moldScore = value(4 + Self.moldClassIndex, anchor)
-            let dampScore = value(4, anchor) // index 0 = damp, dipakai cuma buat diagnostik di sini
+            let moldScore = value(4 + moldClassIndex, anchor)
             if moldScore > maxScoreSeen { maxScoreSeen = moldScore; bestAnchor = anchor }
             minScoreSeen = min(minScoreSeen, moldScore)
-            maxDampSeen = max(maxDampSeen, dampScore)
+            if numClasses == 2 {
+                // index 0 = damp, dipakai cuma buat diagnostik — model 1-kelas
+                // gak punya channel ini sama sekali (moldClassIndex udah 0).
+                maxDampSeen = max(maxDampSeen, value(4, anchor))
+            }
             guard moldScore >= confidenceThreshold else { continue }
 
             let cx = CGFloat(value(0, anchor))
@@ -269,9 +279,9 @@ final class MoldDetector: @unchecked Sendable {
             let w = value(2, bestAnchor), h = value(3, bestAnchor)
             boxDump = String(format: ", box anchor terbaik: cx=%.3f cy=%.3f w=%.3f h=%.3f", cx, cy, w, h)
         }
-        let summary = "\(anchorCount) anchors, mask coeffs = \(maskCoefficientCount), mold score min="
-            + String(format: "%.4f", minScoreSeen) + " max=" + String(format: "%.4f", maxScoreSeen)
-            + ", max damp score=" + String(format: "%.4f", maxDampSeen)
+        let dampDump = numClasses == 2 ? ", max damp score=" + String(format: "%.4f", maxDampSeen) : ""
+        let summary = "\(anchorCount) anchors, \(numClasses) kelas, mask coeffs = \(maskCoefficientCount), mold score min="
+            + String(format: "%.4f", minScoreSeen) + " max=" + String(format: "%.4f", maxScoreSeen) + dampDump
             + ", threshold = \(confidenceThreshold), kept before NMS = \(results.count)" + boxDump
         print("[MoldDetector] \(summary)")
         lastDiagnostics = summary
