@@ -76,6 +76,32 @@ final class LocationService: NSObject, ObservableObject {
             manager.requestLocation()
         }
     }
+
+    /// Kembalikan koordinat (lat/lon) user saat ini, atau nil kalau gagal /
+    /// izin ditolak. Dipakai buat ambil cuaca lewat WeatherService (bukan
+    /// reverse-geocode nama lokasi).
+    func fetchCurrentCoordinate() async -> CLLocationCoordinate2D? {
+        isFetching = true
+        errorMessage = nil
+        defer { isFetching = false }
+
+        if manager.authorizationStatus == .notDetermined {
+            await requestAuthorization()
+        }
+
+        guard manager.authorizationStatus == .authorizedWhenInUse || manager.authorizationStatus == .authorizedAlways else {
+            errorMessage = "Akses lokasi belum diizinkan. Cuaca gak bisa diambil otomatis."
+            return nil
+        }
+
+        do {
+            let location = try await requestLocation()
+            return location.coordinate
+        } catch {
+            errorMessage = "Tidak bisa ambil lokasi sekarang. Cuaca gak bisa diambil otomatis."
+            return nil
+        }
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {

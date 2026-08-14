@@ -30,12 +30,22 @@ struct RoomInspection: Identifiable {
     var wallCrack: Bool
     let date: Date
 
+    /// Cuaca pas inspeksi (dari WeatherService/Open-Meteo di ConditionFormView)
+    /// — dipakai bareng kondisi ruangan + level keparahan buat prediksi
+    /// RiskClassifier (kartu Risiko di Report). Optional karena GPS/cuaca
+    /// bisa gagal diambil.
+    var temperature: Float?
+    var humidity: Float?
+    /// Level keparahan jamur 0–3 (MoldSeverity.level) — input `Mold` model.
+    var moldSeverityLevel: Int
+
     /// `id` di-default lewat parameter (bukan `let id = UUID()` inline) —
     /// biar `init(from decoder:)` di extension Codable di bawah bisa decode
     /// id yang beneran tersimpan, bukan ke-generate ulang tiap kali di-load.
     init(
         id: UUID = UUID(), roomType: RoomType, riskLevel: RiskLevel, riskScore: Int, findings: [Finding],
-        capturedPhotos: [UIImage] = [], hasAC: Bool, hasWindow: Bool, dampness: Bool, wallCrack: Bool, date: Date
+        capturedPhotos: [UIImage] = [], hasAC: Bool, hasWindow: Bool, dampness: Bool, wallCrack: Bool, date: Date,
+        temperature: Float? = nil, humidity: Float? = nil, moldSeverityLevel: Int = 0
     ) {
         self.id = id
         self.roomType = roomType
@@ -48,6 +58,9 @@ struct RoomInspection: Identifiable {
         self.dampness = dampness
         self.wallCrack = wallCrack
         self.date = date
+        self.temperature = temperature
+        self.humidity = humidity
+        self.moldSeverityLevel = moldSeverityLevel
     }
 
     var thumbnail: UIImage {
@@ -78,7 +91,7 @@ struct RoomInspection: Identifiable {
 /// `[UIImage]`, disimpan sebagai array JPEG Data.
 extension RoomInspection: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, roomType, riskLevel, riskScore, findings, capturedPhotosData, hasAC, hasWindow, dampness, wallCrack, date
+        case id, roomType, riskLevel, riskScore, findings, capturedPhotosData, hasAC, hasWindow, dampness, wallCrack, date, temperature, humidity, moldSeverityLevel
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +108,9 @@ extension RoomInspection: Codable {
         dampness = try container.decode(Bool.self, forKey: .dampness)
         wallCrack = try container.decode(Bool.self, forKey: .wallCrack)
         date = try container.decode(Date.self, forKey: .date)
+        temperature = try container.decodeIfPresent(Float.self, forKey: .temperature)
+        humidity = try container.decodeIfPresent(Float.self, forKey: .humidity)
+        moldSeverityLevel = try container.decodeIfPresent(Int.self, forKey: .moldSeverityLevel) ?? 0
     }
 
     func encode(to encoder: Encoder) throws {
@@ -110,5 +126,8 @@ extension RoomInspection: Codable {
         try container.encode(dampness, forKey: .dampness)
         try container.encode(wallCrack, forKey: .wallCrack)
         try container.encode(date, forKey: .date)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(humidity, forKey: .humidity)
+        try container.encode(moldSeverityLevel, forKey: .moldSeverityLevel)
     }
 }

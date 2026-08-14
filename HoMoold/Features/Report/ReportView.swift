@@ -226,7 +226,51 @@ struct ReportView: View {
     // MARK: - Stats
 
     private var statsRow: some View {
-        HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Baris atas: Keparahan Jamur + Luas (50:50).
+            HStack(alignment: .top, spacing: 12) {
+                // KARTU KEPARAHAN JAMUR — dihitung dari total luas jamur
+                // (LiDAR), lihat MoldSeverity. Nanti Risk_Class dari model
+                // dipakai buat kartu Risiko di bawah.
+                let severity = MoldSeverity.severity(fromAreaCM2: viewModel.inspection.totalAreaCM2)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Keparahan Jamur")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    HStack {
+                        Text(severity.title)
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(severity.color)
+                        Spacer(minLength: 0)
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.title3)
+                            .foregroundStyle(severity.color)
+                            .frame(width: 40, height: 40)
+                            .background(severity.color.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+
+                if let areaText = viewModel.totalAreaText {
+                    VStack(spacing: 8) {
+                        Image(systemName: "viewfinder")
+                            .font(.title3)
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 40, height: 40)
+                            .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        Text(areaText)
+                            .font(.subheadline.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(10)
+                    .frame(width: 100)
+                    .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
+            }
+
+            // Baris bawah: Risiko Pertumbuhan Jamur (lebar penuh).
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 4) {
                     Text("Risiko Pertumbuhan Jamur")
@@ -237,36 +281,20 @@ struct ReportView: View {
                     }
                 }
                 HStack {
-                    Text(viewModel.inspection.riskLevel.labelID)
+                    Text(viewModel.riskClass ?? "—")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(viewModel.inspection.riskLevel.color)
+                        .foregroundStyle(viewModel.riskClassColor)
                     Spacer(minLength: 0)
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.title3)
-                        .foregroundStyle(viewModel.inspection.riskLevel.color)
+                        .foregroundStyle(viewModel.riskClassColor)
                         .frame(width: 40, height: 40)
-                        .background(viewModel.inspection.riskLevel.color.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .background(viewModel.riskClassColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-
-            if let areaText = viewModel.totalAreaText {
-                VStack(spacing: 8) {
-                    Image(systemName: "viewfinder")
-                        .font(.title3)
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 40, height: 40)
-                        .background(Color.accentColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    Text(areaText)
-                        .font(.subheadline.weight(.semibold))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(10)
-                .frame(width: 100)
-                .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            }
         }
     }
 

@@ -37,6 +37,12 @@ final class InspectionFlowState: ObservableObject {
     @Published var dampness = false
     @Published var wallCrack = false
 
+    /// Cuaca di tempat user (diambil otomatis lewat WeatherService di
+    /// ConditionFormView) — suhu (°C) & kelembapan (%). Disimpan di sini buat
+    /// ditampilin + dipakai nanti kalau mau masukin ke RiskClassifier.
+    @Published var temperature: Float?
+    @Published var humidity: Float?
+
     init(existingProperty: KosProperty) {
         self.existingProperty = existingProperty
         self.location = existingProperty.location

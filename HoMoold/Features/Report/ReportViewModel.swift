@@ -5,6 +5,7 @@
 
 import Combine
 import Foundation
+import SwiftUI
 
 @MainActor
 final class ReportViewModel: ObservableObject {
@@ -21,11 +22,37 @@ final class ReportViewModel: ObservableObject {
     let isReadOnly: Bool
     @Published var inspection: RoomInspection
 
+    /// Prediksi risiko dari RiskClassifier (model). `nil` kalau cuaca gagal
+    /// diambil (temperature/humidity kosong) — UI-nya nampilin "—".
+    private let classifier: RiskClassifierService?
+
     init(store: AppDataStore, inspection: RoomInspection, source: Source, isReadOnly: Bool) {
         self.store = store
         self.inspection = inspection
         self.source = source
         self.isReadOnly = isReadOnly
+        self.classifier = try? RiskClassifierService()
+    }
+
+    /// Output Risk_Class model ("Low"/"Medium"/"High") untuk kartu Risiko.
+    var riskClass: String? {
+        guard let t = inspection.temperature, let h = inspection.humidity else { return nil }
+        return classifier?.predict(
+            temperature: t, humidity: h,
+            hasAC: inspection.hasAC, hasWindow: inspection.hasWindow,
+            dampness: inspection.dampness, wallCrack: inspection.wallCrack,
+            moldLevel: inspection.moldSeverityLevel
+        )
+    }
+
+    /// Warna kartu risiko: Low=green, Medium=orange, High=red (fallback gray).
+    var riskClassColor: Color {
+        guard let risk = riskClass else { return .gray }
+        switch risk.lowercased() {
+        case "low": return .green
+        case "medium": return .orange
+        default: return .red
+        }
     }
 
     var riskExplanation: String {
