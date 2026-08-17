@@ -56,7 +56,7 @@ final class ReportViewModel: ObservableObject {
     }
 
     var riskExplanation: String {
-        "Skor ini dihitung dari kondisi kerusakan/lembap yang terlihat dan kondisi cuaca daerah ini. Skor tinggi berarti ruangan berisiko lembap terus-menerus meskipun jamurnya belum kelihatan."
+        "This score is calculated from the visible damage/moisture conditions and the weather in this area. A high score means the room is at risk of prolonged dampness even if the mold isn't visible yet."
     }
 
     /// Total luas jamur yang kedeteksi, diformat "0,96 m²" — nil kalau gak ada
@@ -79,12 +79,12 @@ final class ReportViewModel: ObservableObject {
     var visualFindingsText: String {
         var lines: [String] = []
         if !inspection.findings.isEmpty {
-            lines.append(inspection.findings.count == 1 ? "Noda jamur di 1 titik" : "Noda jamur di \(inspection.findings.count) titik")
+            lines.append(inspection.findings.count == 1 ? "Mold stain at 1 spot" : "Mold stains at \(inspection.findings.count) spots")
         }
         if inspection.wallCrack {
-            lines.append("Ada retak dinding")
+            lines.append("There is a wall crack")
         }
-        return lines.isEmpty ? "Gak ada temuan visual yang mencolok" : lines.joined(separator: "\n")
+        return lines.isEmpty ? "No prominent visual findings" : lines.joined(separator: "\n")
     }
 
     /// Faktor lingkungan yang berkontribusi ke risiko — disusun dari kondisi
@@ -92,12 +92,12 @@ final class ReportViewModel: ObservableObject {
     var environmentalFactorsText: String {
         var lines: [String] = []
         if inspection.dampness {
-            lines.append("Kelembapan tinggi di ruangan ini")
+            lines.append("High humidity in this room")
         }
         if !inspection.hasWindow {
-            lines.append("Ventilasi ruang kurang baik")
+            lines.append("Poor room ventilation")
         }
-        return lines.isEmpty ? "Gak ada faktor lingkungan yang mencolok" : lines.joined(separator: "\n")
+        return lines.isEmpty ? "No prominent environmental factors" : lines.joined(separator: "\n")
     }
 
     /// Satu paragraf dampak kesehatan (bukan tabel jangka pendek/panjang) —
@@ -105,11 +105,11 @@ final class ReportViewModel: ObservableObject {
     var healthImpactText: String {
         switch inspection.riskLevel {
         case .low:
-            return "Risiko kesehatan masih rendah. Tetap perhatikan kalau mulai tercium bau apek atau muncul noda baru di kemudian hari."
+            return "Health risk is still low. Keep an eye out in case a musty smell or new stains appear later."
         case .medium:
-            return "Paparan lembap ringan bisa memicu bersin, hidung gatal, atau tenggorokan kering kalau kamu lama berada di ruangan ini."
+            return "Mild dampness exposure can trigger sneezing, an itchy nose, or a dry throat if you spend a lot of time in this room."
         case .high:
-            return "Paparan jamur bisa memicu batuk, iritasi, dan alergi, serta memperparah asma pada orang yang sensitif — apalagi kalau lembapnya terus-menerus."
+            return "Mold exposure can trigger coughing, irritation, and allergies, and worsen asthma in sensitive people — especially if the dampness is constant."
         }
     }
 
@@ -121,13 +121,13 @@ final class ReportViewModel: ObservableObject {
 
     var preventionTips: [PreventionTip] {
         var tips: [PreventionTip] = []
-        tips.append(PreventionTip(icon: "magnifyingglass", label: "Cari sumber lembapnya"))
-        tips.append(PreventionTip(icon: "tshirt", label: "Jangan jemur baju di kamar ini"))
-        tips.append(PreventionTip(icon: "arrow.left.and.right", label: "Geser furnitur dari dinding lembap"))
+        tips.append(PreventionTip(icon: "magnifyingglass", label: "Find the source of the moisture"))
+        tips.append(PreventionTip(icon: "tshirt", label: "Don't hang laundry to dry in this room"))
+        tips.append(PreventionTip(icon: "arrow.left.and.right", label: "Move furniture away from damp walls"))
         if inspection.wallCrack {
-            tips.append(PreventionTip(icon: "bandage", label: "Cek riwayat retakan ke pemilik"))
+            tips.append(PreventionTip(icon: "bandage", label: "Check the crack history with the owner"))
         }
-        tips.append(PreventionTip(icon: "person.fill.questionmark", label: "Tanya riwayat bocor ke pemilik"))
+        tips.append(PreventionTip(icon: "person.fill.questionmark", label: "Ask the owner about past leaks"))
         return tips
     }
 

@@ -32,11 +32,11 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 24) {
                 valueProp(
                     icon: "lungs", iconColor: Color(red: 0.42, green: 0.78, blue: 0.51),
-                    text: "Cek dulu risiko jamur di rumahnya bisa bikin sakit apa nggak"
+                    text: "Check first whether the mold risk in the house could make you sick"
                 )
                 valueProp(
                     icon: "house.badge.exclamationmark", iconColor: Color(red: 0, green: 0.43, blue: 0.71),
-                    text: "Tau juga kondisi bangunan rumahnya sebelum tanda tangan kontrak"
+                    text: "Also know the building's condition before signing the lease"
                 )
             }
             .padding(.horizontal, 32)
@@ -47,7 +47,7 @@ struct OnboardingView: View {
             Button {
                 withAnimation { hasSeenOnboarding = true }
             } label: {
-                Text("YUK, MULAI!")
+                Text("LET'S START!")
                     .font(.headline.weight(.bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

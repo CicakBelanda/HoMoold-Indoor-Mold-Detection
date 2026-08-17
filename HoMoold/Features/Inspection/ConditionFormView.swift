@@ -24,53 +24,53 @@ struct ConditionFormView: View {
     var body: some View {
         Form {
             Section {
-                Toggle("Lembap", isOn: $flow.dampness)
-                Toggle("Retak Dinding", isOn: $flow.wallCrack)
+                Toggle("Damp", isOn: $flow.dampness)
+                Toggle("Wall Crack", isOn: $flow.wallCrack)
                 Toggle("AC", isOn: $flow.hasAC)
-                Toggle("Jendela", isOn: $flow.hasWindow)
+                Toggle("Window", isOn: $flow.hasWindow)
             } header: {
-                Text("Kondisi Ruangan")
+                Text("Room Condition")
             } footer: {
-                Text("Isi sesuai yang kamu lihat langsung di ruangan ini.")
+                Text("Fill in according to what you see directly in this room.")
             }
 
             Section {
                 HStack {
-                    Text("Suhu")
+                    Text("Temperature")
                     Spacer()
                     Text(weatherText(flow.temperature, unit: "°C"))
                         .foregroundStyle(.secondary)
                 }
                 HStack {
-                    Text("Kelembapan")
+                    Text("Humidity")
                     Spacer()
                     Text(weatherText(flow.humidity, unit: "%"))
                         .foregroundStyle(.secondary)
                 }
             } header: {
-                Text("Kondisi Cuaca")
+                Text("Weather Condition")
             } footer: {
                 if locationService.isFetching {
-                    Label("Mengambil cuaca otomatis...", systemImage: "location.fill")
+                    Label("Fetching weather automatically...", systemImage: "location.fill")
                         .foregroundStyle(.secondary)
                 } else if let error = locationService.errorMessage {
                     Text(error)
                         .foregroundStyle(.orange)
                 } else if flow.temperature == nil && flow.humidity == nil {
-                    Text("Cuaca gak bisa diambil. Lanjut aja, nggak masalah.")
+                    Text("Weather couldn't be fetched. Just continue, it's fine.")
                 } else {
-                    Text("Diambil otomatis dari lokasimu saat ini.")
+                    Text("Automatically retrieved from your current location.")
                 }
             }
         }
-        .navigationTitle("Kondisi Ruangan")
+        .navigationTitle("Room Condition")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
         .task {
             await refreshWeather()
         }
         .safeAreaInset(edge: .bottom) {
-            Button("Lanjut") { proceed() }
+            Button("Next") { proceed() }
                 .buttonStyle(.pillProminent)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 12)
@@ -90,7 +90,7 @@ struct ConditionFormView: View {
             flow.temperature = snap.temperature
             flow.humidity = snap.humidity
         } catch {
-            locationService.errorMessage = "Cuaca gak bisa diambil: \(error.localizedDescription)"
+            locationService.errorMessage = "Weather couldn't be fetched: \(error.localizedDescription)"
         }
     }
 
@@ -119,7 +119,7 @@ struct ConditionFormView: View {
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Sample Property", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return NavigationStack {
         ConditionFormView(flow: InspectionFlowState(existingProperty: property))
     }

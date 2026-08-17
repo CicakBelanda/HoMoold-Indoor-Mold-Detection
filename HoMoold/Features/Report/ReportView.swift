@@ -48,19 +48,19 @@ struct ReportView: View {
 
                 infoCard(
                     icon: "heart.fill", iconColor: .pink, iconBg: .pink.opacity(0.15),
-                    title: "Potensi Dampak Kesehatan", text: viewModel.healthImpactText
+                    title: "Potential Health Impact", text: viewModel.healthImpactText
                 )
                 .padding(.horizontal, 20)
 
                 infoCard(
                     icon: "eye.fill", iconColor: .blue, iconBg: .blue.opacity(0.12),
-                    title: "Temuan Visual", text: viewModel.visualFindingsText
+                    title: "Visual Findings", text: viewModel.visualFindingsText
                 )
                 .padding(.horizontal, 20)
 
                 infoCard(
                     icon: "house.fill", iconColor: .purple, iconBg: .purple.opacity(0.12),
-                    title: "Faktor Lingkungan", text: viewModel.environmentalFactorsText
+                    title: "Environmental Factors", text: viewModel.environmentalFactorsText
                 )
                 .padding(.horizontal, 20)
 
@@ -81,13 +81,13 @@ struct ReportView: View {
         .safeAreaInset(edge: .bottom) {
             HStack(spacing: 12) {
                 if let finding = currentFinding {
-                    Button(finding.isReviewed ? "Sudah Dilabel" : "Label") {
+                    Button(finding.isReviewed ? "Labeled" : "Label") {
                         viewModel.toggleReviewed(finding.id)
                     }
                     .buttonStyle(.pillSecondary)
                 }
                 if !viewModel.isReadOnly {
-                    Button("Simpan") {
+                    Button("Save") {
                         viewModel.save()
                         onSaved?()
                     }
@@ -146,7 +146,7 @@ struct ReportView: View {
                         .allowsHitTesting(false)
                     VStack {
                         Spacer()
-                        Text("Tidak ada tanda pra-jamur yang terdeteksi jelas")
+                        Text("No clear pre-mold signs were detected")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .padding(.bottom, 16)
@@ -210,7 +210,7 @@ struct ReportView: View {
                     viewerItem = ImageViewerItem(image: image)
                 }
 
-            Text("Gak ada jamur yang kedeteksi di foto ini")
+            Text("No mold detected in this photo")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 10)
@@ -234,7 +234,7 @@ struct ReportView: View {
                 // dipakai buat kartu Risiko di bawah.
                 let severity = MoldSeverity.severity(fromAreaCM2: viewModel.inspection.totalAreaCM2)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Keparahan Jamur")
+                    Text("Mold Severity")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                     HStack {
@@ -273,10 +273,10 @@ struct ReportView: View {
             // Baris bawah: Risiko Pertumbuhan Jamur (lebar penuh).
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 4) {
-                    Text("Risiko Pertumbuhan Jamur")
+                    Text("Mold Growth Risk")
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
-                    InfoSheetButton(accessibilityLabel: "Penjelasan metodologi skor risiko") {
+                    InfoSheetButton(accessibilityLabel: "Explanation of the risk score methodology") {
                         MoldRiskInfoSheet(explanation: viewModel.riskExplanation)
                     }
                 }
@@ -328,7 +328,7 @@ struct ReportView: View {
 
     private var preventionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Cara Mencegah / Menangani")
+            Text("How to Prevent / Handle")
                 .font(.headline)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -361,14 +361,14 @@ private struct ImageViewerItem: Identifiable {
     let finding = Finding(
         boundingBox: CGRect(x: 0.2, y: 0.2, width: 0.4, height: 0.35),
         frameImage: PlaceholderImageFactory.findingFrame(for: .bedroom, seed: 1, stainAt: CGPoint(x: 0.4, y: 0.35), findingClass: .mold),
-        findingClass: .mold, locationNote: "sudut plafon dekat jendela", areaCM2: 340
+        findingClass: .mold, locationNote: "ceiling corner near window", areaCM2: 340
     )
     let room = RoomInspection(
         roomType: .bedroom, riskLevel: .medium, riskScore: 52, findings: [finding],
         hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Sample House", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     let store = AppDataStore(properties: [property])

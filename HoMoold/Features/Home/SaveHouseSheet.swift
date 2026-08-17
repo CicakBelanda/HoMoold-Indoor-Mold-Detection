@@ -22,10 +22,10 @@ struct SaveHouseSheet: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Simpan Rumah")
+            Text("Save House")
                 .font(.headline)
 
-            TextField("Nama rumah, mis. Rumah Anggrek 1", text: $name)
+            TextField("House name, e.g. Orchid House 1", text: $name)
                 .textFieldStyle(.plain)
                 .padding(12)
                 .background(Color(uiColor: .secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -34,10 +34,10 @@ struct SaveHouseSheet: View {
                 .onSubmit(save)
 
             HStack(spacing: 12) {
-                Button("Batal") { dismiss() }
+                Button("Cancel") { dismiss() }
                     .buttonStyle(.pillSecondary)
 
-                Button("Tambah", action: save)
+                Button("Add", action: save)
                     .buttonStyle(.pillProminent)
                     .disabled(!canSave)
             }

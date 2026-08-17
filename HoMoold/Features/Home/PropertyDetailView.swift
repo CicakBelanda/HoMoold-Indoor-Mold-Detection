@@ -39,7 +39,7 @@ struct PropertyDetailView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                    Text("Tambah Ruangan")
+                    Text("Add Room")
                 }
                 .font(.headline)
                 .foregroundStyle(Color.accentColor)
@@ -55,7 +55,7 @@ struct PropertyDetailView: View {
                 }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Tambah ruangan yang diperiksa di rumah ini")
+            .accessibilityLabel("Add a room to inspect in this house")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
@@ -75,19 +75,19 @@ struct PropertyDetailView: View {
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
-                            Label("Hapus", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                     .contextMenu {
                         Button {
                             roomPendingEdit = room
                         } label: {
-                            Label("Ubah Kondisi", systemImage: "pencil")
+                            Label("Edit Condition", systemImage: "pencil")
                         }
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
-                            Label("Hapus Ruangan", systemImage: "trash")
+                            Label("Delete Room", systemImage: "trash")
                         }
                     }
                 }
@@ -105,17 +105,17 @@ struct PropertyDetailView: View {
                         renameText = viewModel.property?.name ?? ""
                         showRenameAlert = true
                     } label: {
-                        Label("Ubah Nama Rumah", systemImage: "pencil")
+                        Label("Rename House", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
                         showDeletePropertyConfirm = true
                     } label: {
-                        Label("Hapus Rumah", systemImage: "trash")
+                        Label("Delete House", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
-                .accessibilityLabel("Opsi rumah")
+                .accessibilityLabel("House options")
             }
         }
         .fullScreenCover(isPresented: $showAddInspection) {
@@ -134,37 +134,37 @@ struct PropertyDetailView: View {
             }
         }
         .alert(
-            "Hapus Ruangan",
+            "Delete Room",
             isPresented: Binding(
                 get: { roomPendingDelete != nil },
                 set: { if !$0 { roomPendingDelete = nil } }
             )
         ) {
-            Button("Batal", role: .cancel) {}
-            Button("Hapus", role: .destructive) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
                 if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
                     store.deleteRoom(roomID: roomID, fromProperty: propertyID)
                 }
                 roomPendingDelete = nil
             }
         } message: {
-            Text("Hasil pemeriksaan ruangan ini akan dihapus. Tindakan ini tidak bisa dibatalkan.")
+            Text("The inspection result for this room will be deleted. This action cannot be undone.")
         }
-        .alert("Hapus Rumah", isPresented: $showDeletePropertyConfirm) {
-            Button("Batal", role: .cancel) {}
-            Button("Hapus", role: .destructive) {
+        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
                 if let id = viewModel.property?.id {
                     store.deleteProperty(id: id)
                 }
                 dismiss()
             }
         } message: {
-            Text("Semua data pemeriksaan di \"\(viewModel.property?.name ?? "")\" akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.")
+            Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This action cannot be undone.")
         }
-        .alert("Ubah Nama Rumah", isPresented: $showRenameAlert) {
-            TextField("Nama rumah", text: $renameText)
-            Button("Batal", role: .cancel) {}
-            Button("Simpan") {
+        .alert("Rename House", isPresented: $showRenameAlert) {
+            TextField("House name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
                 if let id = viewModel.property?.id {
                     store.renameProperty(id: id, to: renameText)
                 }
@@ -236,7 +236,7 @@ private struct RoomInspectionCard: View {
     }
 
     private func relativeDate(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Hari ini" }
+        if Calendar.current.isDateInToday(date) { return "Today" }
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
@@ -288,7 +288,7 @@ private struct SignalBars: View {
         hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Sample House", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     let store = AppDataStore(properties: [property])

@@ -41,7 +41,7 @@ struct BoundingBoxOverlay: View {
                     .background(color, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                     .position(x: rect.minX + 24, y: max(rect.minY - 10, 10))
             }
-            .accessibilityLabel("Terdeteksi \(label)")
+            .accessibilityLabel("Detected \(label)")
         }
     }
 }

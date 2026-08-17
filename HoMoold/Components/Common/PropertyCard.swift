@@ -69,7 +69,7 @@ struct PropertyCard: View {
     }
 
     private func relativeDate(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Hari ini" }
+        if Calendar.current.isDateInToday(date) { return "Today" }
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
@@ -82,7 +82,7 @@ struct PropertyCard: View {
         hasAC: true, hasWindow: true, dampness: true, wallCrack: false, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Sample House", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     return PropertyCard(property: property)

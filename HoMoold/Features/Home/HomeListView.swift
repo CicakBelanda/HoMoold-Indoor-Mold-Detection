@@ -51,7 +51,7 @@ struct HomeListView: View {
                                 Button(role: .destructive) {
                                     propertyPendingDelete = property
                                 } label: {
-                                    Label("Hapus", systemImage: "trash")
+                                    Label("Delete", systemImage: "trash")
                                 }
                             }
                             .contextMenu {
@@ -59,12 +59,12 @@ struct HomeListView: View {
                                     renameText = property.name
                                     propertyPendingRename = property
                                 } label: {
-                                    Label("Ubah Nama", systemImage: "pencil")
+                                    Label("Rename", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
                                     propertyPendingDelete = property
                                 } label: {
-                                    Label("Hapus Rumah", systemImage: "trash")
+                                    Label("Delete House", systemImage: "trash")
                                 }
                             }
                         }
@@ -74,9 +74,9 @@ struct HomeListView: View {
                 }
             }
             .background(LinearGradient.hoomoldHome.ignoresSafeArea())
-            .navigationTitle("Rumah Kamu")
+            .navigationTitle("Your Houses")
             .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Cari nama rumah")
+            .searchable(text: $searchText, prompt: "Search house name")
             .navigationDestination(for: UUID.self) { propertyID in
                 PropertyDetailView(store: store, propertyID: propertyID, path: $path)
             }
@@ -95,36 +95,36 @@ struct HomeListView: View {
                 .buttonBorderShape(.circle)
                 .controlSize(.extraLarge)
                 .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
-                .accessibilityLabel("Mulai pemeriksaan baru")
+                .accessibilityLabel("Start new inspection")
                 .padding(20)
             }
             .alert(
-                "Hapus Rumah",
+                "Delete House",
                 isPresented: Binding(
                     get: { propertyPendingDelete != nil },
                     set: { if !$0 { propertyPendingDelete = nil } }
                 )
             ) {
-                Button("Batal", role: .cancel) {}
-                Button("Hapus", role: .destructive) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
                     if let id = propertyPendingDelete?.id {
                         store.deleteProperty(id: id)
                     }
                     propertyPendingDelete = nil
                 }
             } message: {
-                Text("Semua data pemeriksaan di \"\(propertyPendingDelete?.name ?? "")\" akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.")
+                Text("All inspection data in \"\(propertyPendingDelete?.name ?? "")\" will be deleted too. This action cannot be undone.")
             }
             .alert(
-                "Ubah Nama Rumah",
+                "Rename House",
                 isPresented: Binding(
                     get: { propertyPendingRename != nil },
                     set: { if !$0 { propertyPendingRename = nil } }
                 )
             ) {
-                TextField("Nama rumah", text: $renameText)
-                Button("Batal", role: .cancel) {}
-                Button("Simpan") {
+                TextField("House name", text: $renameText)
+                Button("Cancel", role: .cancel) {}
+                Button("Save") {
                     if let id = propertyPendingRename?.id {
                         store.renameProperty(id: id, to: renameText)
                     }
@@ -152,9 +152,9 @@ struct HomeListView: View {
             Image(systemName: "house")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("Belum ada rumah yang diperiksa")
+            Text("No houses inspected yet")
                 .font(.headline)
-            Text("Tap tombol + untuk simpan rumah pertamamu, terus tambahin ruangan yang mau diperiksa.")
+            Text("Tap the + button to save your first house, then add the room you want to inspect.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -169,9 +169,9 @@ struct HomeListView: View {
             Image(systemName: "magnifyingglass")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
-            Text("Gak ketemu rumahnya")
+            Text("House not found")
                 .font(.headline)
-            Text("Coba cari pakai nama atau lokasi lain.")
+            Text("Try searching by a different name or location.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

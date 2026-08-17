@@ -73,7 +73,7 @@ struct FullScreenImageViewer: View {
                     .foregroundStyle(.white, .black.opacity(0.4))
             }
             .padding(20)
-            .accessibilityLabel("Tutup")
+            .accessibilityLabel("Close")
         }
     }
 }

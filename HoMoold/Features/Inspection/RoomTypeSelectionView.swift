@@ -14,7 +14,7 @@ struct RoomTypeSelectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Ruangan apa yang mau diperiksa?")
+                Text("Which room do you want to inspect?")
                     .font(.title2.weight(.bold))
                     .padding(.top, 12)
 
@@ -47,14 +47,14 @@ struct RoomTypeSelectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Batal") { dismiss() }
+                Button("Cancel") { dismiss() }
             }
         }
     }
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Sample Property", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return NavigationStack {
         RoomTypeSelectionView(flow: InspectionFlowState(existingProperty: property))
     }

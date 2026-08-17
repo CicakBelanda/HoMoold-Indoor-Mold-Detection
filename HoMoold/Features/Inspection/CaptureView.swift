@@ -129,7 +129,7 @@ struct CaptureView: View {
                     .frame(width: 62, height: 62)
             }
         }
-        .accessibilityLabel("Ambil gambar")
+        .accessibilityLabel("Take photo")
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
@@ -140,7 +140,7 @@ struct CaptureView: View {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 14) {
-                Text("Hasil Jepretan")
+                Text("Capture Result")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -172,14 +172,14 @@ struct CaptureView: View {
 
                 VStack(spacing: 10) {
                     HStack(spacing: 12) {
-                        Button("Ulangi", systemImage: "arrow.counterclockwise") { viewModel.retake() }
+                        Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(.white.opacity(0.2), in: Capsule())
 
-                        Button("Jamur Lain") { viewModel.acceptAndScanAnother() }
+                        Button("Another Mold") { viewModel.acceptAndScanAnother() }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -187,7 +187,7 @@ struct CaptureView: View {
                             .background(.white.opacity(0.2), in: Capsule())
                     }
 
-                    Button("Selesai") { finish() }
+                    Button("Done") { finish() }
                         .buttonStyle(.pillProminent)
                 }
                 .padding(.horizontal, 20)
@@ -199,7 +199,7 @@ struct CaptureView: View {
     @ViewBuilder
     private func resultList(_ result: CaptureViewModel.CapturedResult) -> some View {
         if result.detections.isEmpty {
-            Text("Gak ada jamur yang kedeteksi di gambar ini.")
+            Text("No mold detected in this photo.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.85))
                 .padding(.horizontal, 20)
@@ -207,13 +207,13 @@ struct CaptureView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(result.detections) { detection in
                     HStack(alignment: .firstTextBaseline) {
-                        Text("Jamur")
+                        Text("Mold")
                             .font(.subheadline.weight(.semibold))
                         Text(String(format: "(%.0f%%)", detection.confidence * 100))
                             .font(.caption)
                             .foregroundStyle(.white.opacity(0.6))
                         Spacer()
-                        Text(detection.areaText ?? "luas gagal dihitung")
+                        Text(detection.areaText ?? "area could not be measured")
                             .font(.subheadline.weight(.bold))
                     }
                     .foregroundStyle(.white)
@@ -237,7 +237,7 @@ struct CaptureView: View {
             Color.black.opacity(0.6).ignoresSafeArea()
             VStack(spacing: 12) {
                 ProgressView().tint(.white)
-                Text("Memproses gambar...")
+                Text("Processing image...")
                     .font(.subheadline)
                     .foregroundStyle(.white)
             }
@@ -248,13 +248,13 @@ struct CaptureView: View {
 
     private var statusBannerText: String? {
         if viewModel.modelUnavailable {
-            return "Model deteksi belum ketemu di bundle app."
+            return "Detection model not found in the app bundle."
         }
         if let tracking = arSession.trackingMessage {
             return tracking
         }
         if viewModel.isWaitingForDepth {
-            return "Nunggu data depth dari LiDAR..."
+            return "Waiting for depth data from LiDAR..."
         }
         return nil
     }
@@ -271,13 +271,13 @@ struct CaptureView: View {
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
             .controlSize(.large)
-            .accessibilityLabel("Kembali")
+            .accessibilityLabel("Back")
 
             Spacer()
 
             let acceptedCount = viewModel.acceptedFindings.count + viewModel.acceptedPhotos.count
             if acceptedCount > 0 {
-                Text("\(acceptedCount) foto diambil")
+                Text("\(acceptedCount) photos taken")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 12)
@@ -294,15 +294,15 @@ struct CaptureView: View {
             Image(systemName: "sensor.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.white)
-            Text("Gak ada sensor LiDAR")
+            Text("No LiDAR sensor")
                 .font(.headline)
                 .foregroundStyle(.white)
-            Text("Fitur ukur luas jamur cuma jalan di iPhone/iPad Pro yang punya LiDAR.")
+            Text("The mold area measurement feature only works on iPhone/iPad Pro models with LiDAR.")
                 .font(.subheadline)
                 .foregroundStyle(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            Button("Lewati tanpa foto") { finish() }
+            Button("Skip without photo") { finish() }
                 .buttonStyle(.pillProminent)
                 .padding(.horizontal, 40)
                 .padding(.top, 8)
@@ -318,6 +318,6 @@ struct CaptureView: View {
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Sample Property", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return CaptureView(flow: InspectionFlowState(existingProperty: property))
 }

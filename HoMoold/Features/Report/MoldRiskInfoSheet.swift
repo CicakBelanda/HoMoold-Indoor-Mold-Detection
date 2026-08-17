@@ -27,7 +27,7 @@ struct MoldRiskInfoSheet: View {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.secondary)
                     }
-                    .accessibilityLabel("Tutup")
+                    .accessibilityLabel("Close")
                 }
             }
         }
@@ -35,5 +35,5 @@ struct MoldRiskInfoSheet: View {
 }
 
 #Preview {
-    MoldRiskInfoSheet(explanation: "Contoh penjelasan metodologi skor risiko jamur.")
+    MoldRiskInfoSheet(explanation: "Example explanation of the mold risk score methodology.")
 }
