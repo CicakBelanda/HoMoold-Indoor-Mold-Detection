@@ -54,10 +54,30 @@ enum MoldSeverity {
 
     var color: Color {
         switch self {
-        case .none: return .gray
-        case .level1: return .orange
-        case .level2: return .orange
-        case .level3: return .red
+        case .none: return Theme.color.textSecondary
+        case .level1, .level2: return Theme.color.riskMedium
+        case .level3: return Theme.color.riskHigh
+        }
+    }
+
+    /// Label pendek buat kartu "Mold Severity" di halaman detail prediksi —
+    /// desainnya nampilin "Moderate", bukan "Level 2 - Moderate Mold".
+    var shortTitle: String {
+        switch self {
+        case .none: return "None"
+        case .level1: return "Light"
+        case .level2: return "Moderate"
+        case .level3: return "Severe"
+        }
+    }
+
+    /// Balikin label pendek dari level 0–3 yang udah kesimpan di RoomInspection.
+    static func label(forLevel level: Int) -> String {
+        switch level {
+        case 1: return MoldSeverity.level1.shortTitle
+        case 2: return MoldSeverity.level2.shortTitle
+        case 3: return MoldSeverity.level3.shortTitle
+        default: return MoldSeverity.none.shortTitle
         }
     }
 }

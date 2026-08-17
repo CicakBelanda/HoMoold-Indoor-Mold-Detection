@@ -86,14 +86,14 @@ extension ARController: ARSessionDelegate {
             return nil
         case .limited(let reason):
             switch reason {
-            case .initializing: return "Menyiapkan kamera..."
-            case .excessiveMotion: return "Gerakan terlalu cepat, pelanin dikit"
-            case .insufficientFeatures: return "Cahaya kurang atau permukaan terlalu polos"
-            case .relocalizing: return "Menyesuaikan posisi..."
-            @unknown default: return "Tracking belum stabil"
+            case .initializing: return "Preparing camera..."
+            case .excessiveMotion: return "Moving too fast, slow down a bit"
+            case .insufficientFeatures: return "Insufficient light or a surface that is too plain."
+            case .relocalizing: return "Adjusting position..."
+            @unknown default: return "Tracking isn't stable yet"
             }
         case .notAvailable:
-            return "Tracking belum siap"
+            return "Tracking isn't ready yet"
         }
     }
 }

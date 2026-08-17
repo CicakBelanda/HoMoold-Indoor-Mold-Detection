@@ -2,124 +2,251 @@
 //  ConditionFormView.swift
 //  HoMoold
 //
-//  Kondisi ruangan diisi MANUAL sama user (bukan hasil AI) — jamur/luas yang
-//  AI deteksi cuma soal titik noda di CaptureView, sementara ini soal kondisi
-//  umum ruangannya (ada AC/jendela, lembap, retak dinding) buat konteks
-//  tambahan di Report.
+//  Figma 1339:7292 ("Condition Page") — layar PERTAMA dari alur "Add new Room",
+//  langsung kebuka pas user tap kartu "Add new Room".
 //
-//  Bagian "Kondisi Cuaca" menggantikan input lokasi (provinsi/kabupaten/
-//  kecamatan) — sekarang cuaca di tempat user diambil OTOMATIS lewat
-//  LocationService (koordinat) + WeatherService (Open-Meteo: suhu & kelembapan),
-//  gak perlu diketik manual. UI-nya tetap Form/Section sama kayak sebelumnya:
-//  header + footer yang nunjukin status mengambil/error/opsional.
+//  Bukan `Form`. Desainnya: latar `#f7f7f7`, label section tebal di LUAR kartu,
+//  kartu putih radius 20 isinya baris-baris checkbox. `Form` bakal maksa gaya
+//  inset-grouped-nya sendiri (header abu kecil huruf kapital, inset baris beda),
+//  jadi ini disusun manual pakai ScrollView.
+//
+//  Tombol bawah punya dua perilaku, tergantung "Visible Mold":
+//    - kecentang  -> "Next", buka guidance lalu kamera (fotonya itu bahan utama
+//                    buat ngukur luas jamur)
+//    - nggak      -> "Submit", langsung ke loading + report (nggak ada yang
+//                    perlu difoto)
+//
+//  Cuaca (suhu/kelembapan) diambil DIAM-DIAM di background — di desainnya nggak
+//  ada section cuaca, dan nambahin satu lagi bikin layarnya kepanjangan. Yang
+//  muncul cuma catatan kecil kalau izin lokasinya ditolak, karena itu satu-satunya
+//  keadaan yang user perlu tau + bisa dia benerin.
+//
 
 import SwiftUI
 import CoreLocation
 
 struct ConditionFormView: View {
     @ObservedObject var flow: InspectionFlowState
+
     @StateObject private var locationService = LocationService()
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var isNameFocused: Bool
     private let weatherService = WeatherService()
 
     var body: some View {
-        Form {
-            Section {
-                Toggle("Lembap", isOn: $flow.dampness)
-                Toggle("Retak Dinding", isOn: $flow.wallCrack)
-                Toggle("AC", isOn: $flow.hasAC)
-                Toggle("Jendela", isOn: $flow.hasWindow)
-            } header: {
-                Text("Kondisi Ruangan")
-            } footer: {
-                Text("Isi sesuai yang kamu lihat langsung di ruangan ini.")
-            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 25) {
+                typeField
+                nameField
+                availabilitySection
+                conditionsSection
 
-            Section {
-                HStack {
-                    Text("Suhu")
-                    Spacer()
-                    Text(weatherText(flow.temperature, unit: "°C"))
-                        .foregroundStyle(.secondary)
-                }
-                HStack {
-                    Text("Kelembapan")
-                    Spacer()
-                    Text(weatherText(flow.humidity, unit: "%"))
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text("Kondisi Cuaca")
-            } footer: {
-                if locationService.isFetching {
-                    Label("Mengambil cuaca otomatis...", systemImage: "location.fill")
-                        .foregroundStyle(.secondary)
-                } else if let error = locationService.errorMessage {
-                    Text(error)
-                        .foregroundStyle(.orange)
-                } else if flow.temperature == nil && flow.humidity == nil {
-                    Text("Cuaca gak bisa diambil. Lanjut aja, nggak masalah.")
-                } else {
-                    Text("Diambil otomatis dari lokasimu saat ini.")
+                if locationService.isPermissionDenied {
+                    locationDeniedNote
                 }
             }
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
+            // Tap di area kosong buat nutup keyboard. `Form` dulu ngasih ini
+            // gratis; ScrollView nggak, jadi harus eksplisit. Ditempel ke
+            // KONTEN, bukan ke latar — latarnya sekarang bukan view yang bisa
+            // ditap.
+            .contentShape(.rect)
+            .onTapGesture { isNameFocused = false }
         }
-        .navigationTitle("Kondisi Ruangan")
+        // Geser buat nutup keyboard, ngikutin jari (`.interactively`), bukan
+        // `.immediately` yang ngilangin keyboard begitu layar kesenggol dikit.
+        .scrollDismissesKeyboard(.interactively)
+        // Latar lewat `.background`, BUKAN sibling di dalam ZStack.
+        //
+        // Ini juga yang bikin keyboard-nya kerasa aneh: begitu ada sibling yang
+        // `ignoresSafeArea`, ScrollView-nya kehilangan inset safe area — dan
+        // keyboard ITU salah satu inset safe area. Jadi pas keyboard naik,
+        // kontennya nggak digeser dan field yang lagi diketik bisa ketutupan.
+        .background(Theme.color.surfaceMuted.ignoresSafeArea())
+        .navigationTitle("Room")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(true)
-        .task {
-            await refreshWeather()
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel") { dismiss() }
+            }
+
+            // Aksesori "Done" di atas keyboard — pola standar iOS. Tanpa ini
+            // satu-satunya jalan nutup keyboard cuma tap di tempat kosong, dan
+            // itu nggak keliatan sebagai pilihan.
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { isNameFocused = false }
+            }
         }
+        .task { await refreshLocationAndWeather() }
         .safeAreaInset(edge: .bottom) {
-            Button("Lanjut") { proceed() }
+            Button(primaryButtonTitle) { advance() }
                 .buttonStyle(.pillProminent)
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 22)
                 .padding(.bottom, 12)
-                .background(.bar)
         }
     }
 
-    private func weatherText(_ value: Float?, unit: String) -> String {
-        guard let value else { return "—" }
-        return String(format: "%.0f %@", value, unit)
+    // MARK: - Fields
+
+    private var typeField: some View {
+        labeledSection("Type") {
+            // Menu, bukan Picker(.wheel)/NavigationLink — di Figma field-nya
+            // pipih dengan chevron.up.chevron.down di kanan, dan itu tampilan
+            // menu-style picker.
+            Menu {
+                Picker("Type", selection: $flow.roomType) {
+                    ForEach(RoomType.allCases) { type in
+                        Text(type.rawValue).tag(type)
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(flow.roomType.rawValue)
+                        .font(Theme.font.body)
+                        .foregroundStyle(Theme.color.textPrimary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(Theme.font.body)
+                        .foregroundStyle(Theme.color.textSecondary)
+                }
+                .padding(.horizontal, 18)
+                .frame(height: 56)
+                .background(
+                    Theme.color.fieldFill,
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+            }
+        }
     }
 
-    private func refreshWeather() async {
+    private var nameField: some View {
+        labeledSection("Name") {
+            TextField("Input room name...", text: $flow.roomName)
+                .font(Theme.font.body)
+                .focused($isNameFocused)
+                .submitLabel(.done)
+                .onSubmit { isNameFocused = false }
+                .padding(.horizontal, 18)
+                .frame(height: 56)
+                .background(
+                    Theme.color.fieldFill,
+                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                )
+        }
+    }
+
+    private var availabilitySection: some View {
+        labeledSection("Availability") {
+            CheckboxCard {
+                CheckboxRow(title: "AC", isOn: $flow.hasAC)
+                Divider()
+                CheckboxRow(title: "Window", isOn: $flow.hasWindow)
+            }
+        }
+    }
+
+    private var conditionsSection: some View {
+        labeledSection("Conditions") {
+            CheckboxCard {
+                CheckboxRow(title: "Dampness", isOn: $flow.dampness)
+                Divider()
+                CheckboxRow(title: "Wall Crack", isOn: $flow.wallCrack)
+                Divider()
+                CheckboxRow(title: "Visible Mold", isOn: $flow.hasVisibleMold)
+            }
+
+            Button("What does mold look like?") {
+                flow.path.append(.moldReference)
+            }
+            .font(Theme.font.footnote)
+            .padding(.horizontal, 10)
+            .padding(.top, 2)
+        }
+    }
+
+    /// Label tebal di luar kartu + isinya — pola yang keulang 4x di desainnya.
+    private func labeledSection<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(Theme.font.headline)
+                .foregroundStyle(Theme.color.textPrimary)
+                .padding(.horizontal, 6)
+
+            content()
+        }
+    }
+
+    /// iOS nggak mau nanya izin lokasi dua kali, jadi kalau udah ditolak
+    /// satu-satunya jalan balik itu lewat Settings. Ditulis apa adanya + dibilang
+    /// laporannya tetap jalan, biar user nggak ngerasa kejebak.
+    private var locationDeniedNote: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Location is off, so the local temperature and humidity can't be included. The report still works without them.")
+                .font(Theme.font.footnote)
+                .foregroundStyle(Theme.color.textSecondary)
+
+            Button("Open Settings") {
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                UIApplication.shared.open(url)
+            }
+            .font(Theme.font.footnote)
+        }
+        .padding(.horizontal, 10)
+    }
+
+    // MARK: - Actions
+
+    private var primaryButtonTitle: String {
+        flow.hasVisibleMold ? "Next" : "Submit"
+    }
+
+    private func advance() {
+        isNameFocused = false
+        if flow.hasVisibleMold {
+            flow.path.append(.guidance)
+        } else {
+            flow.path.append(.loading)
+        }
+    }
+
+    /// Ambil GPS SEKALI, lalu pakai koordinatnya buat dua hal: cuaca (input
+    /// model) dan nama wilayah (ditampilin di kartu rumah).
+    ///
+    /// Nama wilayahnya sempat kelewat: waktu form ini ditulis ulang, yang
+    /// dipanggil cuma `fetchCurrentCoordinate`, jadi `flow.location` nggak pernah
+    /// keisi dan tiap rumah kebaca "No location yet" walaupun izin lokasinya
+    /// udah dikasih.
+    private func refreshLocationAndWeather() async {
         guard let coord = await locationService.fetchCurrentCoordinate() else { return }
+
+        // Cuma isi kalau rumahnya emang belum punya lokasi — jangan nimpa yang
+        // udah kesimpan cuma karena ruangan baru diperiksa di tempat lain.
+        if flow.location.isEmpty, let place = await locationService.placemark(for: coord) {
+            flow.location = place
+        }
+
         do {
             let snap = try await weatherService.fetchCurrent(lat: coord.latitude, lon: coord.longitude)
             flow.temperature = snap.temperature
             flow.humidity = snap.humidity
         } catch {
-            locationService.errorMessage = "Cuaca gak bisa diambil: \(error.localizedDescription)"
+            // Cuaca itu bonus, bukan syarat — gagal di sini nggak perlu
+            // diributin ke user, laporannya tetap bisa dibikin.
+            locationService.errorMessage = nil
         }
-    }
-
-    private func proceed() {
-        let score = min(95, flow.capturedFindings.count * 12)
-        // Level keparahan (0–3) dari total luas jamur — input `Mold` model.
-        let totalArea = flow.capturedFindings.compactMap(\.areaCM2).reduce(0, +)
-        let moldLevel = totalArea > 0 ? MoldSeverity.severity(fromAreaCM2: totalArea).level : 0
-        flow.resultInspection = RoomInspection(
-            roomType: flow.roomType ?? .bedroom,
-            riskLevel: RiskLevel.level(forScore: score),
-            riskScore: score,
-            findings: flow.capturedFindings,
-            capturedPhotos: flow.capturedPhotos,
-            hasAC: flow.hasAC,
-            hasWindow: flow.hasWindow,
-            dampness: flow.dampness,
-            wallCrack: flow.wallCrack,
-            date: Date(),
-            temperature: flow.temperature,
-            humidity: flow.humidity,
-            moldSeverityLevel: moldLevel
-        )
-        flow.path.append(.report)
     }
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "House Assetti", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return NavigationStack {
         ConditionFormView(flow: InspectionFlowState(existingProperty: property))
     }

@@ -13,19 +13,22 @@ struct HomeListView: View {
     @State private var searchText = ""
     @State private var propertyPendingDelete: KosProperty?
     @State private var propertyPendingRename: KosProperty?
-    @State private var renameText = ""
+    /// Dipakai bareng alert "Add New House" dan "Rename House" — dua-duanya
+    /// nggak pernah kebuka barengan.
+    @State private var houseNameInput = ""
+    @State private var sortOrder: HomeSortOrder = .recent
+    @State private var riskFilter: HomeRiskFilter = .all
 
+    @MainActor
     init(store: AppDataStore) {
         self.store = store
         _viewModel = StateObject(wrappedValue: HomeListViewModel(store: store))
     }
 
     private var filteredProperties: [KosProperty] {
-        let trimmed = searchText.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return viewModel.properties }
-        return viewModel.properties.filter {
-            $0.name.localizedCaseInsensitiveContains(trimmed) || $0.location.displayText.localizedCaseInsensitiveContains(trimmed)
-        }
+        viewModel.properties
+            .filtered(by: riskFilter, searchText: searchText)
+            .sorted(by: sortOrder)
     }
 
     var body: some View {
@@ -33,10 +36,17 @@ struct HomeListView: View {
             Group {
                 if viewModel.properties.isEmpty {
                     emptyState
-                } else if filteredProperties.isEmpty {
-                    noResultsState
                 } else {
                     List {
+                        // Chip-nya SELALU ada selama masih ada rumah — kalau
+                        // cuma ditampilin waktu hasilnya nggak kosong, user yang
+                        // nyaring sampai nol nggak punya jalan buat balikin.
+                        filterChips
+
+                        if filteredProperties.isEmpty {
+                            noResultsRow
+                        }
+
                         ForEach(filteredProperties) { property in
                             Button {
                                 path.append(property.id)
@@ -51,32 +61,38 @@ struct HomeListView: View {
                                 Button(role: .destructive) {
                                     propertyPendingDelete = property
                                 } label: {
-                                    Label("Hapus", systemImage: "trash")
+                                    Label("Delete", systemImage: "trash")
                                 }
                             }
                             .contextMenu {
                                 Button {
-                                    renameText = property.name
+                                    houseNameInput = property.name
                                     propertyPendingRename = property
                                 } label: {
-                                    Label("Ubah Nama", systemImage: "pencil")
+                                    Label("Rename", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
                                     propertyPendingDelete = property
                                 } label: {
-                                    Label("Hapus Rumah", systemImage: "trash")
+                                    Label("Delete House", systemImage: "trash")
                                 }
                             }
+                            .tint(.primary)
                         }
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                 }
             }
-            .background(LinearGradient.hoomoldHome.ignoresSafeArea())
-            .navigationTitle("Rumah Kamu")
+            .background(Theme.gradient.home.ignoresSafeArea())
+            .navigationTitle("Inspection")
             .navigationBarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Cari nama rumah")
+            .searchable(text: $searchText, prompt: "Search house name")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    sortMenu
+                }
+            }
             .navigationDestination(for: UUID.self) { propertyID in
                 PropertyDetailView(store: store, propertyID: propertyID, path: $path)
             }
@@ -94,50 +110,59 @@ struct HomeListView: View {
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.circle)
                 .controlSize(.extraLarge)
-                .shadow(color: .black.opacity(0.25), radius: 10, x: 0, y: 4)
-                .accessibilityLabel("Mulai pemeriksaan baru")
+                .accessibilityLabel("Start a new inspection")
                 .padding(20)
             }
             .alert(
-                "Hapus Rumah",
+                "Delete House",
                 isPresented: Binding(
                     get: { propertyPendingDelete != nil },
                     set: { if !$0 { propertyPendingDelete = nil } }
                 )
             ) {
-                Button("Batal", role: .cancel) {}
-                Button("Hapus", role: .destructive) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
                     if let id = propertyPendingDelete?.id {
                         store.deleteProperty(id: id)
                     }
                     propertyPendingDelete = nil
                 }
             } message: {
-                Text("Semua data pemeriksaan di \"\(propertyPendingDelete?.name ?? "")\" akan ikut terhapus. Tindakan ini tidak bisa dibatalkan.")
+                Text("All inspection data in \"\(propertyPendingDelete?.name ?? "")\" will be deleted too. This can't be undone.")
             }
             .alert(
-                "Ubah Nama Rumah",
+                "Rename House",
                 isPresented: Binding(
                     get: { propertyPendingRename != nil },
                     set: { if !$0 { propertyPendingRename = nil } }
                 )
             ) {
-                TextField("Nama rumah", text: $renameText)
-                Button("Batal", role: .cancel) {}
-                Button("Simpan") {
+                TextField("House name", text: $houseNameInput)
+                Button("Cancel", role: .cancel) { propertyPendingRename = nil }
+                Button("Save") {
                     if let id = propertyPendingRename?.id {
-                        store.renameProperty(id: id, to: renameText)
+                        store.renameProperty(id: id, to: houseNameInput)
                     }
                     propertyPendingRename = nil
                 }
             }
         }
-        .sheet(isPresented: $showSaveHouse) {
-            SaveHouseSheet { name in
+        .alert("Add New House", isPresented: $showSaveHouse) {
+            TextField("House name", text: $houseNameInput)
+            Button("Cancel", role: .cancel) { houseNameInput = "" }
+            Button("Save") {
+                let name = houseNameInput.trimmingCharacters(in: .whitespaces)
+                houseNameInput = ""
+                guard !name.isEmpty else { return }
                 let id = store.createProperty(name: name)
                 path = NavigationPath()
                 path.append(id)
             }
+        } message: {
+            Text("Give this house a name so you can find it later.")
+        }
+        .onChange(of: showSaveHouse) { _, isShowing in
+            if isShowing { houseNameInput = "" }
         }
         .onChange(of: store.lastSavedPropertyID) { _, newValue in
             guard let newValue else { return }
@@ -147,38 +172,121 @@ struct HomeListView: View {
         }
     }
 
-    private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "house")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("Belum ada rumah yang diperiksa")
-                .font(.headline)
-            Text("Tap tombol + untuk simpan rumah pertamamu, terus tambahin ruangan yang mau diperiksa.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+    /// Menu urutan doang — saringannya udah pindah ke deretan chip.
+    ///
+    /// `Picker` di dalam `Menu` bikin iOS ngasih centang di pilihan yang aktif
+    /// secara otomatis, sama kayak menu sortir di Files/Mail.
+    private var sortMenu: some View {
+        Menu {
+            Picker("Sort by", selection: $sortOrder) {
+                ForEach(HomeSortOrder.allCases) { order in
+                    Label(order.label, systemImage: order.symbol).tag(order)
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")
         }
-        .padding(.top, 120)
-        .padding(.horizontal, 32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .tint(.primary)
+        .accessibilityLabel("Sort")
     }
 
-    private var noResultsState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("Gak ketemu rumahnya")
-                .font(.headline)
-            Text("Coba cari pakai nama atau lokasi lain.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    /// Deretan chip saringan, langsung di bawah judul.
+    ///
+    /// Lebih kebaca daripada di dalam menu: saringan yang lagi aktif kelihatan
+    /// tanpa harus dibuka dulu, dan gantinya cukup satu tap.
+    private var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(HomeRiskFilter.allCases) { filter in
+                    let isSelected = filter == riskFilter
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            riskFilter = filter
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let level = filter.matchingLevel {
+                                Circle()
+                                    .fill(level.color)
+                                    .frame(width: 7, height: 7)
+                            }
+
+                            Text(filter.label)
+                                .font(Theme.font.subheadline)
+                        }
+                        .foregroundStyle(isSelected ? Color.white : Theme.color.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background {
+                            if isSelected {
+                                Capsule().fill(Theme.color.brand)
+                            } else {
+                                Capsule().fill(Color.white.opacity(0.7))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 2)
+        }
+        // Chip-nya boleh ngelewatin tepi layar pas di-scroll, tapi list-nya
+        // tetap punya inset normal.
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    }
+
+    /// Figma 1339:7229 — teks doang, rata tengah vertikal, TANPA ikon. Sengaja
+    /// nggak pakai `ContentUnavailableView`: bawaannya selalu naruh ikon gede di
+    /// atas judul, dan desainnya nggak ada ikonnya.
+    private var emptyState: some View {
+        centeredMessage(
+            title: "No Entries",
+            message: "To add an entry, tap the plus button."
+        )
+    }
+
+    /// Baris "kosong" DI DALAM list, bukan layar penuh — chip saringannya harus
+    /// tetap kelihatan di atasnya biar user bisa langsung ganti.
+    ///
+    /// Pesannya nyesuain: kalau kosongnya karena saringan, bilang gitu; nyuruh
+    /// ganti kata kunci padahal masalahnya filter cuma bikin muter-muter.
+    private var noResultsRow: some View {
+        VStack(spacing: 2) {
+            Text("No Results")
+                .font(Theme.font.title2Emphasized)
+                .foregroundStyle(Theme.color.textPrimary)
+
+            Text(riskFilter == .all
+                 ? "Try a different house name or location."
+                 : "No houses match the \"\(riskFilter.label)\" filter.")
+                .font(Theme.font.subheadline)
+                .foregroundStyle(Theme.color.textSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.top, 120)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
         .padding(.horizontal, 32)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    }
+
+    private func centeredMessage(title: String, message: String) -> some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(Theme.font.title2Emphasized)
+                .foregroundStyle(Theme.color.textPrimary)
+
+            Text(message)
+                .font(Theme.font.subheadline)
+                .foregroundStyle(Theme.color.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

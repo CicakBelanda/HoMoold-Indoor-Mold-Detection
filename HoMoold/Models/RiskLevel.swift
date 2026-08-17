@@ -10,11 +10,28 @@ enum RiskLevel: String, Codable {
     case medium = "Medium"
     case high = "High"
 
+    /// Lewat Theme, bukan `.green`/`.orange`/`.red` langsung — biar warna status
+    /// di seluruh app ganti dari satu tempat.
     var color: Color {
         switch self {
-        case .low: return .green
-        case .medium: return .orange
-        case .high: return .red
+        case .low: return Theme.color.riskLow
+        case .medium: return Theme.color.riskMedium
+        case .high: return Theme.color.riskHigh
+        }
+    }
+
+    /// Petakan output RiskClassifier ("Low"/"Medium"/"High") ke enum ini.
+    ///
+    /// Ini SUMBER KEBENARAN buat risiko yang ditampilin ke user. Sebelumnya
+    /// kartu ruangan pakai `level(forScore:)` yang dihitung dari JUMLAH FOTO
+    /// (`findings.count * 12`) — dengan satu-dua foto hasilnya selalu di bawah
+    /// 40, jadi semua ruangan kelihatan "Low" padahal report-nya bilang "High".
+    static func level(fromClassifier label: String?) -> RiskLevel? {
+        switch label?.lowercased() {
+        case "low": return .low
+        case "medium": return .medium
+        case "high": return .high
+        default: return nil
         }
     }
 
@@ -26,11 +43,32 @@ enum RiskLevel: String, Codable {
         }
     }
 
-    var labelID: String {
+    /// Label buat ditampilin ke user. Sama kayak `rawValue` sekarang, tapi
+    /// dipisah biar `rawValue` tetap stabil sebagai kunci `Codable` — data yang
+    /// udah kesimpan di properties.json ngandelin string "Low"/"Medium"/"High",
+    /// jadi jangan ganti `rawValue` cuma buat ngubah tampilan.
+    var label: String { rawValue }
+
+    /// Urutan keparahan buat dibandingin (Low < Medium < High).
+    ///
+    /// Perlu dipisah karena `RiskLevel` itu enum ber-String, jadi nggak bisa
+    /// di-`max()` gitu aja — dan mengurutkan berdasarkan rawValue malah bikin
+    /// "High" < "Low" secara alfabet.
+    var severityRank: Int {
         switch self {
-        case .low: return "Rendah"
-        case .medium: return "Sedang"
-        case .high: return "Tinggi"
+        case .low: return 0
+        case .medium: return 1
+        case .high: return 2
+        }
+    }
+
+    /// Teks di pil kartu ruangan. "Moderate", bukan "Medium" — itu yang dipakai
+    /// di desainnya.
+    var pillLabel: String {
+        switch self {
+        case .low: return "Low Risk"
+        case .medium: return "Moderate Risk"
+        case .high: return "High Risk"
         }
     }
 }

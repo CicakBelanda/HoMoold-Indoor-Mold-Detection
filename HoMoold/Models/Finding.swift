@@ -7,6 +7,13 @@ import UIKit
 
 struct Finding: Identifiable {
     let id: UUID
+    /// ID jepretan asalnya. Semua temuan dari SATU foto punya nilai yang sama.
+    ///
+    /// Perlu karena satu foto bisa berisi beberapa titik jamur, dan tanpa ini
+    /// Report nampilin foto yang sama berkali-kali (satu per temuan). Nggak bisa
+    /// ngandelin `frameImage` sebagai kunci: UIImage nggak Hashable per isi, dan
+    /// setelah di-decode dari disk tiap Finding dapat instance UIImage sendiri.
+    let captureID: UUID
     let boundingBox: CGRect // normalized 0-1, posisi relatif terhadap frame
     let frameImage: UIImage // foto tempat temuan ini muncul
     let findingClass: FindingClass
@@ -21,10 +28,11 @@ struct Finding: Identifiable {
     /// biar `init(from decoder:)` di extension Codable di bawah bisa decode
     /// id yang beneran tersimpan, bukan ke-generate ulang tiap kali di-load.
     init(
-        id: UUID = UUID(), boundingBox: CGRect, frameImage: UIImage, findingClass: FindingClass,
-        locationNote: String, areaCM2: Double? = nil, isReviewed: Bool = false
+        id: UUID = UUID(), captureID: UUID = UUID(), boundingBox: CGRect, frameImage: UIImage,
+        findingClass: FindingClass, locationNote: String, areaCM2: Double? = nil, isReviewed: Bool = false
     ) {
         self.id = id
+        self.captureID = captureID
         self.boundingBox = boundingBox
         self.frameImage = frameImage
         self.findingClass = findingClass
@@ -38,12 +46,16 @@ struct Finding: Identifiable {
 /// itu UIImage, disimpan sebagai JPEG Data.
 extension Finding: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, boundingBox, frameImageData, findingClass, locationNote, areaCM2, isReviewed
+        case id, captureID, boundingBox, frameImageData, findingClass, locationNote, areaCM2, isReviewed
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
+        // Data lama nggak punya captureID. Fallback ke `id` sendiri berarti tiap
+        // temuan lama dianggap dari jepretan sendiri-sendiri — persis perilaku
+        // sebelumnya, jadi nggak ada yang berubah buat data yang udah ada.
+        captureID = try container.decodeIfPresent(UUID.self, forKey: .captureID) ?? id
         boundingBox = try container.decode(CGRect.self, forKey: .boundingBox)
         let data = try container.decode(Data.self, forKey: .frameImageData)
         frameImage = UIImage(data: data) ?? UIImage()
@@ -56,6 +68,7 @@ extension Finding: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(captureID, forKey: .captureID)
         try container.encode(boundingBox, forKey: .boundingBox)
         try container.encode(frameImage.jpegData(compressionQuality: 0.7) ?? Data(), forKey: .frameImageData)
         try container.encode(findingClass, forKey: .findingClass)

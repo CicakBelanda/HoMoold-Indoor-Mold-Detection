@@ -125,21 +125,4 @@ enum PlaceholderImageFactory {
         }
     }
 
-    /// Placeholder thumbnail rumah yang baru dibuat lewat "Simpan Rumah" — belum
-    /// ada ruangan/foto sama sekali, jadi cuma ikon rumah outline (sesuai
-    /// Figma), bukan ilustrasi kamar.
-    static func houseOutline(size: CGSize = CGSize(width: 480, height: 480)) -> UIImage {
-        let renderer = UIGraphicsImageRenderer(size: size)
-        return renderer.image { _ in
-            UIColor(white: 0.93, alpha: 1).setFill()
-            UIBezierPath(rect: CGRect(origin: .zero, size: size)).fill()
-
-            let config = UIImage.SymbolConfiguration(pointSize: size.width * 0.34, weight: .light)
-            guard let symbol = UIImage(systemName: "house", withConfiguration: config)?
-                .withTintColor(UIColor(white: 0.55, alpha: 1), renderingMode: .alwaysOriginal)
-            else { return }
-            let origin = CGPoint(x: (size.width - symbol.size.width) / 2, y: (size.height - symbol.size.height) / 2)
-            symbol.draw(at: origin)
-        }
-    }
 }

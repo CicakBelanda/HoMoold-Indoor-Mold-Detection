@@ -2,8 +2,21 @@
 //  OnboardingView.swift
 //  HoMoold
 //
-//  Ditampilkan sebagai sheet (bukan full screen) di atas HomeListView pas
-//  pertama kali buka app — lihat RootView. Copy & ikon sesuai Figma "Action Page".
+//  Figma "Action Page" (1339:7008) — layar pertama waktu app dibuka.
+//
+//  Strukturnya: backdrop teal `#acd7d4` full screen, terus kartu mint `#EEFFFE`
+//  yang nutupin hampir semuanya dengan dua sudut ATAS membulat 40pt. Backdrop
+//  teal-nya cuma keliatan setipis strip di area status bar.
+//
+//  Ditampilkan lewat `fullScreenCover` dari RootView, BUKAN `sheet` — sudut
+//  membulat di atas itu bagian dari desainnya, kalau pakai sheet jadi dobel
+//  (sheet nambah sudutnya sendiri + nge-dim yang di belakang).
+//
+//  Catatan font: Figma pakai Plus Jakarta Sans Medium 14 buat teks value prop.
+//  Di sini disubstitusi font sistem — SF Pro ikut Dynamic Type dan seirama sama
+//  optical weight SF Symbol di sebelahnya. Kalau nanti Plus Jakarta Sans-nya
+//  beneran mau dipakai, bundle file font-nya terus pakai
+//  `.custom(_:size:relativeTo:)` biar tetap ikut Dynamic Type.
 //
 
 import SwiftUI
@@ -12,71 +25,102 @@ struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            Capsule()
-                .fill(Color(uiColor: .tertiaryLabel))
-                .frame(width: 36, height: 5)
-                .padding(.top, 10)
+        ZStack {
+            Theme.color.onboardingBackdrop
+                .ignoresSafeArea()
 
+            card
+        }
+    }
+
+    private var card: some View {
+        VStack(spacing: 0) {
+            // Pembagian ruang pakai Spacer berbobot, bukan padding tetap —
+            // proporsinya ngikutin Figma (logo di ~37% tinggi layar, value prop
+            // mulai ~65%) tapi tetap aman di layar yang lebih pendek/panjang.
+            Spacer()
             Spacer()
 
             Image("Logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 220)
+                .padding(.horizontal, 30)
                 .accessibilityAddTraits(.isHeader)
-                .accessibilityLabel("HoMoold")
-
-            Spacer()
-
-            VStack(alignment: .leading, spacing: 24) {
-                valueProp(
-                    icon: "lungs", iconColor: Color(red: 0.42, green: 0.78, blue: 0.51),
-                    text: "Cek dulu risiko jamur di rumahnya bisa bikin sakit apa nggak"
-                )
-                valueProp(
-                    icon: "house.badge.exclamationmark", iconColor: Color(red: 0, green: 0.43, blue: 0.71),
-                    text: "Tau juga kondisi bangunan rumahnya sebelum tanda tangan kontrak"
-                )
-            }
-            .padding(.horizontal, 32)
+                .accessibilityLabel("HooMold")
 
             Spacer()
             Spacer()
 
-            Button {
+            valueProps
+                .padding(.horizontal, 40)
+
+            Spacer()
+
+            Button("Start") {
                 withAnimation { hasSeenOnboarding = true }
-            } label: {
-                Text("YUK, MULAI!")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(
-                        LinearGradient(colors: [Color("HoomoldDarkTeal"), Color("HoomoldTeal")], startPoint: .leading, endPoint: .trailing),
-                        in: Capsule()
-                    )
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 24)
+            .buttonStyle(.pillProminent)
+            .padding(.horizontal, 22)
+            .padding(.bottom, 34)
         }
-        .background(Color(uiColor: .systemBackground))
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            // Sudut membulat cuma di atas — bawahnya nempel ke tepi layar.
+            UnevenRoundedRectangle(
+                topLeadingRadius: 40,
+                bottomLeadingRadius: 0,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 40,
+                style: .continuous
+            )
+            .fill(Theme.color.onboardingSurface)
+        }
+        .padding(.top, 34)
+        .ignoresSafeArea(edges: .bottom)
     }
 
-    private func valueProp(icon: String, iconColor: Color, text: String) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(iconColor)
-                .frame(width: 32, height: 32)
-                .background(iconColor.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    private var valueProps: some View {
+        VStack(alignment: .leading, spacing: 25) {
+            ForEach(ValueProp.all) { prop in
+                HStack(alignment: .center, spacing: 16) {
+                    Image(systemName: prop.symbol)
+                        .font(.system(size: 40, weight: .medium))
+                        .foregroundStyle(prop.color)
+                        .frame(width: 56, alignment: .leading)
 
-            Text(text)
-                .font(.body)
-                .foregroundStyle(.primary)
-                .fixedSize(horizontal: false, vertical: true)
+                    Text(prop.text)
+                        .font(Theme.font.subheadlineMedium)
+                        .foregroundStyle(Theme.color.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
+}
+
+// MARK: - Value props
+
+/// Copy & ikon diambil verbatim dari Figma. Teks kedua memang kepotong
+/// gramatikanya ("Get to know if the house building condition") — dibiarin biar
+/// sama kayak desain; gampang dibenerin di sini kalau copy-nya mau dirapiin.
+private struct ValueProp: Identifiable {
+    let id = UUID()
+    var symbol: String
+    var color: Color
+    var text: String
+
+    static let all: [ValueProp] = [
+        ValueProp(
+            symbol: "lungs",
+            color: Theme.color.iconLungs,
+            text: "Get to know if the mold in a house could get you sick"
+        ),
+        ValueProp(
+            symbol: "house.badge.exclamationmark",
+            color: Theme.color.iconHouseAlert,
+            text: "Get to know if the house building condition"
+        ),
+    ]
 }
 
 #Preview {

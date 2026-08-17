@@ -32,22 +32,22 @@ struct EditRoomConditionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Toggle("Lembap", isOn: $dampness)
-                    Toggle("Retak Dinding", isOn: $wallCrack)
-                    Toggle("AC", isOn: $hasAC)
-                    Toggle("Jendela", isOn: $hasWindow)
+                    Toggle("Dampness", isOn: $dampness)
+                    Toggle("Wall crack", isOn: $wallCrack)
+                    Toggle("Air conditioner", isOn: $hasAC)
+                    Toggle("Window", isOn: $hasWindow)
                 } header: {
-                    Text("Kondisi Ruangan")
+                    Text("Room condition")
                 }
             }
             .navigationTitle(room.roomType.rawValue)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Batal") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Simpan") {
+                    Button("Save") {
                         onSave(hasAC, hasWindow, dampness, wallCrack)
                         dismiss()
                     }

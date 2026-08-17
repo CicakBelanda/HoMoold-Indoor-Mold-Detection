@@ -45,7 +45,7 @@ final class MoldDetector: @unchecked Sendable {
     /// biar bisa didiagnosa dari HP langsung tanpa perlu buka Xcode. Ditulis di
     /// background queue lewat `decode`, dibaca setelahnya di call site yang sama
     /// (bukan concurrent read/write), jadi aman walau bukan actor-isolated.
-    private(set) var lastDiagnostics = "belum ada frame diproses"
+    private(set) var lastDiagnostics = "no frame processed yet"
 
     private static let moldLabel = "mold"
     /// Jumlah prototype mask standar YOLO-seg (Ultralytics) — dipakai buat
@@ -68,7 +68,7 @@ final class MoldDetector: @unchecked Sendable {
         config.computeUnits = .cpuOnly
 
         guard let modelURL = Bundle.main.url(forResource: modelName, withExtension: "mlmodelc") else {
-            print("[MoldDetector] \(modelName).mlmodelc not found in bundle — model gak ke-compile/ke-bundle.")
+            print("[MoldDetector] \(modelName).mlmodelc not found in bundle — model was not compiled/bundled.")
             return nil
         }
         let mlModel: MLModel
@@ -85,7 +85,7 @@ final class MoldDetector: @unchecked Sendable {
         guard let inputDescription = mlModel.modelDescription.inputDescriptionsByName.values.first,
               inputDescription.type == .image,
               let imageConstraint = inputDescription.imageConstraint else {
-            print("[MoldDetector] model input bukan image type, gak bisa baca ukurannya.")
+            print("[MoldDetector] model input is not an image type, cannot read its size.")
             return nil
         }
         self.inputSize = CGFloat(imageConstraint.pixelsWide)
@@ -165,23 +165,23 @@ final class MoldDetector: @unchecked Sendable {
         do {
             try handler.perform([request])
         } catch {
-            lastDiagnostics = "Vision request GAGAL: \(error.localizedDescription)"
+            lastDiagnostics = "Vision request FAILED: \(error.localizedDescription)"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
         guard let results = request.results else {
-            lastDiagnostics = "request.results nil — Vision gak balikin apa-apa"
+            lastDiagnostics = "request.results nil — Vision returned nothing"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
         guard let observations = results as? [VNCoreMLFeatureValueObservation] else {
-            lastDiagnostics = "hasil Vision tipe gak terduga: \(type(of: results))"
+            lastDiagnostics = "unexpected Vision result type: \(type(of: results))"
             print("[MoldDetector] \(lastDiagnostics) — \(results)")
             return []
         }
         let arrays = observations.compactMap(\.featureValue.multiArrayValue)
         guard let detectionArray = arrays.first(where: { $0.shape.count == 3 }) else {
-            lastDiagnostics = "gak ketemu output 3D. Shape yang ada: \(arrays.map { $0.shape.map(\.intValue) })"
+            lastDiagnostics = "no 3D output found. Shapes present: \(arrays.map { $0.shape.map(\.intValue) })"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
@@ -218,13 +218,13 @@ final class MoldDetector: @unchecked Sendable {
         case 1: moldClassIndex = 0
         case 2: moldClassIndex = 1
         default:
-            lastDiagnostics = "channel count gak didukung: \(channelCount) channels, asumsi \(maskCoefficientCount) "
+            lastDiagnostics = "unsupported channel count: \(channelCount) channels, assuming \(maskCoefficientCount) "
                 + "mask coeffs -> \(numClasses) kelas (cuma dukung 1 atau 2) — shape model berubah drastis?"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }
         guard array.dataType == .float32 else {
-            lastDiagnostics = "dataType gak terduga: \(array.dataType.rawValue), harusnya float32"
+            lastDiagnostics = "unexpected dataType: \(array.dataType.rawValue), expected float32"
             print("[MoldDetector] \(lastDiagnostics)")
             return []
         }

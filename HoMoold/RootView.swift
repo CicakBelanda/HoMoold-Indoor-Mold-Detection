@@ -11,9 +11,11 @@ struct RootView: View {
 
     var body: some View {
         HomeListView(store: store)
-            .sheet(isPresented: Binding(get: { !hasSeenOnboarding }, set: { _ in })) {
+            // fullScreenCover, bukan sheet: kartu mint bersudut-atas-membulat di
+            // OnboardingView itu bagian desainnya. Sheet bakal nambah sudut
+            // sendiri + nge-dim Home di belakang, jadi dobel.
+            .fullScreenCover(isPresented: Binding(get: { !hasSeenOnboarding }, set: { _ in })) {
                 OnboardingView()
-                    .interactiveDismissDisabled()
             }
     }
 }

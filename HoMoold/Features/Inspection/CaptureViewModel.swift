@@ -30,6 +30,7 @@
 //
 
 import ARKit
+import AVFoundation // AVCaptureDevice — buat kontrol torch (lihat setTorch)
 import Combine
 import CoreImage
 import UIKit
@@ -85,7 +86,11 @@ final class CaptureViewModel: ObservableObject {
 
     @Published private(set) var phase: ScanPhase = .scanning
     @Published private(set) var stabilizeProgress: Double = 0
-    @Published private(set) var guidanceText = "Arahkan kamera ke noda jamurnya"
+    @Published private(set) var guidanceText = "Find mold-like objects on surface"
+
+    /// Lampu kamera. ARKit nggak ngasih kontrol torch lewat konfigurasinya, jadi
+    /// diatur langsung ke AVCaptureDevice-nya — lihat `toggleTorch`.
+    @Published private(set) var isTorchOn = false
     @Published private(set) var isCapturing = false
     @Published private(set) var captured: CapturedResult?
     @Published private(set) var captureError: String?
@@ -142,7 +147,30 @@ final class CaptureViewModel: ObservableObject {
     func stop() {
         timer?.invalidate()
         timer = nil
+        setTorch(on: false) // jangan tinggalin lampu nyala pas keluar layar
         arSession.stop()
+    }
+
+    // MARK: - Torch
+
+    func toggleTorch() {
+        setTorch(on: !isTorchOn)
+    }
+
+    /// ARKit yang pegang capture session-nya, tapi torch itu properti device —
+    /// jadi tetap bisa diatur lewat `lockForConfiguration` tanpa ganggu session
+    /// ARKit-nya. `hasTorch` dicek dulu: iPad dan Simulator nggak punya.
+    private func setTorch(on: Bool) {
+        guard let device = AVCaptureDevice.default(for: .video), device.hasTorch else { return }
+        do {
+            try device.lockForConfiguration()
+            device.torchMode = on ? .on : .off
+            device.unlockForConfiguration()
+            isTorchOn = on
+        } catch {
+            // Gagal ngunci device — biarin aja, lampu bukan fitur kritis.
+            isTorchOn = false
+        }
     }
 
     func retake() {
@@ -177,8 +205,13 @@ final class CaptureViewModel: ObservableObject {
             // fotonya biar tetep bisa ditampilin di Report, bukan cuma dibuang.
             acceptedPhotos.append(captured.image)
         }
+        // Satu ID buat SEMUA temuan dari jepretan ini — Report ngelompokin
+        // pakai ini, jadi dua titik jamur di satu foto tampil sebagai satu foto
+        // dengan dua kotak, bukan dua foto yang sama persis.
+        let captureID = UUID()
         for detection in captured.detections {
             acceptedFindings.append(Finding(
+                captureID: captureID,
                 boundingBox: detection.box,
                 frameImage: captured.image,
                 findingClass: .mold,
@@ -192,16 +225,16 @@ final class CaptureViewModel: ObservableObject {
     private static func locationNote(for box: CGRect) -> String {
         let vertical: String
         if box.midY < 0.33 {
-            vertical = "dekat plafon"
+            vertical = "near the ceiling"
         } else if box.midY > 0.66 {
-            vertical = "dekat lantai"
+            vertical = "near the floor"
         } else {
-            vertical = "di tengah dinding"
+            vertical = "mid-wall"
         }
         if box.midX < 0.33 {
-            return "\(vertical), sisi kiri"
+            return "\(vertical), left side"
         } else if box.midX > 0.66 {
-            return "\(vertical), sisi kanan"
+            return "\(vertical), right side"
         }
         return vertical
     }
@@ -255,36 +288,34 @@ final class CaptureViewModel: ObservableObject {
     private func updateScanState(detected: Bool, depth: Float?) {
         guard detected else {
             resetStability()
-            guidanceText = "Arahkan kamera ke noda jamurnya"
+            guidanceText = "Find mold-like objects on surface"
             return
         }
         if let depth, depth < Self.minRangeMeters {
             resetStability()
-            guidanceText = "Kedeketan — mundur dikit"
+            guidanceText = "Too close, back up a little"
             return
         }
         if let depth, depth > Self.maxRangeMeters {
             resetStability()
-            guidanceText = "Kejauhan — deketin kameranya"
+            guidanceText = "Too far, move closer"
             return
         }
 
-        let wasReady = phase == .ready
         stableTicks += 1
         if stableTicks >= Self.requiredStableTicks {
             phase = .ready
             stabilizeProgress = 1
-            guidanceText = "Siap — otomatis diambil..."
-            // Jepret otomatis begitu pertama kali masuk .ready — bukan tiap tick
-            // selama masih .ready, biar gak nembak berkali-kali cuma karena
-            // tetap stabil di posisi yang sama.
-            if !wasReady {
-                capture()
-            }
+            // Jepret MANUAL, bukan otomatis. Sebelumnya begitu masuk .ready
+            // langsung nembak sendiri, tapi desainnya (Figma 1339:7845) nampilin
+            // "Capture now!" plus tombol jepret yang aktif — jadi keputusan
+            // motretnya di user. Auto-capture juga bikin kaget dan sering
+            // ngambil frame yang belum sesuai maunya user.
+            guidanceText = "Capture now!"
         } else {
             phase = .stabilizing
             stabilizeProgress = Double(stableTicks) / Double(Self.requiredStableTicks)
-            guidanceText = "Kedeteksi — tahan kameranya, jangan gerak dulu"
+            guidanceText = "Detected, hold the camera steady"
         }
     }
 
@@ -299,7 +330,7 @@ final class CaptureViewModel: ObservableObject {
     func capture() {
         guard captured == nil, !isCapturing, let detector, let frame = arSession.currentFrame() else { return }
         guard let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth else {
-            captureError = "Data depth LiDAR belum siap — coba lagi bentar."
+            captureError = "LiDAR depth data isn't ready yet. Try again in a moment."
             return
         }
         isCapturing = true
@@ -338,13 +369,13 @@ final class CaptureViewModel: ObservableObject {
                 var note: String?
                 if let measurement {
                     if measurement.depthMeters < Self.minRangeMeters {
-                        note = "kedeketan, luasnya kurang akurat"
+                        note = "too close, area is less accurate"
                     } else if measurement.depthMeters > Self.maxRangeMeters {
-                        note = "kejauhan buat LiDAR, luasnya kurang akurat"
+                        note = "too far for LiDAR, area is less accurate"
                     }
                     areaText = String(format: "%.0f cm²", measurement.areaCM2)
                 } else {
-                    note = "gagal baca depth di area ini"
+                    note = "couldn't read depth in this area"
                 }
 
                 results.append(CapturedDetection(
@@ -357,7 +388,7 @@ final class CaptureViewModel: ObservableObject {
                 guard let self else { return }
                 self.isCapturing = false
                 guard let cgImage else {
-                    self.captureError = "Gagal ambil gambar dari kamera."
+                    self.captureError = "Couldn't capture an image from the camera."
                     return
                 }
                 self.captured = CapturedResult(image: UIImage(cgImage: cgImage), detections: results)

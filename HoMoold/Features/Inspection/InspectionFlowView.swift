@@ -2,13 +2,27 @@
 //  InspectionFlowView.swift
 //  HoMoold
 //
-//  Container navigasi "Tambah Ruangan" — rumahnya selalu sudah ada duluan
-//  (dibuat lewat SaveHouseSheet dari FAB Home), jadi flow ini selalu nempel
-//  ke rumah yang sudah punya nama; Report langsung "Simpan".
+//  Container navigasi "Add new Room" — rumahnya selalu sudah ada duluan
+//  (dibuat lewat modal "Add New House" dari FAB Home), jadi flow ini selalu nempel
+//  ke rumah yang sudah punya nama.
 //
-//  Alur: RoomTypeSelectionView -> CaptureView (ambil foto jamur, bisa lebih
-//  dari satu) -> ConditionFormView (kondisi ruangan + lokasi kalau rumahnya
-//  belum punya lokasi) -> ReportView.
+//  Alur:
+//
+//    ConditionFormView  <- layar pertama, langsung kebuka pas user tap
+//                          "Add new Room" (nggak ada lagi layar pilih tipe
+//                          ruangan terpisah — nama & tipe diisi di form ini)
+//      |
+//      |-- (opsional, kalau user centang "Visible mold") --> GuidanceView
+//      |                                                        |
+//      |                                                        v
+//      |<---------------------- balik ke form -------------- CaptureView
+//      |
+//      v  Submit
+//    AnalyzingLoadingView -> ReportView
+//
+//  Kamera itu SUB-FLOW dari form kondisi, bukan langkah berurutan. Jadi
+//  guidance-nya muncul pas kamera mau dibuka (sesuai desain), dan setelah
+//  motret user balik ke form buat nyelesaiin sisanya lalu Submit.
 //
 
 import SwiftUI
@@ -19,6 +33,7 @@ struct InspectionFlowView: View {
     @StateObject private var flow: InspectionFlowState
     @Environment(\.dismiss) private var dismiss
 
+    @MainActor
     init(store: AppDataStore, existingProperty: KosProperty) {
         self.store = store
         _flow = StateObject(wrappedValue: InspectionFlowState(existingProperty: existingProperty))
@@ -26,13 +41,17 @@ struct InspectionFlowView: View {
 
     var body: some View {
         NavigationStack(path: $flow.path) {
-            RoomTypeSelectionView(flow: flow)
+            ConditionFormView(flow: flow)
                 .navigationDestination(for: InspectionStep.self) { step in
                     switch step {
+                    case .guidance:
+                        GuidanceView(flow: flow)
                     case .capture:
                         CaptureView(flow: flow)
-                    case .condition:
-                        ConditionFormView(flow: flow)
+                    case .moldReference:
+                        MoldReferenceView()
+                    case .loading:
+                        AnalyzingLoadingView(flow: flow)
                     case .report:
                         if let inspection = flow.resultInspection {
                             ReportView(
