@@ -32,9 +32,9 @@ struct EditRoomConditionSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    Toggle("Damp", isOn: $dampness)
-                    Toggle("Wall Crack", isOn: $wallCrack)
-                    Toggle("AC", isOn: $hasAC)
+                    Toggle("Dampness", isOn: $dampness)
+                    Toggle("Wall crack", isOn: $wallCrack)
+                    Toggle("Air conditioner", isOn: $hasAC)
                     Toggle("Window", isOn: $hasWindow)
                 } header: {
                     Text("Room Condition")
@@ -45,8 +45,10 @@ struct EditRoomConditionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
                     Button("Save") {
                         onSave(hasAC, hasWindow, dampness, wallCrack)
                         dismiss()

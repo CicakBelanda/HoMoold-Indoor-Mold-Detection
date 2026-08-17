@@ -13,8 +13,15 @@ struct DetectionItem: Identifiable {
 
 struct RoomInspection: Identifiable {
     let id: UUID
+    /// Nama ruangan yang dikasih user, mis. "Bedroom A" — di Figma kartu ruangan
+    /// nunjukin nama DAN tipe, jadi dua-duanya disimpan. Diisi di
+    /// ConditionFormView (dulu tipe-nya dipilih di layar terpisah yang sekarang
+    /// udah dihapus).
+    var name: String
     let roomType: RoomType
-    let riskLevel: RiskLevel
+    /// `var` karena bisa berubah kalau fotonya diedit belakangan — luas jamur
+    /// ikut berubah, dan itu salah satu input RiskClassifier.
+    var riskLevel: RiskLevel
     let riskScore: Int // 0-100
     var findings: [Finding]
     /// Foto yang diambil tapi 0 jamur kedeteksi di dalamnya — tetap disimpan
@@ -43,11 +50,14 @@ struct RoomInspection: Identifiable {
     /// biar `init(from decoder:)` di extension Codable di bawah bisa decode
     /// id yang beneran tersimpan, bukan ke-generate ulang tiap kali di-load.
     init(
-        id: UUID = UUID(), roomType: RoomType, riskLevel: RiskLevel, riskScore: Int, findings: [Finding],
+        id: UUID = UUID(), name: String = "", roomType: RoomType, riskLevel: RiskLevel, riskScore: Int, findings: [Finding],
         capturedPhotos: [UIImage] = [], hasAC: Bool, hasWindow: Bool, dampness: Bool, wallCrack: Bool, date: Date,
         temperature: Float? = nil, humidity: Float? = nil, moldSeverityLevel: Int = 0
     ) {
         self.id = id
+        // Nama kosong -> pakai nama tipe ruangan, biar kartu nggak pernah tampil
+        // tanpa judul walaupun user nggak ngisi apa-apa.
+        self.name = name.trimmingCharacters(in: .whitespaces).isEmpty ? roomType.rawValue : name
         self.roomType = roomType
         self.riskLevel = riskLevel
         self.riskScore = riskScore
@@ -62,6 +72,10 @@ struct RoomInspection: Identifiable {
         self.humidity = humidity
         self.moldSeverityLevel = moldSeverityLevel
     }
+
+    /// Ada jamur kedeteksi di ruangan ini. Dipakai buat milih gambar kartu:
+    /// kalau nggak ada, kartunya nampilin grafis "no mold", bukan foto ruangan.
+    var hasMold: Bool { !findings.isEmpty }
 
     var thumbnail: UIImage {
         findings.first?.frameImage ?? capturedPhotos.first ?? PlaceholderImageFactory.roomImage(for: roomType, seed: id.hashValue)
@@ -80,9 +94,9 @@ struct RoomInspection: Identifiable {
     var detectionChecklist: [DetectionItem] {
         [
             DetectionItem(label: "AC", isPresent: hasAC),
-            DetectionItem(label: "Jendela", isPresent: hasWindow),
-            DetectionItem(label: "Lembap", isPresent: dampness),
-            DetectionItem(label: "Retak Dinding", isPresent: wallCrack),
+            DetectionItem(label: "Window", isPresent: hasWindow),
+            DetectionItem(label: "Dampness", isPresent: dampness),
+            DetectionItem(label: "Wall Crack", isPresent: wallCrack),
         ]
     }
 }
@@ -91,13 +105,17 @@ struct RoomInspection: Identifiable {
 /// `[UIImage]`, disimpan sebagai array JPEG Data.
 extension RoomInspection: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, roomType, riskLevel, riskScore, findings, capturedPhotosData, hasAC, hasWindow, dampness, wallCrack, date, temperature, humidity, moldSeverityLevel
+        case id, name, roomType, riskLevel, riskScore, findings, capturedPhotosData, hasAC, hasWindow, dampness, wallCrack, date, temperature, humidity, moldSeverityLevel
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         roomType = try container.decode(RoomType.self, forKey: .roomType)
+        // decodeIfPresent + fallback ke nama tipe: properties.json yang udah
+        // kesimpan SEBELUM field `name` ada nggak punya kunci ini, dan kalau
+        // pakai decode biasa semua data lama gagal di-load.
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? roomType.rawValue
         riskLevel = try container.decode(RiskLevel.self, forKey: .riskLevel)
         riskScore = try container.decode(Int.self, forKey: .riskScore)
         findings = try container.decode([Finding].self, forKey: .findings)
@@ -116,6 +134,7 @@ extension RoomInspection: Codable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
         try container.encode(roomType, forKey: .roomType)
         try container.encode(riskLevel, forKey: .riskLevel)
         try container.encode(riskScore, forKey: .riskScore)

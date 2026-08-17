@@ -22,6 +22,11 @@ final class AppDataStore: ObservableObject {
     /// halaman detail rumah yang bersangkutan.
     @Published var lastSavedPropertyID: UUID?
 
+    /// Dipakai buat ngitung ulang `riskLevel` waktu kondisi ruangan diubah —
+    /// lihat `recomputeRiskLevel`. `nil` kalau model-nya gagal dimuat; dalam
+    /// kasus itu rate-nya dibiarin apa adanya.
+    private let classifier = try? RiskClassifierService()
+
     private static let fileURL: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -40,7 +45,7 @@ final class AppDataStore: ObservableObject {
         do {
             return try JSONDecoder().decode([KosProperty].self, from: data)
         } catch {
-            print("[AppDataStore] gagal load data tersimpan: \(error)")
+            print("[AppDataStore] failed to load saved data: \(error)")
             return []
         }
     }
@@ -50,7 +55,7 @@ final class AppDataStore: ObservableObject {
             let data = try JSONEncoder().encode(properties)
             try data.write(to: Self.fileURL, options: .atomic)
         } catch {
-            print("[AppDataStore] gagal nyimpen data: \(error)")
+            print("[AppDataStore] failed to save data: \(error)")
         }
     }
 
@@ -70,13 +75,6 @@ final class AppDataStore: ObservableObject {
         let newProperty = KosProperty(name: name, location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
         properties.append(newProperty)
         return newProperty.id
-    }
-
-    func toggleReviewed(findingID: UUID, inRoom roomID: UUID, ofProperty propertyID: UUID) {
-        guard let pIndex = properties.firstIndex(where: { $0.id == propertyID }) else { return }
-        guard let rIndex = properties[pIndex].rooms.firstIndex(where: { $0.id == roomID }) else { return }
-        guard let fIndex = properties[pIndex].rooms[rIndex].findings.firstIndex(where: { $0.id == findingID }) else { return }
-        properties[pIndex].rooms[rIndex].findings[fIndex].isReviewed.toggle()
     }
 
     func deleteProperty(id: UUID) {
@@ -101,6 +99,61 @@ final class AppDataStore: ObservableObject {
         properties[pIndex].rooms[rIndex].hasWindow = hasWindow
         properties[pIndex].rooms[rIndex].dampness = dampness
         properties[pIndex].rooms[rIndex].wallCrack = wallCrack
+
+        // Keempat kondisi ini INPUT model, jadi rate-nya HARUS ikut dihitung
+        // ulang di sini — bukan di pemanggilnya.
+        //
+        // Sebelumnya cuma halaman Report yang ngitung ulang, sementara "Edit
+        // Condition" dari daftar ruangan cuma nulis empat boolean-nya. Efeknya:
+        // ganti kondisi dari daftar ruangan, rate-nya diem di nilai lama.
+        // Ditaruh di store biar aturannya berlaku buat SEMUA pemanggil.
+        recomputeRiskLevel(propertyIndex: pIndex, roomIndex: rIndex)
+    }
+
+    /// Jalanin ulang RiskClassifier buat satu ruangan lalu simpan hasilnya.
+    /// Kalau modelnya nggak bisa jalan (mis. cuaca nggak keambil), `riskLevel`
+    /// yang lama dibiarin — lebih baik nilai lama daripada nebak.
+    private func recomputeRiskLevel(propertyIndex: Int, roomIndex: Int) {
+        let room = properties[propertyIndex].rooms[roomIndex]
+        guard let t = room.temperature, let h = room.humidity else { return }
+        let predicted = classifier?.predict(
+            temperature: t, humidity: h,
+            hasAC: room.hasAC, hasWindow: room.hasWindow,
+            dampness: room.dampness, wallCrack: room.wallCrack,
+            moldLevel: room.moldSeverityLevel
+        )
+        guard let level = RiskLevel.level(fromClassifier: predicted) else { return }
+        properties[propertyIndex].rooms[roomIndex].riskLevel = level
+    }
+
+    /// Ganti foto sebuah ruangan yang UDAH tersimpan — dipakai pas user nambah
+    /// jepretan yang kelupaan atau ngapus foto yang salah dari halaman Report.
+    ///
+    /// Level keparahan ikut dihitung ulang, bukan dibiarin: keparahan itu turun
+    /// dari total luas jamur, jadi kalau foto berubah tapi angkanya nggak,
+    /// laporannya jadi bohong.
+    func updateRoomPhotos(
+        roomID: UUID, ofProperty propertyID: UUID,
+        findings: [Finding], photos: [UIImage],
+        moldSeverityLevel: Int, riskLevel: RiskLevel
+    ) {
+        guard let pIndex = properties.firstIndex(where: { $0.id == propertyID }) else { return }
+        guard let rIndex = properties[pIndex].rooms.firstIndex(where: { $0.id == roomID }) else { return }
+        properties[pIndex].rooms[rIndex].findings = findings
+        properties[pIndex].rooms[rIndex].capturedPhotos = photos
+        properties[pIndex].rooms[rIndex].moldSeverityLevel = moldSeverityLevel
+        properties[pIndex].rooms[rIndex].riskLevel = riskLevel
+    }
+
+    /// Nama kosong ditolak — kalau dibolehin, kartunya bakal nampilin baris
+    /// judul yang blank. User yang mau "ngosongin" nama tinggal ngetik ulang
+    /// nama tipe ruangannya.
+    func renameRoom(roomID: UUID, ofProperty propertyID: UUID, to newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        guard let pIndex = properties.firstIndex(where: { $0.id == propertyID }) else { return }
+        guard let rIndex = properties[pIndex].rooms.firstIndex(where: { $0.id == roomID }) else { return }
+        properties[pIndex].rooms[rIndex].name = trimmed
     }
 
     func renameProperty(id: UUID, to newName: String) {

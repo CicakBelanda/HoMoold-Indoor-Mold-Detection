@@ -14,14 +14,14 @@
 import CoreML
 import Foundation
 
+/// Cuma dilempar dari `init` — prediksi yang gagal balikin `nil`, bukan throw,
+/// karena laporannya tetap bisa ditampilin tanpa angka prediksi.
 enum RiskClassifierError: LocalizedError {
     case modelNotFound
-    case predictionFailed
 
     var errorDescription: String? {
         switch self {
-        case .modelNotFound: return "Model RiskClassifier tidak ditemukan di bundle."
-        case .predictionFailed: return "Gagal menjalankan prediksi risiko."
+        case .modelNotFound: return "RiskClassifier model not found in the bundle."
         }
     }
 }
@@ -51,6 +51,34 @@ struct RiskClassifierService {
         wallCrack: Bool,
         moldLevel: Int
     ) -> String? {
+        predictDetailed(
+            temperature: temperature, humidity: humidity, hasAC: hasAC, hasWindow: hasWindow,
+            dampness: dampness, wallCrack: wallCrack, moldLevel: moldLevel
+        )?.riskClass
+    }
+
+    struct Prediction {
+        let riskClass: String
+        /// Peluang kelas yang kepilih, 0–1. `nil` kalau model nggak ngasih
+        /// dictionary probabilitas.
+        let confidence: Double?
+        /// Peluang SEMUA kelas, mis. `["Low": 0.02, "Medium": 0.94, "High": 0.04]`.
+        /// Totalnya 1.0 — jadi confidence itu BUKAN akumulasi antar level,
+        /// melainkan porsi satu level dari total itu.
+        let probabilities: [String: Double]
+    }
+
+    /// Sama kayak `predict`, tapi sekalian balikin tingkat keyakinannya —
+    /// dipakai kartu "Confidence Level" di halaman detail prediksi.
+    func predictDetailed(
+        temperature: Float,
+        humidity: Float,
+        hasAC: Bool,
+        hasWindow: Bool,
+        dampness: Bool,
+        wallCrack: Bool,
+        moldLevel: Int
+    ) -> Prediction? {
         let dict: [String: MLFeatureValue] = [
             "T_out": MLFeatureValue(double: Double(temperature)),
             "RH_out": MLFeatureValue(double: Double(humidity) + 5),
@@ -60,8 +88,33 @@ struct RiskClassifierService {
             "Wall_Crack": MLFeatureValue(int64: wallCrack ? 1 : 0),
             "Mold": MLFeatureValue(int64: Int64(moldLevel))
         ]
-        guard let input = try? MLDictionaryFeatureProvider(dictionary: dict) else { return nil }
-        guard let output = try? model.prediction(from: input) else { return nil }
-        return output.featureValue(for: "Risk_Class")?.stringValue
+        guard let input = try? MLDictionaryFeatureProvider(dictionary: dict),
+              let output = try? model.prediction(from: input),
+              let riskClass = output.featureValue(for: "Risk_Class")?.stringValue
+        else { return nil }
+
+        let probabilities = probabilityDistribution(in: output)
+        return Prediction(
+            riskClass: riskClass,
+            confidence: probabilities[riskClass],
+            probabilities: probabilities
+        )
+    }
+
+    /// Classifier CreateML biasanya nyertain satu output dictionary berisi
+    /// peluang tiap kelas. Namanya nggak dihardcode ("Risk_ClassProbability")
+    /// — dicari berdasarkan TIPE feature-nya, karena nama itu ikut berubah
+    /// kalau model-nya di-export ulang dengan target berbeda, dan kalau salah
+    /// nama hasilnya diam-diam nil, bukan error.
+    private func probabilityDistribution(in output: MLFeatureProvider) -> [String: Double] {
+        for name in output.featureNames {
+            guard let value = output.featureValue(for: name), value.type == .dictionary else { continue }
+            var result: [String: Double] = [:]
+            for (key, number) in value.dictionaryValue {
+                if let key = key as? String { result[key] = number.doubleValue }
+            }
+            if !result.isEmpty { return result }
+        }
+        return [:]
     }
 }

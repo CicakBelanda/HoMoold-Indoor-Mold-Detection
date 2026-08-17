@@ -7,25 +7,25 @@
 %ÐA €R
 var_1361*
     €¢‘
-;Ultralytics YOLO11n-seg model trained on /content/data.yaml8.4.117Ultralytics"2AGPL-3.0 License (https://ultralytics.com/license)¢
-channels3¢
-headSegment¢
-stride32¢
-tasksegment¢
-end2endFalse¢F
-args>{'batch': 1, 'quantize': None, 'dynamic': False, 'nms': False}¢
+;Ultralytics YOLO11n-seg model trained on /content/data.yaml8.4.117Ultralytics"2AGPL-3.0 License (https://ultralytics.com/license)¢
+end2endFalse¢
 
-batch1¢$
-docshttps://docs.ultralytics.com¢+
-$com.github.apple.coremltools.version9.0¢:
-+com.github.apple.coremltools.source_dialectTorchScript¢(
-date 2026-08-13T10:50:30.936110+07:00¢
-names{0: 'damp'}¢4
-#com.github.apple.coremltools.sourcetorch==2.13.0¢
-imgsz
-[640, 640]¢:
+batch1¢:
 ,com.github.apple.coremltools.conversion_date
-2026-08-13²†…
+2026-08-13¢F
+args>{'batch': 1, 'quantize': None, 'dynamic': False, 'nms': False}¢
+tasksegment¢:
++com.github.apple.coremltools.source_dialectTorchScript¢(
+date 2026-08-13T17:22:35.813178+07:00¢4
+#com.github.apple.coremltools.sourcetorch==2.13.0¢
+stride32¢
+channels3¢
+headSegment¢$
+docshttps://docs.ultralytics.com¢
+imgsz
+[640, 640]¢+
+$com.github.apple.coremltools.version9.0¢
+names{0: 'mold'}²†…
 —ƒ
 
 mainƒ
@@ -53,13 +53,13 @@ $com.github.apple.coremltools.version9.0¢:
 
 "
 image__scaled___y_0
-mul
-x	
-
-image
+mul
 y
 
-image__scaled___y_03
+image__scaled___y_0
+x	
+
+image3
 image__scaled__ 
 
 
@@ -177,7 +177,7 @@ $com.github.apple.coremltools.version9.0¢:
 &
 $
 "
- .\Ë?\?—á’?RhR?:»»?û$¼?\§ë?I§É?*/
+ vÚ«?¼àÙ?ö[J?œÙ>øC­?D~?×ó«?¹cî?*/
 name'
 
 "
@@ -2466,7 +2466,7 @@ $""
 
 
 
- `ëÀ*+
+ €êÀ*+
 name#
 
 "
@@ -2627,7 +2627,7 @@ $""
 
 
 
- à¾À*+
+ @¾À*+
 name#
 
 "
@@ -2788,7 +2788,7 @@ $""
 
 
 
- @’À*+
+  ‘À*+
 name#
 
 "
@@ -3314,31 +3314,31 @@ $""
 
 "
 input_1_groups_0Ô
-conv
-x
-
-image__scaled__
-bias
-
-model_0_conv_bias
-groups
-
-input_1_groups_0
-pad
-
-input_1_pad_0"
-pad_type
-
-input_1_pad_type_0 
+conv 
 strides
 
-input_1_strides_0$
-	dilations
-
-input_1_dilations_0!
+input_1_strides_0
+pad
+
+input_1_pad_0
+groups
+
+input_1_groups_0
+bias
+
+model_0_conv_bias!
 weight
 
-model_0_conv_weight+
+model_0_conv_weight
+x
+
+image__scaled__$
+	dilations
+
+input_1_dilations_0"
+pad_type
+
+input_1_pad_type_0+
 input_1 
 
 
@@ -3432,31 +3432,31 @@ $""
 
 "
 input_5_groups_0Ì
-conv
-x
-	
-input_3
-bias
-
-model_1_conv_bias
-groups
-
-input_5_groups_0
-pad
-
-input_5_pad_0"
-pad_type
-
-input_5_pad_type_0 
+conv 
 strides
 
-input_5_strides_0$
-	dilations
-
-input_5_dilations_0!
+input_5_strides_0
+pad
+
+input_5_pad_0
+groups
+
+input_5_groups_0
+bias
+
+model_1_conv_bias!
 weight
 
-model_1_conv_weight+
+model_1_conv_weight
+x
+	
+input_3$
+	dilations
+
+input_5_dilations_0"
+pad_type
+
+input_5_pad_type_0+
 input_5 
 
 
@@ -3560,31 +3560,31 @@ $""
 
 "
 input_9_groups_0Ô
-conv
-x
-	
-input_7!
-bias
-
-model_2_cv1_conv_bias
-groups
-
-input_9_groups_0
-pad
-
-input_9_pad_0"
-pad_type
-
-input_9_pad_type_0 
+conv 
 strides
 
-input_9_strides_0$
-	dilations
-
-input_9_dilations_0%
+input_9_strides_0
+pad
+
+input_9_pad_0
+groups
+
+input_9_groups_0!
+bias
+
+model_2_cv1_conv_bias%
 weight
 
-model_2_cv1_conv_weight+
+model_2_cv1_conv_weight
+x
+	
+input_7$
+	dilations
+
+input_9_dilations_0"
+pad_type
+
+input_9_pad_type_0+
 input_9 
 
 
@@ -3732,32 +3732,32 @@ $""
 
 "
 input_13_groups_0ä
-conv
+conv!
+strides
+
+input_13_strides_0
+pad
+
+input_13_pad_0
+groups
+
+input_13_groups_0%
+bias
+
+model_2_m_0_cv1_conv_bias)
+weight
+
+model_2_m_0_cv1_conv_weight
 x
 
 
 var_85_1%
-bias
-
-model_2_m_0_cv1_conv_bias
-groups
-
-input_13_groups_0
-pad
-
-input_13_pad_0#
-pad_type
-
-input_13_pad_type_0!
-strides
-
-input_13_strides_0%
 	dilations
 
-input_13_dilations_0)
-weight
-
-model_2_m_0_cv1_conv_weight,
+input_13_dilations_0#
+pad_type
+
+input_13_pad_type_0,
 input_13 
 
 
@@ -3854,32 +3854,32 @@ $""
 
 "
 input_17_groups_0ä
-conv
+conv!
+strides
+
+input_17_strides_0
+pad
+
+input_17_pad_0
+groups
+
+input_17_groups_0%
+bias
+
+model_2_m_0_cv2_conv_bias)
+weight
+
+model_2_m_0_cv2_conv_weight
 x
 
 
 input_15%
-bias
-
-model_2_m_0_cv2_conv_bias
-groups
-
-input_17_groups_0
-pad
-
-input_17_pad_0#
-pad_type
-
-input_17_pad_type_0!
-strides
-
-input_17_strides_0%
 	dilations
 
-input_17_dilations_0)
-weight
-
-model_2_m_0_cv2_conv_weight,
+input_17_dilations_0#
+pad_type
+
+input_17_pad_type_0,
 input_17 
 
 
@@ -3907,14 +3907,14 @@ $""
 
 "
 op_107u
-add
+add
+y
+	
+var_107
 x
 
 
-var_85_1
-y
-	
-var_107+
+var_85_1+
 var_108 
 
 
@@ -3937,15 +3937,7 @@ $""
 
 "
 input_19_interleave_0Â
-concat'
-
-interleave
-
-input_19_interleave_0
-axis
-
-
-var_70-
+concat-
 values#
 
 
@@ -3954,7 +3946,15 @@ interleave
 
 var_85_1
 	
-var_108,
+var_108'
+
+interleave
+
+input_19_interleave_0
+axis
+
+
+var_70,
 input_19 
 
 
@@ -4034,32 +4034,32 @@ interleave
 
 "
 input_21_groups_0Ü
-conv
+conv!
+strides
+
+input_21_strides_0
+pad
+
+input_21_pad_0
+groups
+
+input_21_groups_0!
+bias
+
+model_2_cv2_conv_bias%
+weight
+
+model_2_cv2_conv_weight
 x
 
 
-input_19!
-bias
-
-model_2_cv2_conv_bias
-groups
-
-input_21_groups_0
-pad
-
-input_21_pad_0#
-pad_type
-
-input_21_pad_type_0!
-strides
-
-input_21_strides_0%
+input_19%
 	dilations
 
-input_21_dilations_0%
-weight
-
-model_2_cv2_conv_weight,
+input_21_dilations_0#
+pad_type
+
+input_21_pad_type_0,
 input_21 
 
 
@@ -4156,32 +4156,32 @@ interleave
 
 "
 input_25_groups_0Ò
-conv
+conv!
+strides
+
+input_25_strides_0
+pad
+
+input_25_pad_0
+groups
+
+input_25_groups_0
+bias
+
+model_3_conv_bias!
+weight
+
+model_3_conv_weight
 x
 
 
-input_23
-bias
-
-model_3_conv_bias
-groups
-
-input_25_groups_0
-pad
-
-input_25_pad_0#
-pad_type
-
-input_25_pad_type_0!
-strides
-
-input_25_strides_0%
+input_23%
 	dilations
 
-input_25_dilations_0!
-weight
+input_25_dilations_0#
+pad_type
 
-model_3_conv_weight*
+input_25_pad_type_0*
 input_25
 
 
@@ -4289,32 +4289,32 @@ interleave
 
 "
 input_29_groups_0Ú
-conv
+conv!
+strides
+
+input_29_strides_0
+pad
+
+input_29_pad_0
+groups
+
+input_29_groups_0!
+bias
+
+model_4_cv1_conv_bias%
+weight
+
+model_4_cv1_conv_weight
 x
 
 
-input_27!
-bias
-
-model_4_cv1_conv_bias
-groups
-
-input_29_groups_0
-pad
-
-input_29_pad_0#
-pad_type
-
-input_29_pad_type_0!
-strides
-
-input_29_strides_0%
+input_27%
 	dilations
 
-input_29_dilations_0%
-weight
-
-model_4_cv1_conv_weight*
+input_29_dilations_0#
+pad_type
+
+input_29_pad_type_0*
 input_29
 
 
@@ -4465,31 +4465,31 @@ interleave
 
 "
 input_33_groups_0ã
-conv
+conv!
+strides
+
+input_33_strides_0
+pad
+
+input_33_pad_0
+groups
+
+input_33_groups_0%
+bias
+
+model_4_m_0_cv1_conv_bias)
+weight
+
+model_4_m_0_cv1_conv_weight
 x
 
 	var_153_1%
-bias
-
-model_4_m_0_cv1_conv_bias
-groups
-
-input_33_groups_0
-pad
-
-input_33_pad_0#
-pad_type
-
-input_33_pad_type_0!
-strides
-
-input_33_strides_0%
 	dilations
 
-input_33_dilations_0)
-weight
-
-model_4_m_0_cv1_conv_weight*
+input_33_dilations_0#
+pad_type
+
+input_33_pad_type_0*
 input_33
 
 
@@ -4586,32 +4586,32 @@ interleave
 
 "
 input_37_groups_0â
-conv
+conv!
+strides
+
+input_37_strides_0
+pad
+
+input_37_pad_0
+groups
+
+input_37_groups_0%
+bias
+
+model_4_m_0_cv2_conv_bias)
+weight
+
+model_4_m_0_cv2_conv_weight
 x
 
 
 input_35%
-bias
-
-model_4_m_0_cv2_conv_bias
-groups
-
-input_37_groups_0
-pad
-
-input_37_pad_0#
-pad_type
-
-input_37_pad_type_0!
-strides
-
-input_37_strides_0%
 	dilations
 
-input_37_dilations_0)
-weight
-
-model_4_m_0_cv2_conv_weight*
+input_37_dilations_0#
+pad_type
+
+input_37_pad_type_0*
 input_37
 
 
@@ -4639,13 +4639,13 @@ interleave
 
 "
 op_175t
-add
-x
-
-	var_153_1
+add
 y
 	
-var_175)
+var_175
+x
+
+	var_153_1)
 var_176
 
 
@@ -4668,21 +4668,21 @@ interleave
 
 "
 input_39_interleave_0Ã
-concat'
-
-interleave
-
-input_39_interleave_0
-axis
-	
-var_138/
+concat/
 values%
 
 	var_153_0
 
 	var_153_1
 	
-var_176*
+var_176'
+
+interleave
+
+input_39_interleave_0
+axis
+	
+var_138*
 input_39
 
 
@@ -4762,32 +4762,32 @@ interleave
 
 "
 input_41_groups_0Û
-conv
+conv!
+strides
+
+input_41_strides_0
+pad
+
+input_41_pad_0
+groups
+
+input_41_groups_0!
+bias
+
+model_4_cv2_conv_bias%
+weight
+
+model_4_cv2_conv_weight
 x
 
 
-input_39!
-bias
-
-model_4_cv2_conv_bias
-groups
-
-input_41_groups_0
-pad
-
-input_41_pad_0#
-pad_type
-
-input_41_pad_type_0!
-strides
-
-input_41_strides_0%
+input_39%
 	dilations
 
-input_41_dilations_0%
-weight
-
-model_4_cv2_conv_weight+
+input_41_dilations_0#
+pad_type
+
+input_41_pad_type_0+
 input_41
 
 
@@ -4884,32 +4884,32 @@ interleave
 
 "
 input_45_groups_0Ó
-conv
+conv!
+strides
+
+input_45_strides_0
+pad
+
+input_45_pad_0
+groups
+
+input_45_groups_0
+bias
+
+model_5_conv_bias!
+weight
+
+model_5_conv_weight
 x
 
 
-input_43
-bias
-
-model_5_conv_bias
-groups
-
-input_45_groups_0
-pad
-
-input_45_pad_0#
-pad_type
-
-input_45_pad_type_0!
-strides
-
-input_45_strides_0%
+input_43%
 	dilations
 
-input_45_dilations_0!
-weight
+input_45_dilations_0#
+pad_type
 
-model_5_conv_weight+
+input_45_pad_type_0+
 input_45
 
 
@@ -5017,32 +5017,32 @@ interleave
 
 "
 input_49_groups_0Û
-conv
+conv!
+strides
+
+input_49_strides_0
+pad
+
+input_49_pad_0
+groups
+
+input_49_groups_0!
+bias
+
+model_6_cv1_conv_bias%
+weight
+
+model_6_cv1_conv_weight
 x
 
 
-input_47!
-bias
-
-model_6_cv1_conv_bias
-groups
-
-input_49_groups_0
-pad
-
-input_49_pad_0#
-pad_type
-
-input_49_pad_type_0!
-strides
-
-input_49_strides_0%
+input_47%
 	dilations
 
-input_49_dilations_0%
-weight
-
-model_6_cv1_conv_weight+
+input_49_dilations_0#
+pad_type
+
+input_49_pad_type_0+
 input_49
 
 
@@ -5192,31 +5192,31 @@ interleave
 
 "
 input_53_groups_0ã
-conv
+conv!
+strides
+
+input_53_strides_0
+pad
+
+input_53_pad_0
+groups
+
+input_53_groups_0%
+bias
+
+model_6_m_0_cv1_conv_bias)
+weight
+
+model_6_m_0_cv1_conv_weight
 x
 
 	var_221_1%
-bias
-
-model_6_m_0_cv1_conv_bias
-groups
-
-input_53_groups_0
-pad
-
-input_53_pad_0#
-pad_type
-
-input_53_pad_type_0!
-strides
-
-input_53_strides_0%
 	dilations
 
-input_53_dilations_0)
-weight
-
-model_6_m_0_cv1_conv_weight*
+input_53_dilations_0#
+pad_type
+
+input_53_pad_type_0*
 input_53
 
 
@@ -5313,32 +5313,32 @@ interleave
 
 "
 input_57_groups_0ê
-conv
+conv!
+strides
+
+input_57_strides_0
+pad
+
+input_57_pad_0
+groups
+
+input_57_groups_0)
+bias!
+
+model_6_m_0_m_0_cv1_conv_bias-
+weight#
+!
+model_6_m_0_m_0_cv1_conv_weight
 x
 
 
-input_55)
-bias!
-
-model_6_m_0_m_0_cv1_conv_bias
-groups
-
-input_57_groups_0
-pad
-
-input_57_pad_0#
-pad_type
-
-input_57_pad_type_0!
-strides
-
-input_57_strides_0%
+input_55%
 	dilations
 
-input_57_dilations_0-
-weight#
-!
-model_6_m_0_m_0_cv1_conv_weight*
+input_57_dilations_0#
+pad_type
+
+input_57_pad_type_0*
 input_57
 
 
@@ -5435,32 +5435,32 @@ interleave
 
 "
 input_61_groups_0ê
-conv
+conv!
+strides
+
+input_61_strides_0
+pad
+
+input_61_pad_0
+groups
+
+input_61_groups_0)
+bias!
+
+model_6_m_0_m_0_cv2_conv_bias-
+weight#
+!
+model_6_m_0_m_0_cv2_conv_weight
 x
 
 
-input_59)
-bias!
-
-model_6_m_0_m_0_cv2_conv_bias
-groups
-
-input_61_groups_0
-pad
-
-input_61_pad_0#
-pad_type
-
-input_61_pad_type_0!
-strides
-
-input_61_strides_0%
+input_59%
 	dilations
 
-input_61_dilations_0-
-weight#
-!
-model_6_m_0_m_0_cv2_conv_weight*
+input_61_dilations_0#
+pad_type
+
+input_61_pad_type_0*
 input_61
 
 
@@ -5488,14 +5488,14 @@ interleave
 
 "
 op_258v
-add
+add
+y
+	
+var_258
 x
 
 
-input_55
-y
-	
-var_258*
+input_55*
 input_63
 
 
@@ -5576,32 +5576,32 @@ interleave
 
 "
 input_65_groups_0ê
-conv
+conv!
+strides
+
+input_65_strides_0
+pad
+
+input_65_pad_0
+groups
+
+input_65_groups_0)
+bias!
+
+model_6_m_0_m_1_cv1_conv_bias-
+weight#
+!
+model_6_m_0_m_1_cv1_conv_weight
 x
 
 
-input_63)
-bias!
-
-model_6_m_0_m_1_cv1_conv_bias
-groups
-
-input_65_groups_0
-pad
-
-input_65_pad_0#
-pad_type
-
-input_65_pad_type_0!
-strides
-
-input_65_strides_0%
+input_63%
 	dilations
 
-input_65_dilations_0-
-weight#
-!
-model_6_m_0_m_1_cv1_conv_weight*
+input_65_dilations_0#
+pad_type
+
+input_65_pad_type_0*
 input_65
 
 
@@ -5698,32 +5698,32 @@ interleave
 
 "
 input_69_groups_0ê
-conv
+conv!
+strides
+
+input_69_strides_0
+pad
+
+input_69_pad_0
+groups
+
+input_69_groups_0)
+bias!
+
+model_6_m_0_m_1_cv2_conv_bias-
+weight#
+!
+model_6_m_0_m_1_cv2_conv_weight
 x
 
 
-input_67)
-bias!
-
-model_6_m_0_m_1_cv2_conv_bias
-groups
-
-input_69_groups_0
-pad
-
-input_69_pad_0#
-pad_type
-
-input_69_pad_type_0!
-strides
-
-input_69_strides_0%
+input_67%
 	dilations
 
-input_69_dilations_0-
-weight#
-!
-model_6_m_0_m_1_cv2_conv_weight*
+input_69_dilations_0#
+pad_type
+
+input_69_pad_type_0*
 input_69
 
 
@@ -5751,14 +5751,14 @@ interleave
 
 "
 op_279s
-add
+add
+y
+	
+var_279
 x
 
 
-input_63
-y
-	
-var_279)
+input_63)
 var_280
 
 
@@ -5838,31 +5838,31 @@ interleave
 
 "
 input_71_groups_0ã
-conv
+conv!
+strides
+
+input_71_strides_0
+pad
+
+input_71_pad_0
+groups
+
+input_71_groups_0%
+bias
+
+model_6_m_0_cv2_conv_bias)
+weight
+
+model_6_m_0_cv2_conv_weight
 x
 
 	var_221_1%
-bias
-
-model_6_m_0_cv2_conv_bias
-groups
-
-input_71_groups_0
-pad
-
-input_71_pad_0#
-pad_type
-
-input_71_pad_type_0!
-strides
-
-input_71_strides_0%
 	dilations
 
-input_71_dilations_0)
-weight
-
-model_6_m_0_cv2_conv_weight*
+input_71_dilations_0#
+pad_type
+
+input_71_pad_type_0*
 input_71
 
 
@@ -5901,19 +5901,19 @@ interleave
 
 "
 input_73_interleave_0´
-concat'
+concat 
+values
+	
+var_280
+	
+var_289'
 
 interleave
 
 input_73_interleave_0
 axis
 	
-var_206 
-values
-	
-var_280
-	
-var_289*
+var_206*
 input_73
 
 
@@ -5993,32 +5993,32 @@ interleave
 
 "
 input_75_groups_0â
-conv
+conv!
+strides
+
+input_75_strides_0
+pad
+
+input_75_pad_0
+groups
+
+input_75_groups_0%
+bias
+
+model_6_m_0_cv3_conv_bias)
+weight
+
+model_6_m_0_cv3_conv_weight
 x
 
 
 input_73%
-bias
-
-model_6_m_0_cv3_conv_bias
-groups
-
-input_75_groups_0
-pad
-
-input_75_pad_0#
-pad_type
-
-input_75_pad_type_0!
-strides
-
-input_75_strides_0%
 	dilations
 
-input_75_dilations_0)
-weight
-
-model_6_m_0_cv3_conv_weight*
+input_75_dilations_0#
+pad_type
+
+input_75_pad_type_0*
 input_75
 
 
@@ -6057,21 +6057,21 @@ interleave
 
 "
 input_77_interleave_0Ä
-concat'
-
-interleave
-
-input_77_interleave_0
-axis
-	
-var_206/
+concat/
 values%
 
 	var_221_0
 
 	var_221_1
 	
-var_300+
+var_300'
+
+interleave
+
+input_77_interleave_0
+axis
+	
+var_206+
 input_77
 
 
@@ -6151,32 +6151,32 @@ interleave
 
 "
 input_79_groups_0Û
-conv
+conv!
+strides
+
+input_79_strides_0
+pad
+
+input_79_pad_0
+groups
+
+input_79_groups_0!
+bias
+
+model_6_cv2_conv_bias%
+weight
+
+model_6_cv2_conv_weight
 x
 
 
-input_77!
-bias
-
-model_6_cv2_conv_bias
-groups
-
-input_79_groups_0
-pad
-
-input_79_pad_0#
-pad_type
-
-input_79_pad_type_0!
-strides
-
-input_79_strides_0%
+input_77%
 	dilations
 
-input_79_dilations_0%
-weight
-
-model_6_cv2_conv_weight+
+input_79_dilations_0#
+pad_type
+
+input_79_pad_type_0+
 input_79
 
 
@@ -6273,32 +6273,32 @@ interleave
 
 "
 input_83_groups_0Ó
-conv
+conv!
+strides
+
+input_83_strides_0
+pad
+
+input_83_pad_0
+groups
+
+input_83_groups_0
+bias
+
+model_7_conv_bias!
+weight
+
+model_7_conv_weight
 x
 
 
-input_81
-bias
-
-model_7_conv_bias
-groups
-
-input_83_groups_0
-pad
-
-input_83_pad_0#
-pad_type
-
-input_83_pad_type_0!
-strides
-
-input_83_strides_0%
+input_81%
 	dilations
 
-input_83_dilations_0!
-weight
+input_83_dilations_0#
+pad_type
 
-model_7_conv_weight+
+input_83_pad_type_0+
 input_83
 
 
@@ -6406,32 +6406,32 @@ interleave
 
 "
 input_87_groups_0Û
-conv
+conv!
+strides
+
+input_87_strides_0
+pad
+
+input_87_pad_0
+groups
+
+input_87_groups_0!
+bias
+
+model_8_cv1_conv_bias%
+weight
+
+model_8_cv1_conv_weight
 x
 
 
-input_85!
-bias
-
-model_8_cv1_conv_bias
-groups
-
-input_87_groups_0
-pad
-
-input_87_pad_0#
-pad_type
-
-input_87_pad_type_0!
-strides
-
-input_87_strides_0%
+input_85%
 	dilations
 
-input_87_dilations_0%
-weight
-
-model_8_cv1_conv_weight+
+input_87_dilations_0#
+pad_type
+
+input_87_pad_type_0+
 input_87
 
 
@@ -6582,31 +6582,31 @@ interleave
 
 "
 input_91_groups_0ã
-conv
+conv!
+strides
+
+input_91_strides_0
+pad
+
+input_91_pad_0
+groups
+
+input_91_groups_0%
+bias
+
+model_8_m_0_cv1_conv_bias)
+weight
+
+model_8_m_0_cv1_conv_weight
 x
 
 	var_345_1%
-bias
-
-model_8_m_0_cv1_conv_bias
-groups
-
-input_91_groups_0
-pad
-
-input_91_pad_0#
-pad_type
-
-input_91_pad_type_0!
-strides
-
-input_91_strides_0%
 	dilations
 
-input_91_dilations_0)
-weight
-
-model_8_m_0_cv1_conv_weight*
+input_91_dilations_0#
+pad_type
+
+input_91_pad_type_0*
 input_91
 
 
@@ -6703,32 +6703,32 @@ interleave
 
 "
 input_95_groups_0ê
-conv
+conv!
+strides
+
+input_95_strides_0
+pad
+
+input_95_pad_0
+groups
+
+input_95_groups_0)
+bias!
+
+model_8_m_0_m_0_cv1_conv_bias-
+weight#
+!
+model_8_m_0_m_0_cv1_conv_weight
 x
 
 
-input_93)
-bias!
-
-model_8_m_0_m_0_cv1_conv_bias
-groups
-
-input_95_groups_0
-pad
-
-input_95_pad_0#
-pad_type
-
-input_95_pad_type_0!
-strides
-
-input_95_strides_0%
+input_93%
 	dilations
 
-input_95_dilations_0-
-weight#
-!
-model_8_m_0_m_0_cv1_conv_weight*
+input_95_dilations_0#
+pad_type
+
+input_95_pad_type_0*
 input_95
 
 
@@ -6825,32 +6825,32 @@ interleave
 
 "
 input_99_groups_0ê
-conv
+conv!
+strides
+
+input_99_strides_0
+pad
+
+input_99_pad_0
+groups
+
+input_99_groups_0)
+bias!
+
+model_8_m_0_m_0_cv2_conv_bias-
+weight#
+!
+model_8_m_0_m_0_cv2_conv_weight
 x
 
 
-input_97)
-bias!
-
-model_8_m_0_m_0_cv2_conv_bias
-groups
-
-input_99_groups_0
-pad
-
-input_99_pad_0#
-pad_type
-
-input_99_pad_type_0!
-strides
-
-input_99_strides_0%
+input_97%
 	dilations
 
-input_99_dilations_0-
-weight#
-!
-model_8_m_0_m_0_cv2_conv_weight*
+input_99_dilations_0#
+pad_type
+
+input_99_pad_type_0*
 input_99
 
 
@@ -6878,14 +6878,14 @@ interleave
 
 "
 op_382x
-add
+add
+y
+	
+var_382
 x
 
 
-input_93
-y
-	
-var_382+
+input_93+
 	input_101
 
 
@@ -6965,31 +6965,31 @@ interleave
 
 "
 input_103_groups_0ò
-conv
-x
-
-	input_101)
-bias!
-
-model_8_m_0_m_1_cv1_conv_bias 
-groups
-
-input_103_groups_0
-pad
-
-input_103_pad_0$
-pad_type
-
-input_103_pad_type_0"
+conv"
 strides
 
-input_103_strides_0&
-	dilations
-
-input_103_dilations_0-
+input_103_strides_0
+pad
+
+input_103_pad_0 
+groups
+
+input_103_groups_0)
+bias!
+
+model_8_m_0_m_1_cv1_conv_bias-
 weight#
 !
-model_8_m_0_m_1_cv1_conv_weight+
+model_8_m_0_m_1_cv1_conv_weight
+x
+
+	input_101&
+	dilations
+
+input_103_dilations_0$
+pad_type
+
+input_103_pad_type_0+
 	input_103
 
 
@@ -7083,31 +7083,31 @@ interleave
 
 "
 input_107_groups_0ò
-conv
-x
-
-	input_105)
-bias!
-
-model_8_m_0_m_1_cv2_conv_bias 
-groups
-
-input_107_groups_0
-pad
-
-input_107_pad_0$
-pad_type
-
-input_107_pad_type_0"
+conv"
 strides
 
-input_107_strides_0&
-	dilations
-
-input_107_dilations_0-
+input_107_strides_0
+pad
+
+input_107_pad_0 
+groups
+
+input_107_groups_0)
+bias!
+
+model_8_m_0_m_1_cv2_conv_bias-
 weight#
 !
-model_8_m_0_m_1_cv2_conv_weight+
+model_8_m_0_m_1_cv2_conv_weight
+x
+
+	input_105&
+	dilations
+
+input_107_dilations_0$
+pad_type
+
+input_107_pad_type_0+
 	input_107
 
 
@@ -7133,13 +7133,13 @@ interleave
 
 "
 op_403t
-add
-x
-
-	input_101
+add
 y
 	
-var_403)
+var_403
+x
+
+	input_101)
 var_404
 
 
@@ -7219,31 +7219,31 @@ interleave
 
 "
 input_109_groups_0ê
-conv
-x
-
-	var_345_1%
-bias
-
-model_8_m_0_cv2_conv_bias 
-groups
-
-input_109_groups_0
-pad
-
-input_109_pad_0$
-pad_type
-
-input_109_pad_type_0"
+conv"
 strides
 
-input_109_strides_0&
-	dilations
-
-input_109_dilations_0)
+input_109_strides_0
+pad
+
+input_109_pad_0 
+groups
+
+input_109_groups_0%
+bias
+
+model_8_m_0_cv2_conv_bias)
 weight
 
-model_8_m_0_cv2_conv_weight+
+model_8_m_0_cv2_conv_weight
+x
+
+	var_345_1&
+	dilations
+
+input_109_dilations_0$
+pad_type
+
+input_109_pad_type_0+
 	input_109
 
 
@@ -7280,19 +7280,19 @@ interleave
 
 "
 input_111_interleave_0¸
-concat(
+concat 
+values
+	
+var_404
+	
+var_413(
 
 interleave
 
 input_111_interleave_0
 axis
 	
-var_330 
-values
-	
-var_404
-	
-var_413,
+var_330,
 	input_111
 
 
@@ -7371,31 +7371,31 @@ interleave
 
 "
 input_113_groups_0ë
-conv
-x
-
-	input_111%
-bias
-
-model_8_m_0_cv3_conv_bias 
-groups
-
-input_113_groups_0
-pad
-
-input_113_pad_0$
-pad_type
-
-input_113_pad_type_0"
+conv"
 strides
 
-input_113_strides_0&
-	dilations
-
-input_113_dilations_0)
+input_113_strides_0
+pad
+
+input_113_pad_0 
+groups
+
+input_113_groups_0%
+bias
+
+model_8_m_0_cv3_conv_bias)
 weight
 
-model_8_m_0_cv3_conv_weight,
+model_8_m_0_cv3_conv_weight
+x
+
+	input_111&
+	dilations
+
+input_113_dilations_0$
+pad_type
+
+input_113_pad_type_0,
 	input_113
 
 
@@ -7432,21 +7432,21 @@ interleave
 
 "
 input_115_interleave_0Ç
-concat(
-
-interleave
-
-input_115_interleave_0
-axis
-	
-var_330/
+concat/
 values%
 
 	var_345_0
 
 	var_345_1
 	
-var_424,
+var_424(
+
+interleave
+
+input_115_interleave_0
+axis
+	
+var_330,
 	input_115
 
 
@@ -7525,31 +7525,31 @@ interleave
 
 "
 input_117_groups_0ã
-conv
-x
-
-	input_115!
-bias
-
-model_8_cv2_conv_bias 
-groups
-
-input_117_groups_0
-pad
-
-input_117_pad_0$
-pad_type
-
-input_117_pad_type_0"
+conv"
 strides
 
-input_117_strides_0&
-	dilations
+input_117_strides_0
+pad
+
+input_117_pad_0 
+groups
+
+input_117_groups_0!
+bias
 
-input_117_dilations_0%
+model_8_cv2_conv_bias%
 weight
 
-model_8_cv2_conv_weight,
+model_8_cv2_conv_weight
+x
+
+	input_115&
+	dilations
+
+input_117_dilations_0$
+pad_type
+
+input_117_pad_type_0,
 	input_117
 
 
@@ -7654,31 +7654,31 @@ interleave
 
 "
 input_121_groups_0ã
-conv
-x
-
-	input_119!
-bias
-
-model_9_cv1_conv_bias 
-groups
-
-input_121_groups_0
-pad
-
-input_121_pad_0$
-pad_type
-
-input_121_pad_type_0"
+conv"
 strides
 
-input_121_strides_0&
-	dilations
+input_121_strides_0
+pad
+
+input_121_pad_0 
+groups
+
+input_121_groups_0!
+bias
 
-input_121_dilations_0%
+model_9_cv1_conv_bias%
 weight
 
-model_9_cv1_conv_weight,
+model_9_cv1_conv_weight
+x
+
+	input_119&
+	dilations
+
+input_121_dilations_0$
+pad_type
+
+input_121_pad_type_0,
 	input_121
 
 
@@ -7763,22 +7763,22 @@ interleave
 max_pool$
 pad_type
 
-input_123_pad_type_0
-kernel_sizes
-	
-var_452
-x
-
-	input_121
-strides
-	
-var_453&
+input_123_pad_type_0&
 	ceil_mode
 
-input_123_ceil_mode_0
+input_123_ceil_mode_0
+kernel_sizes
+	
+var_452
+strides
+	
+var_453
 pad
 
-input_123_pad_0,
+input_123_pad_0
+x
+
+	input_121,
 	input_123
 
 
@@ -7863,22 +7863,22 @@ interleave
 max_pool$
 pad_type
 
-input_125_pad_type_0
-kernel_sizes
-	
-var_457
-x
-
-	input_123
-strides
-	
-var_458&
+input_125_pad_type_0&
 	ceil_mode
 
-input_125_ceil_mode_0
+input_125_ceil_mode_0
+kernel_sizes
+	
+var_457
+strides
+	
+var_458
 pad
 
-input_125_pad_0,
+input_125_pad_0
+x
+
+	input_123,
 	input_125
 
 
@@ -7963,22 +7963,22 @@ interleave
 max_pool"
 pad_type
 
-var_466_pad_type_0
-kernel_sizes
-	
-var_462
-x
-
-	input_125
-strides
-	
-var_463$
+var_466_pad_type_0$
 	ceil_mode
 
-var_466_ceil_mode_0
+var_466_ceil_mode_0
+kernel_sizes
+	
+var_462
+strides
+	
+var_463
 pad
 
-var_466_pad_0*
+var_466_pad_0
+x
+
+	input_125*
 var_466
 
 
@@ -8001,14 +8001,7 @@ interleave
 
 "
 input_127_interleave_0Ô
-concat(
-
-interleave
-
-input_127_interleave_0
-axis
-	
-var_441<
+concat<
 values2
 
 	input_121
@@ -8017,7 +8010,14 @@ interleave
 
 	input_125
 	
-var_466,
+var_466(
+
+interleave
+
+input_127_interleave_0
+axis
+	
+var_441,
 	input_127
 
 
@@ -8096,31 +8096,31 @@ interleave
 
 "
 input_129_groups_0ã
-conv
-x
-
-	input_127!
-bias
-
-model_9_cv2_conv_bias 
-groups
-
-input_129_groups_0
-pad
-
-input_129_pad_0$
-pad_type
-
-input_129_pad_type_0"
+conv"
 strides
 
-input_129_strides_0&
-	dilations
+input_129_strides_0
+pad
+
+input_129_pad_0 
+groups
+
+input_129_groups_0!
+bias
 
-input_129_dilations_0%
+model_9_cv2_conv_bias%
 weight
 
-model_9_cv2_conv_weight,
+model_9_cv2_conv_weight
+x
+
+	input_127&
+	dilations
+
+input_129_dilations_0$
+pad_type
+
+input_129_pad_type_0,
 	input_129
 
 
@@ -8238,31 +8238,31 @@ interleave
 
 "
 input_133_groups_0å
-conv
-x
-
-	input_131"
-bias
-
-model_10_cv1_conv_bias 
-groups
-
-input_133_groups_0
-pad
-
-input_133_pad_0$
-pad_type
-
-input_133_pad_type_0"
+conv"
 strides
 
-input_133_strides_0&
-	dilations
-
-input_133_dilations_0&
+input_133_strides_0
+pad
+
+input_133_pad_0 
+groups
+
+input_133_groups_0"
+bias
+
+model_10_cv1_conv_bias&
 weight
 
-model_10_cv1_conv_weight,
+model_10_cv1_conv_weight
+x
+
+	input_131&
+	dilations
+
+input_133_dilations_0$
+pad_type
+
+input_133_pad_type_0,
 	input_133
 
 
@@ -8411,31 +8411,31 @@ interleave
 
 "
 qkv_1_groups_0Û
-conv
-x
-
-	var_503_1+
-bias#
-!
-model_10_m_0_attn_qkv_conv_bias
-groups
-
-qkv_1_groups_0
-pad
-
-qkv_1_pad_0 
-pad_type
-
-qkv_1_pad_type_0
+conv
 strides
 
-qkv_1_strides_0"
-	dilations
-
-qkv_1_dilations_0/
+qkv_1_strides_0
+pad
+
+qkv_1_pad_0
+groups
+
+qkv_1_groups_0+
+bias#
+!
+model_10_m_0_attn_qkv_conv_bias/
 weight%
 #
-!model_10_m_0_attn_qkv_conv_weight(
+!model_10_m_0_attn_qkv_conv_weight
+x
+
+	var_503_1"
+	dilations
+
+qkv_1_dilations_0 
+pad_type
+
+qkv_1_pad_type_0(
 qkv_1
 
 
@@ -8463,13 +8463,13 @@ interleave
 
 "
 op_528z
-reshape
-x	
-
-qkv_1
+reshape
 shape
 	
-var_528+
+var_528
+x	
+
+qkv_1+
 var_529 
 
 
@@ -8555,13 +8555,13 @@ interleave
 
 "
 op_535u
-mul
-x
-
-	var_531_0
+mul
 y
 	
-var_535*
+var_535
+x
+
+	var_531_0*
 var_536
 
 
@@ -8595,10 +8595,7 @@ interleave
 
 "
 attn_1_transpose_y_1Ê
-matmul
-x
-	
-var_536
+matmul
 y
 
 	var_531_1'
@@ -8607,7 +8604,10 @@ interleave
 attn_1_transpose_y_1'
 transpose_x
 
-attn_1_transpose_x_1*
+attn_1_transpose_x_1
+x
+	
+var_536*
 attn_1 
 
 
@@ -8619,14 +8619,14 @@ interleave
 
 "
 attn_1y
-softmax
+softmax
+axis
+	
+var_483
 x
 
 
-attn_1
-axis
-	
-var_483*
+attn_1*
 attn_3 
 
 
@@ -8660,10 +8660,7 @@ interleave
 
 "
 op_541_transpose_y_1Ë
-matmul
-x
-
-	var_531_2
+matmul
 y
 
 
@@ -8673,7 +8670,10 @@ interleave
 var_541_transpose_y_1(
 transpose_x
 
-var_541_transpose_x_1*
+var_541_transpose_x_1
+x
+
+	var_531_2*
 var_541
 
 
@@ -8701,13 +8701,13 @@ interleave
 
 "
 op_542{
-reshape
-x
-	
-var_541
+reshape
 shape
 	
-var_542*
+var_542
+x
+	
+var_541*
 var_543
 
 
@@ -8735,13 +8735,13 @@ interleave
 
 "
 op_544‚
-reshape
-x
-
-	var_531_2
+reshape
 shape
 	
-var_544,
+var_544
+x
+
+	var_531_2,
 	input_135
 
 
@@ -8821,31 +8821,31 @@ interleave
 
 "
 op_553_dilations_0æ
-conv
-x
-
-	input_135*
-bias"
- 
-model_10_m_0_attn_pe_conv_bias
-groups
-
-var_553_groups_0
-pad
-
-var_553_pad_0"
-pad_type
-
-var_553_pad_type_0 
+conv 
 strides
 
-var_553_strides_0$
-	dilations
-
-var_553_dilations_0.
+var_553_strides_0
+pad
+
+var_553_pad_0
+groups
+
+var_553_groups_0*
+bias"
+ 
+model_10_m_0_attn_pe_conv_bias.
 weight$
 "
- model_10_m_0_attn_pe_conv_weight*
+ model_10_m_0_attn_pe_conv_weight
+x
+
+	input_135$
+	dilations
+
+var_553_dilations_0"
+pad_type
+
+var_553_pad_type_0*
 var_553
 
 
@@ -8858,12 +8858,12 @@ interleave
 "
 op_553x
 add
-x
-	
-var_543
 y
 	
-var_553,
+var_553
+x
+	
+var_543,
 	input_137
 
 
@@ -8942,31 +8942,31 @@ interleave
 
 "
 op_562_groups_0ê
-conv
-x
-
-	input_137,
-bias$
-"
- model_10_m_0_attn_proj_conv_bias
-groups
-
-var_562_groups_0
-pad
-
-var_562_pad_0"
-pad_type
-
-var_562_pad_type_0 
+conv 
 strides
 
-var_562_strides_0$
-	dilations
-
-var_562_dilations_00
+var_562_strides_0
+pad
+
+var_562_pad_0
+groups
+
+var_562_groups_0,
+bias$
+"
+ model_10_m_0_attn_proj_conv_bias0
 weight&
 $
-"model_10_m_0_attn_proj_conv_weight*
+"model_10_m_0_attn_proj_conv_weight
+x
+
+	input_137$
+	dilations
+
+var_562_dilations_0"
+pad_type
+
+var_562_pad_type_0*
 var_562
 
 
@@ -8978,13 +8978,13 @@ $
 
 "
 op_562z
-add
-x
-
-	var_503_1
+add
 y
 	
-var_562,
+var_562
+x
+
+	var_503_1,
 	input_139
 
 
@@ -9063,31 +9063,31 @@ $
 
 "
 input_141_groups_0ñ
-conv
-x
-
-	input_139(
-bias 
-
-model_10_m_0_ffn_0_conv_bias 
-groups
-
-input_141_groups_0
-pad
-
-input_141_pad_0$
-pad_type
-
-input_141_pad_type_0"
+conv"
 strides
 
-input_141_strides_0&
-	dilations
-
-input_141_dilations_0,
+input_141_strides_0
+pad
+
+input_141_pad_0 
+groups
+
+input_141_groups_0(
+bias 
+
+model_10_m_0_ffn_0_conv_bias,
 weight"
  
-model_10_m_0_ffn_0_conv_weight,
+model_10_m_0_ffn_0_conv_weight
+x
+
+	input_139&
+	dilations
+
+input_141_dilations_0$
+pad_type
+
+input_141_pad_type_0,
 	input_141
 
 
@@ -9180,31 +9180,31 @@ $
 
 "
 op_582_groups_0â
-conv
-x
-
-	input_143(
-bias 
-
-model_10_m_0_ffn_1_conv_bias
-groups
-
-var_582_groups_0
-pad
-
-var_582_pad_0"
-pad_type
-
-var_582_pad_type_0 
+conv 
 strides
 
-var_582_strides_0$
-	dilations
-
-var_582_dilations_0,
+var_582_strides_0
+pad
+
+var_582_pad_0
+groups
+
+var_582_groups_0(
+bias 
+
+model_10_m_0_ffn_1_conv_bias,
 weight"
  
-model_10_m_0_ffn_1_conv_weight*
+model_10_m_0_ffn_1_conv_weight
+x
+
+	input_143$
+	dilations
+
+var_582_dilations_0"
+pad_type
+
+var_582_pad_type_0*
 var_582
 
 
@@ -9216,13 +9216,13 @@ $
 
 "
 op_582n
-add
-x
-
-	input_139
+add
 y
 	
-var_582&
+var_582
+x
+
+	input_139&
 b_1
 
 
@@ -9244,19 +9244,19 @@ $
 
 "
 input_145_interleave_0¶
-concat(
+concat
+values
+
+	var_503_0
+
+b_1(
 
 interleave
 
 input_145_interleave_0
 axis
 	
-var_489
-values
-
-	var_503_0
-
-b_1,
+var_489,
 	input_145
 
 
@@ -9335,31 +9335,31 @@ interleave
 
 "
 input_147_groups_0å
-conv
-x
-
-	input_145"
-bias
-
-model_10_cv2_conv_bias 
-groups
-
-input_147_groups_0
-pad
-
-input_147_pad_0$
-pad_type
-
-input_147_pad_type_0"
+conv"
 strides
 
-input_147_strides_0&
-	dilations
-
-input_147_dilations_0&
+input_147_strides_0
+pad
+
+input_147_pad_0 
+groups
+
+input_147_groups_0"
+bias
+
+model_10_cv2_conv_bias&
 weight
 
-model_10_cv2_conv_weight,
+model_10_cv2_conv_weight
+x
+
+	input_145&
+	dilations
+
+input_147_dilations_0$
+pad_type
+
+input_147_pad_type_0,
 	input_147
 
 
@@ -9410,16 +9410,16 @@ interleave
 !
 "
 op_598_scale_factor_width_0ë
-upsample_nearest_neighbor
-x
-
-	input_1496
-scale_factor_width 
-
-var_598_scale_factor_width_08
+upsample_nearest_neighbor8
 scale_factor_height!
 
-var_598_scale_factor_height_0*
+var_598_scale_factor_height_06
+scale_factor_width 
+
+var_598_scale_factor_width_0
+x
+
+	input_149*
 var_598
 
 
@@ -9454,20 +9454,20 @@ interleave
 
 "
 input_151_interleave_0¹
-concat(
+concat!
+values
+	
+var_598
+
+
+input_81(
 
 interleave
 
 input_151_interleave_0
 axis
 	
-var_599!
-values
-	
-var_598
-
-
-input_81,
+var_599,
 	input_151
 
 
@@ -9558,31 +9558,31 @@ interleave
 
 "
 input_153_groups_0å
-conv
-x
-
-	input_151"
-bias
-
-model_13_cv1_conv_bias 
-groups
-
-input_153_groups_0
-pad
-
-input_153_pad_0$
-pad_type
-
-input_153_pad_type_0"
+conv"
 strides
 
-input_153_strides_0&
-	dilations
-
-input_153_dilations_0&
+input_153_strides_0
+pad
+
+input_153_pad_0 
+groups
+
+input_153_groups_0"
+bias
+
+model_13_cv1_conv_bias&
 weight
 
-model_13_cv1_conv_weight,
+model_13_cv1_conv_weight
+x
+
+	input_151&
+	dilations
+
+input_153_dilations_0$
+pad_type
+
+input_153_pad_type_0,
 	input_153
 
 
@@ -9731,31 +9731,31 @@ interleave
 
 "
 input_157_groups_0ì
-conv
+conv"
+strides
+
+input_157_strides_0
+pad
+
+input_157_pad_0 
+groups
+
+input_157_groups_0&
+bias
+
+model_13_m_0_cv1_conv_bias*
+weight 
+
+model_13_m_0_cv1_conv_weight
 x
 
 	var_621_1&
-bias
-
-model_13_m_0_cv1_conv_bias 
-groups
-
-input_157_groups_0
-pad
-
-input_157_pad_0$
-pad_type
-
-input_157_pad_type_0"
-strides
-
-input_157_strides_0&
 	dilations
 
-input_157_dilations_0*
-weight 
-
-model_13_m_0_cv1_conv_weight+
+input_157_dilations_0$
+pad_type
+
+input_157_pad_type_0+
 	input_157
 
 
@@ -9849,31 +9849,31 @@ interleave
 
 "
 input_161_groups_0ì
-conv
+conv"
+strides
+
+input_161_strides_0
+pad
+
+input_161_pad_0 
+groups
+
+input_161_groups_0&
+bias
+
+model_13_m_0_cv2_conv_bias*
+weight 
+
+model_13_m_0_cv2_conv_weight
 x
 
 	input_159&
-bias
-
-model_13_m_0_cv2_conv_bias 
-groups
-
-input_161_groups_0
-pad
-
-input_161_pad_0$
-pad_type
-
-input_161_pad_type_0"
-strides
-
-input_161_strides_0&
 	dilations
 
-input_161_dilations_0*
-weight 
-
-model_13_m_0_cv2_conv_weight+
+input_161_dilations_0$
+pad_type
+
+input_161_pad_type_0+
 	input_161
 
 
@@ -9899,13 +9899,13 @@ interleave
 
 "
 op_643t
-add
-x
-
-	var_621_1
+add
 y
 	
-var_643)
+var_643
+x
+
+	var_621_1)
 var_644
 
 
@@ -9928,21 +9928,21 @@ interleave
 
 "
 input_163_interleave_0Ç
-concat(
-
-interleave
-
-input_163_interleave_0
-axis
-	
-var_606/
+concat/
 values%
 
 	var_621_0
 
 	var_621_1
 	
-var_644,
+var_644(
+
+interleave
+
+input_163_interleave_0
+axis
+	
+var_606,
 	input_163
 
 
@@ -10021,31 +10021,31 @@ interleave
 
 "
 input_165_groups_0å
-conv
-x
-
-	input_163"
-bias
-
-model_13_cv2_conv_bias 
-groups
-
-input_165_groups_0
-pad
-
-input_165_pad_0$
-pad_type
-
-input_165_pad_type_0"
+conv"
 strides
 
-input_165_strides_0&
-	dilations
-
-input_165_dilations_0&
+input_165_strides_0
+pad
+
+input_165_pad_0 
+groups
+
+input_165_groups_0"
+bias
+
+model_13_cv2_conv_bias&
 weight
 
-model_13_cv2_conv_weight,
+model_13_cv2_conv_weight
+x
+
+	input_163&
+	dilations
+
+input_165_dilations_0$
+pad_type
+
+input_165_pad_type_0,
 	input_165
 
 
@@ -10096,16 +10096,16 @@ interleave
 !
 "
 op_659_scale_factor_width_0ë
-upsample_nearest_neighbor
-x
-
-	input_1676
-scale_factor_width 
-
-var_659_scale_factor_width_08
+upsample_nearest_neighbor8
 scale_factor_height!
 
-var_659_scale_factor_height_0*
+var_659_scale_factor_height_06
+scale_factor_width 
+
+var_659_scale_factor_width_0
+x
+
+	input_167*
 var_659
 
 
@@ -10140,20 +10140,20 @@ interleave
 
 "
 input_169_interleave_0¹
-concat(
+concat!
+values
+	
+var_659
+
+
+input_43(
 
 interleave
 
 input_169_interleave_0
 axis
 	
-var_660!
-values
-	
-var_659
-
-
-input_43,
+var_660,
 	input_169
 
 
@@ -10244,31 +10244,31 @@ interleave
 
 "
 input_171_groups_0ä
-conv
-x
-
-	input_169"
-bias
-
-model_16_cv1_conv_bias 
-groups
-
-input_171_groups_0
-pad
-
-input_171_pad_0$
-pad_type
-
-input_171_pad_type_0"
+conv"
 strides
 
-input_171_strides_0&
-	dilations
-
-input_171_dilations_0&
+input_171_strides_0
+pad
+
+input_171_pad_0 
+groups
+
+input_171_groups_0"
+bias
+
+model_16_cv1_conv_bias&
 weight
 
-model_16_cv1_conv_weight+
+model_16_cv1_conv_weight
+x
+
+	input_169&
+	dilations
+
+input_171_dilations_0$
+pad_type
+
+input_171_pad_type_0+
 	input_171
 
 
@@ -10417,31 +10417,31 @@ interleave
 
 "
 input_175_groups_0ì
-conv
+conv"
+strides
+
+input_175_strides_0
+pad
+
+input_175_pad_0 
+groups
+
+input_175_groups_0&
+bias
+
+model_16_m_0_cv1_conv_bias*
+weight 
+
+model_16_m_0_cv1_conv_weight
 x
 
 	var_682_1&
-bias
-
-model_16_m_0_cv1_conv_bias 
-groups
-
-input_175_groups_0
-pad
-
-input_175_pad_0$
-pad_type
-
-input_175_pad_type_0"
-strides
-
-input_175_strides_0&
 	dilations
 
-input_175_dilations_0*
-weight 
-
-model_16_m_0_cv1_conv_weight+
+input_175_dilations_0$
+pad_type
+
+input_175_pad_type_0+
 	input_175
 
 
@@ -10535,31 +10535,31 @@ interleave
 
 "
 input_179_groups_0ì
-conv
+conv"
+strides
+
+input_179_strides_0
+pad
+
+input_179_pad_0 
+groups
+
+input_179_groups_0&
+bias
+
+model_16_m_0_cv2_conv_bias*
+weight 
+
+model_16_m_0_cv2_conv_weight
 x
 
 	input_177&
-bias
-
-model_16_m_0_cv2_conv_bias 
-groups
-
-input_179_groups_0
-pad
-
-input_179_pad_0$
-pad_type
-
-input_179_pad_type_0"
-strides
-
-input_179_strides_0&
 	dilations
 
-input_179_dilations_0*
-weight 
-
-model_16_m_0_cv2_conv_weight+
+input_179_dilations_0$
+pad_type
+
+input_179_pad_type_0+
 	input_179
 
 
@@ -10585,13 +10585,13 @@ interleave
 
 "
 op_704t
-add
-x
-
-	var_682_1
+add
 y
 	
-var_704)
+var_704
+x
+
+	var_682_1)
 var_705
 
 
@@ -10614,21 +10614,21 @@ interleave
 
 "
 input_181_interleave_0Æ
-concat(
-
-interleave
-
-input_181_interleave_0
-axis
-	
-var_667/
+concat/
 values%
 
 	var_682_0
 
 	var_682_1
 	
-var_705+
+var_705(
+
+interleave
+
+input_181_interleave_0
+axis
+	
+var_667+
 	input_181
 
 
@@ -10707,31 +10707,31 @@ interleave
 
 "
 input_183_groups_0ä
-conv
-x
-
-	input_181"
-bias
-
-model_16_cv2_conv_bias 
-groups
-
-input_183_groups_0
-pad
-
-input_183_pad_0$
-pad_type
-
-input_183_pad_type_0"
+conv"
 strides
 
-input_183_strides_0&
-	dilations
-
-input_183_dilations_0&
+input_183_strides_0
+pad
+
+input_183_pad_0 
+groups
+
+input_183_groups_0"
+bias
+
+model_16_cv2_conv_bias&
 weight
 
-model_16_cv2_conv_weight+
+model_16_cv2_conv_weight
+x
+
+	input_181&
+	dilations
+
+input_183_dilations_0$
+pad_type
+
+input_183_pad_type_0+
 	input_183
 
 
@@ -10825,31 +10825,31 @@ interleave
 
 "
 input_187_groups_0Ü
-conv
-x
-
-	input_185
-bias
-
-model_17_conv_bias 
-groups
-
-input_187_groups_0
-pad
-
-input_187_pad_0$
-pad_type
-
-input_187_pad_type_0"
+conv"
 strides
 
-input_187_strides_0&
-	dilations
-
-input_187_dilations_0"
+input_187_strides_0
+pad
+
+input_187_pad_0 
+groups
+
+input_187_groups_0
+bias
+
+model_17_conv_bias"
 weight
 
-model_17_conv_weight+
+model_17_conv_weight
+x
+
+	input_185&
+	dilations
+
+input_187_dilations_0$
+pad_type
+
+input_187_pad_type_0+
 	input_187
 
 
@@ -10898,19 +10898,19 @@ interleave
 
 "
 input_189_interleave_0º
-concat(
+concat"
+values
+	
+var_730
+
+	input_167(
 
 interleave
 
 input_189_interleave_0
 axis
 	
-var_731"
-values
-	
-var_730
-
-	input_167,
+var_731,
 	input_189
 
 
@@ -11001,31 +11001,31 @@ interleave
 
 "
 input_191_groups_0å
-conv
-x
-
-	input_189"
-bias
-
-model_19_cv1_conv_bias 
-groups
-
-input_191_groups_0
-pad
-
-input_191_pad_0$
-pad_type
-
-input_191_pad_type_0"
+conv"
 strides
 
-input_191_strides_0&
-	dilations
-
-input_191_dilations_0&
+input_191_strides_0
+pad
+
+input_191_pad_0 
+groups
+
+input_191_groups_0"
+bias
+
+model_19_cv1_conv_bias&
 weight
 
-model_19_cv1_conv_weight,
+model_19_cv1_conv_weight
+x
+
+	input_189&
+	dilations
+
+input_191_dilations_0$
+pad_type
+
+input_191_pad_type_0,
 	input_191
 
 
@@ -11174,31 +11174,31 @@ interleave
 
 "
 input_195_groups_0ì
-conv
+conv"
+strides
+
+input_195_strides_0
+pad
+
+input_195_pad_0 
+groups
+
+input_195_groups_0&
+bias
+
+model_19_m_0_cv1_conv_bias*
+weight 
+
+model_19_m_0_cv1_conv_weight
 x
 
 	var_753_1&
-bias
-
-model_19_m_0_cv1_conv_bias 
-groups
-
-input_195_groups_0
-pad
-
-input_195_pad_0$
-pad_type
-
-input_195_pad_type_0"
-strides
-
-input_195_strides_0&
 	dilations
 
-input_195_dilations_0*
-weight 
-
-model_19_m_0_cv1_conv_weight+
+input_195_dilations_0$
+pad_type
+
+input_195_pad_type_0+
 	input_195
 
 
@@ -11292,31 +11292,31 @@ interleave
 
 "
 input_199_groups_0ì
-conv
+conv"
+strides
+
+input_199_strides_0
+pad
+
+input_199_pad_0 
+groups
+
+input_199_groups_0&
+bias
+
+model_19_m_0_cv2_conv_bias*
+weight 
+
+model_19_m_0_cv2_conv_weight
 x
 
 	input_197&
-bias
-
-model_19_m_0_cv2_conv_bias 
-groups
-
-input_199_groups_0
-pad
-
-input_199_pad_0$
-pad_type
-
-input_199_pad_type_0"
-strides
-
-input_199_strides_0&
 	dilations
 
-input_199_dilations_0*
-weight 
-
-model_19_m_0_cv2_conv_weight+
+input_199_dilations_0$
+pad_type
+
+input_199_pad_type_0+
 	input_199
 
 
@@ -11342,13 +11342,13 @@ interleave
 
 "
 op_775t
-add
-x
-
-	var_753_1
+add
 y
 	
-var_775)
+var_775
+x
+
+	var_753_1)
 var_776
 
 
@@ -11371,21 +11371,21 @@ interleave
 
 "
 input_201_interleave_0Ç
-concat(
-
-interleave
-
-input_201_interleave_0
-axis
-	
-var_738/
+concat/
 values%
 
 	var_753_0
 
 	var_753_1
 	
-var_776,
+var_776(
+
+interleave
+
+input_201_interleave_0
+axis
+	
+var_738,
 	input_201
 
 
@@ -11464,31 +11464,31 @@ interleave
 
 "
 input_203_groups_0å
-conv
-x
-
-	input_201"
-bias
-
-model_19_cv2_conv_bias 
-groups
-
-input_203_groups_0
-pad
-
-input_203_pad_0$
-pad_type
-
-input_203_pad_type_0"
+conv"
 strides
 
-input_203_strides_0&
-	dilations
-
-input_203_dilations_0&
+input_203_strides_0
+pad
+
+input_203_pad_0 
+groups
+
+input_203_groups_0"
+bias
+
+model_19_cv2_conv_bias&
 weight
 
-model_19_cv2_conv_weight,
+model_19_cv2_conv_weight
+x
+
+	input_201&
+	dilations
+
+input_203_dilations_0$
+pad_type
+
+input_203_pad_type_0,
 	input_203
 
 
@@ -11582,31 +11582,31 @@ interleave
 
 "
 input_207_groups_0Ý
-conv
-x
-
-	input_205
-bias
-
-model_20_conv_bias 
-groups
-
-input_207_groups_0
-pad
-
-input_207_pad_0$
-pad_type
-
-input_207_pad_type_0"
+conv"
 strides
 
-input_207_strides_0&
-	dilations
-
-input_207_dilations_0"
+input_207_strides_0
+pad
+
+input_207_pad_0 
+groups
+
+input_207_groups_0
+bias
+
+model_20_conv_bias"
 weight
 
-model_20_conv_weight,
+model_20_conv_weight
+x
+
+	input_205&
+	dilations
+
+input_207_dilations_0$
+pad_type
+
+input_207_pad_type_0,
 	input_207
 
 
@@ -11655,19 +11655,19 @@ interleave
 
 "
 input_209_interleave_0º
-concat(
+concat"
+values
+	
+var_801
+
+	input_149(
 
 interleave
 
 input_209_interleave_0
 axis
 	
-var_802"
-values
-	
-var_801
-
-	input_149,
+var_802,
 	input_209
 
 
@@ -11758,31 +11758,31 @@ interleave
 
 "
 input_211_groups_0å
-conv
-x
-
-	input_209"
-bias
-
-model_22_cv1_conv_bias 
-groups
-
-input_211_groups_0
-pad
-
-input_211_pad_0$
-pad_type
-
-input_211_pad_type_0"
+conv"
 strides
 
-input_211_strides_0&
-	dilations
-
-input_211_dilations_0&
+input_211_strides_0
+pad
+
+input_211_pad_0 
+groups
+
+input_211_groups_0"
+bias
+
+model_22_cv1_conv_bias&
 weight
 
-model_22_cv1_conv_weight,
+model_22_cv1_conv_weight
+x
+
+	input_209&
+	dilations
+
+input_211_dilations_0$
+pad_type
+
+input_211_pad_type_0,
 	input_211
 
 
@@ -11931,31 +11931,31 @@ interleave
 
 "
 input_215_groups_0ì
-conv
+conv"
+strides
+
+input_215_strides_0
+pad
+
+input_215_pad_0 
+groups
+
+input_215_groups_0&
+bias
+
+model_22_m_0_cv1_conv_bias*
+weight 
+
+model_22_m_0_cv1_conv_weight
 x
 
 	var_824_1&
-bias
-
-model_22_m_0_cv1_conv_bias 
-groups
-
-input_215_groups_0
-pad
-
-input_215_pad_0$
-pad_type
-
-input_215_pad_type_0"
-strides
-
-input_215_strides_0&
 	dilations
 
-input_215_dilations_0*
-weight 
-
-model_22_m_0_cv1_conv_weight+
+input_215_dilations_0$
+pad_type
+
+input_215_pad_type_0+
 	input_215
 
 
@@ -12049,31 +12049,31 @@ interleave
 
 "
 input_219_groups_0ô
-conv
-x
-
-	input_217*
-bias"
- 
-model_22_m_0_m_0_cv1_conv_bias 
-groups
-
-input_219_groups_0
-pad
-
-input_219_pad_0$
-pad_type
-
-input_219_pad_type_0"
+conv"
 strides
 
-input_219_strides_0&
-	dilations
-
-input_219_dilations_0.
+input_219_strides_0
+pad
+
+input_219_pad_0 
+groups
+
+input_219_groups_0*
+bias"
+ 
+model_22_m_0_m_0_cv1_conv_bias.
 weight$
 "
- model_22_m_0_m_0_cv1_conv_weight+
+ model_22_m_0_m_0_cv1_conv_weight
+x
+
+	input_217&
+	dilations
+
+input_219_dilations_0$
+pad_type
+
+input_219_pad_type_0+
 	input_219
 
 
@@ -12167,31 +12167,31 @@ interleave
 
 "
 input_223_groups_0ô
-conv
-x
-
-	input_221*
-bias"
- 
-model_22_m_0_m_0_cv2_conv_bias 
-groups
-
-input_223_groups_0
-pad
-
-input_223_pad_0$
-pad_type
-
-input_223_pad_type_0"
+conv"
 strides
 
-input_223_strides_0&
-	dilations
-
-input_223_dilations_0.
+input_223_strides_0
+pad
+
+input_223_pad_0 
+groups
+
+input_223_groups_0*
+bias"
+ 
+model_22_m_0_m_0_cv2_conv_bias.
 weight$
 "
- model_22_m_0_m_0_cv2_conv_weight+
+ model_22_m_0_m_0_cv2_conv_weight
+x
+
+	input_221&
+	dilations
+
+input_223_dilations_0$
+pad_type
+
+input_223_pad_type_0+
 	input_223
 
 
@@ -12217,13 +12217,13 @@ interleave
 
 "
 op_861y
-add
-x
-
-	input_217
+add
 y
 	
-var_861+
+var_861
+x
+
+	input_217+
 	input_225
 
 
@@ -12303,31 +12303,31 @@ interleave
 
 "
 input_227_groups_0ô
-conv
-x
-
-	input_225*
-bias"
- 
-model_22_m_0_m_1_cv1_conv_bias 
-groups
-
-input_227_groups_0
-pad
-
-input_227_pad_0$
-pad_type
-
-input_227_pad_type_0"
+conv"
 strides
 
-input_227_strides_0&
-	dilations
-
-input_227_dilations_0.
+input_227_strides_0
+pad
+
+input_227_pad_0 
+groups
+
+input_227_groups_0*
+bias"
+ 
+model_22_m_0_m_1_cv1_conv_bias.
 weight$
 "
- model_22_m_0_m_1_cv1_conv_weight+
+ model_22_m_0_m_1_cv1_conv_weight
+x
+
+	input_225&
+	dilations
+
+input_227_dilations_0$
+pad_type
+
+input_227_pad_type_0+
 	input_227
 
 
@@ -12421,31 +12421,31 @@ interleave
 
 "
 input_231_groups_0ô
-conv
-x
-
-	input_229*
-bias"
- 
-model_22_m_0_m_1_cv2_conv_bias 
-groups
-
-input_231_groups_0
-pad
-
-input_231_pad_0$
-pad_type
-
-input_231_pad_type_0"
+conv"
 strides
 
-input_231_strides_0&
-	dilations
-
-input_231_dilations_0.
+input_231_strides_0
+pad
+
+input_231_pad_0 
+groups
+
+input_231_groups_0*
+bias"
+ 
+model_22_m_0_m_1_cv2_conv_bias.
 weight$
 "
- model_22_m_0_m_1_cv2_conv_weight+
+ model_22_m_0_m_1_cv2_conv_weight
+x
+
+	input_229&
+	dilations
+
+input_231_dilations_0$
+pad_type
+
+input_231_pad_type_0+
 	input_231
 
 
@@ -12471,13 +12471,13 @@ interleave
 
 "
 op_882t
-add
-x
-
-	input_225
+add
 y
 	
-var_882)
+var_882
+x
+
+	input_225)
 var_883
 
 
@@ -12557,31 +12557,31 @@ interleave
 
 "
 input_233_groups_0ì
-conv
+conv"
+strides
+
+input_233_strides_0
+pad
+
+input_233_pad_0 
+groups
+
+input_233_groups_0&
+bias
+
+model_22_m_0_cv2_conv_bias*
+weight 
+
+model_22_m_0_cv2_conv_weight
 x
 
 	var_824_1&
-bias
-
-model_22_m_0_cv2_conv_bias 
-groups
-
-input_233_groups_0
-pad
-
-input_233_pad_0$
-pad_type
-
-input_233_pad_type_0"
-strides
-
-input_233_strides_0&
 	dilations
 
-input_233_dilations_0*
-weight 
-
-model_22_m_0_cv2_conv_weight+
+input_233_dilations_0$
+pad_type
+
+input_233_pad_type_0+
 	input_233
 
 
@@ -12618,19 +12618,19 @@ interleave
 
 "
 input_235_interleave_0¸
-concat(
+concat 
+values
+	
+var_883
+	
+var_892(
 
 interleave
 
 input_235_interleave_0
 axis
 	
-var_809 
-values
-	
-var_883
-	
-var_892,
+var_809,
 	input_235
 
 
@@ -12709,31 +12709,31 @@ interleave
 
 "
 input_237_groups_0í
-conv
+conv"
+strides
+
+input_237_strides_0
+pad
+
+input_237_pad_0 
+groups
+
+input_237_groups_0&
+bias
+
+model_22_m_0_cv3_conv_bias*
+weight 
+
+model_22_m_0_cv3_conv_weight
 x
 
 	input_235&
-bias
-
-model_22_m_0_cv3_conv_bias 
-groups
-
-input_237_groups_0
-pad
-
-input_237_pad_0$
-pad_type
-
-input_237_pad_type_0"
-strides
-
-input_237_strides_0&
 	dilations
 
-input_237_dilations_0*
-weight 
-
-model_22_m_0_cv3_conv_weight,
+input_237_dilations_0$
+pad_type
+
+input_237_pad_type_0,
 	input_237
 
 
@@ -12770,21 +12770,21 @@ interleave
 
 "
 input_239_interleave_0Ç
-concat(
-
-interleave
-
-input_239_interleave_0
-axis
-	
-var_809/
+concat/
 values%
 
 	var_824_0
 
 	var_824_1
 	
-var_903,
+var_903(
+
+interleave
+
+input_239_interleave_0
+axis
+	
+var_809,
 	input_239
 
 
@@ -12863,31 +12863,31 @@ interleave
 
 "
 input_241_groups_0å
-conv
-x
-
-	input_239"
-bias
-
-model_22_cv2_conv_bias 
-groups
-
-input_241_groups_0
-pad
-
-input_241_pad_0$
-pad_type
-
-input_241_pad_type_0"
+conv"
 strides
 
-input_241_strides_0&
-	dilations
-
-input_241_dilations_0&
+input_241_strides_0
+pad
+
+input_241_pad_0 
+groups
+
+input_241_groups_0"
+bias
+
+model_22_cv2_conv_bias&
 weight
 
-model_22_cv2_conv_weight,
+model_22_cv2_conv_weight
+x
+
+	input_239&
+	dilations
+
+input_241_dilations_0$
+pad_type
+
+input_241_pad_type_0,
 	input_241
 
 
@@ -13033,31 +13033,31 @@ interleave
 
 "
 input_243_groups_0ì
-conv
+conv"
+strides
+
+input_243_strides_0
+pad
+
+input_243_pad_0 
+groups
+
+input_243_groups_0&
+bias
+
+model_23_cv2_0_0_conv_bias*
+weight 
+
+model_23_cv2_0_0_conv_weight
 x
 
 	input_185&
-bias
-
-model_23_cv2_0_0_conv_bias 
-groups
-
-input_243_groups_0
-pad
-
-input_243_pad_0$
-pad_type
-
-input_243_pad_type_0"
-strides
-
-input_243_strides_0&
 	dilations
 
-input_243_dilations_0*
-weight 
-
-model_23_cv2_0_0_conv_weight+
+input_243_dilations_0$
+pad_type
+
+input_243_pad_type_0+
 	input_243
 
 
@@ -13151,31 +13151,31 @@ interleave
 
 "
 input_247_groups_0ì
-conv
+conv"
+strides
+
+input_247_strides_0
+pad
+
+input_247_pad_0 
+groups
+
+input_247_groups_0&
+bias
+
+model_23_cv2_0_1_conv_bias*
+weight 
+
+model_23_cv2_0_1_conv_weight
 x
 
 	input_245&
-bias
-
-model_23_cv2_0_1_conv_bias 
-groups
-
-input_247_groups_0
-pad
-
-input_247_pad_0$
-pad_type
-
-input_247_pad_type_0"
-strides
-
-input_247_strides_0&
 	dilations
 
-input_247_dilations_0*
-weight 
-
-model_23_cv2_0_1_conv_weight+
+input_247_dilations_0$
+pad_type
+
+input_247_pad_type_0+
 	input_247
 
 
@@ -13268,31 +13268,31 @@ interleave
 
 "
 op_978_groups_0Ó
-conv
-x
-
-	input_249!
-bias
-
-model_23_cv2_0_2_bias
-groups
-
-var_978_groups_0
-pad
-
-var_978_pad_0"
-pad_type
-
-var_978_pad_type_0 
+conv 
 strides
 
-var_978_strides_0$
-	dilations
-
-var_978_dilations_0%
+var_978_strides_0
+pad
+
+var_978_pad_0
+groups
+
+var_978_groups_0!
+bias
+
+model_23_cv2_0_2_bias%
 weight
 
-model_23_cv2_0_2_weight)
+model_23_cv2_0_2_weight
+x
+
+	input_249$
+	dilations
+
+var_978_dilations_0"
+pad_type
+
+var_978_pad_type_0)
 var_978
 
 
@@ -13320,13 +13320,13 @@ interleave
 
 "
 op_979u
-reshape
-x
-	
-var_978
+reshape
 shape
 	
-var_979$
+var_979
+x
+	
+var_978$
 var_980
 
 
@@ -13406,31 +13406,31 @@ interleave
 
 "
 input_251_groups_0ì
-conv
+conv"
+strides
+
+input_251_strides_0
+pad
+
+input_251_pad_0 
+groups
+
+input_251_groups_0&
+bias
+
+model_23_cv2_1_0_conv_bias*
+weight 
+
+model_23_cv2_1_0_conv_weight
 x
 
 	input_205&
-bias
-
-model_23_cv2_1_0_conv_bias 
-groups
-
-input_251_groups_0
-pad
-
-input_251_pad_0$
-pad_type
-
-input_251_pad_type_0"
-strides
-
-input_251_strides_0&
 	dilations
 
-input_251_dilations_0*
-weight 
-
-model_23_cv2_1_0_conv_weight+
+input_251_dilations_0$
+pad_type
+
+input_251_pad_type_0+
 	input_251
 
 
@@ -13524,31 +13524,31 @@ interleave
 
 "
 input_255_groups_0ì
-conv
+conv"
+strides
+
+input_255_strides_0
+pad
+
+input_255_pad_0 
+groups
+
+input_255_groups_0&
+bias
+
+model_23_cv2_1_1_conv_bias*
+weight 
+
+model_23_cv2_1_1_conv_weight
 x
 
 	input_253&
-bias
-
-model_23_cv2_1_1_conv_bias 
-groups
-
-input_255_groups_0
-pad
-
-input_255_pad_0$
-pad_type
-
-input_255_pad_type_0"
-strides
-
-input_255_strides_0&
 	dilations
 
-input_255_dilations_0*
-weight 
-
-model_23_cv2_1_1_conv_weight+
+input_255_dilations_0$
+pad_type
+
+input_255_pad_type_0+
 	input_255
 
 
@@ -13641,31 +13641,31 @@ interleave
 
 "
 op_1008_groups_0Ú
-conv
-x
-
-	input_257!
-bias
-
-model_23_cv2_1_2_bias
-groups
-
-var_1008_groups_0
-pad
-
-var_1008_pad_0#
-pad_type
-
-var_1008_pad_type_0!
+conv!
 strides
 
-var_1008_strides_0%
-	dilations
-
-var_1008_dilations_0%
+var_1008_strides_0
+pad
+
+var_1008_pad_0
+groups
+
+var_1008_groups_0!
+bias
+
+model_23_cv2_1_2_bias%
 weight
 
-model_23_cv2_1_2_weight*
+model_23_cv2_1_2_weight
+x
+
+	input_257%
+	dilations
+
+var_1008_dilations_0#
+pad_type
+
+var_1008_pad_type_0*
 var_1008
 
 
@@ -13691,15 +13691,15 @@ interleave
 
 "	
 op_1009y
-reshape
-x
-
-
-var_1008
+reshape
 shape
 
 
-var_1009%
+var_1009
+x
+
+
+var_1008%
 var_1010
 
 
@@ -13778,31 +13778,31 @@ interleave
 
 "
 input_261_groups_0ì
-conv
+conv"
+strides
+
+input_261_strides_0
+pad
+
+input_261_pad_0 
+groups
+
+input_261_groups_0&
+bias
+
+model_23_cv2_2_0_conv_bias*
+weight 
+
+model_23_cv2_2_0_conv_weight
 x
 
 	input_259&
-bias
-
-model_23_cv2_2_0_conv_bias 
-groups
-
-input_261_groups_0
-pad
-
-input_261_pad_0$
-pad_type
-
-input_261_pad_type_0"
-strides
-
-input_261_strides_0&
 	dilations
 
-input_261_dilations_0*
-weight 
-
-model_23_cv2_2_0_conv_weight+
+input_261_dilations_0$
+pad_type
+
+input_261_pad_type_0+
 	input_261
 
 
@@ -13896,31 +13896,31 @@ interleave
 
 "
 input_265_groups_0ì
-conv
+conv"
+strides
+
+input_265_strides_0
+pad
+
+input_265_pad_0 
+groups
+
+input_265_groups_0&
+bias
+
+model_23_cv2_2_1_conv_bias*
+weight 
+
+model_23_cv2_2_1_conv_weight
 x
 
 	input_263&
-bias
-
-model_23_cv2_2_1_conv_bias 
-groups
-
-input_265_groups_0
-pad
-
-input_265_pad_0$
-pad_type
-
-input_265_pad_type_0"
-strides
-
-input_265_strides_0&
 	dilations
 
-input_265_dilations_0*
-weight 
-
-model_23_cv2_2_1_conv_weight+
+input_265_dilations_0$
+pad_type
+
+input_265_pad_type_0+
 	input_265
 
 
@@ -14013,31 +14013,31 @@ interleave
 
 "
 op_1038_groups_0Ú
-conv
-x
-
-	input_267!
-bias
-
-model_23_cv2_2_2_bias
-groups
-
-var_1038_groups_0
-pad
-
-var_1038_pad_0#
-pad_type
-
-var_1038_pad_type_0!
+conv!
 strides
 
-var_1038_strides_0%
-	dilations
-
-var_1038_dilations_0%
+var_1038_strides_0
+pad
+
+var_1038_pad_0
+groups
+
+var_1038_groups_0!
+bias
+
+model_23_cv2_2_2_bias%
 weight
 
-model_23_cv2_2_2_weight*
+model_23_cv2_2_2_weight
+x
+
+	input_267%
+	dilations
+
+var_1038_dilations_0#
+pad_type
+
+var_1038_pad_type_0*
 var_1038
 
 
@@ -14063,15 +14063,15 @@ interleave
 
 "	
 op_1039y
-reshape
-x
-
-
-var_1038
+reshape
 shape
 
 
-var_1039%
+var_1039
+x
+
+
+var_1038%
 var_1040
 
 
@@ -14092,14 +14092,7 @@ interleave
 
 "
 x_interleave_0§
-concat 
-
-interleave
-
-x_interleave_0
-axis
-	
-var_924-
+concat-
 values#
 	
 var_980
@@ -14108,7 +14101,14 @@ interleave
 var_1010
 
 
-var_1040
+var_1040 
+
+interleave
+
+x_interleave_0
+axis
+	
+var_924
 x
 
 
@@ -14187,31 +14187,31 @@ interleave
 
 "
 input_269_dilations_0ð
-conv
-x
-
-	input_185(
-bias 
-
-model_23_cv3_0_0_0_conv_bias 
-groups
-
-input_269_groups_0
-pad
-
-input_269_pad_0$
-pad_type
-
-input_269_pad_type_0"
+conv"
 strides
 
-input_269_strides_0&
-	dilations
-
-input_269_dilations_0,
+input_269_strides_0
+pad
+
+input_269_pad_0 
+groups
+
+input_269_groups_0(
+bias 
+
+model_23_cv3_0_0_0_conv_bias,
 weight"
  
-model_23_cv3_0_0_0_conv_weight+
+model_23_cv3_0_0_0_conv_weight
+x
+
+	input_185&
+	dilations
+
+input_269_dilations_0$
+pad_type
+
+input_269_pad_type_0+
 	input_269
 
 
@@ -14304,31 +14304,31 @@ interleave
 
 "
 input_273_groups_0ð
-conv
-x
-
-	input_271(
-bias 
-
-model_23_cv3_0_0_1_conv_bias 
-groups
-
-input_273_groups_0
-pad
-
-input_273_pad_0$
-pad_type
-
-input_273_pad_type_0"
+conv"
 strides
 
-input_273_strides_0&
-	dilations
-
-input_273_dilations_0,
+input_273_strides_0
+pad
+
+input_273_pad_0 
+groups
+
+input_273_groups_0(
+bias 
+
+model_23_cv3_0_0_1_conv_bias,
 weight"
  
-model_23_cv3_0_0_1_conv_weight+
+model_23_cv3_0_0_1_conv_weight
+x
+
+	input_271&
+	dilations
+
+input_273_dilations_0$
+pad_type
+
+input_273_pad_type_0+
 	input_273
 
 
@@ -14422,31 +14422,31 @@ interleave
 
 "
 input_277_dilations_0ð
-conv
-x
-
-	input_275(
-bias 
-
-model_23_cv3_0_1_0_conv_bias 
-groups
-
-input_277_groups_0
-pad
-
-input_277_pad_0$
-pad_type
-
-input_277_pad_type_0"
+conv"
 strides
 
-input_277_strides_0&
-	dilations
-
-input_277_dilations_0,
+input_277_strides_0
+pad
+
+input_277_pad_0 
+groups
+
+input_277_groups_0(
+bias 
+
+model_23_cv3_0_1_0_conv_bias,
 weight"
  
-model_23_cv3_0_1_0_conv_weight+
+model_23_cv3_0_1_0_conv_weight
+x
+
+	input_275&
+	dilations
+
+input_277_dilations_0$
+pad_type
+
+input_277_pad_type_0+
 	input_277
 
 
@@ -14539,31 +14539,31 @@ interleave
 
 "
 input_281_groups_0ð
-conv
-x
-
-	input_279(
-bias 
-
-model_23_cv3_0_1_1_conv_bias 
-groups
-
-input_281_groups_0
-pad
-
-input_281_pad_0$
-pad_type
-
-input_281_pad_type_0"
+conv"
 strides
 
-input_281_strides_0&
-	dilations
-
-input_281_dilations_0,
+input_281_strides_0
+pad
+
+input_281_pad_0 
+groups
+
+input_281_groups_0(
+bias 
+
+model_23_cv3_0_1_1_conv_bias,
 weight"
  
-model_23_cv3_0_1_1_conv_weight+
+model_23_cv3_0_1_1_conv_weight
+x
+
+	input_279&
+	dilations
+
+input_281_dilations_0$
+pad_type
+
+input_281_pad_type_0+
 	input_281
 
 
@@ -14656,31 +14656,31 @@ interleave
 
 "
 op_1092_groups_0Ú
-conv
-x
-
-	input_283!
-bias
-
-model_23_cv3_0_2_bias
-groups
-
-var_1092_groups_0
-pad
-
-var_1092_pad_0#
-pad_type
-
-var_1092_pad_type_0!
+conv!
 strides
 
-var_1092_strides_0%
-	dilations
-
-var_1092_dilations_0%
+var_1092_strides_0
+pad
+
+var_1092_pad_0
+groups
+
+var_1092_groups_0!
+bias
+
+model_23_cv3_0_2_bias%
 weight
 
-model_23_cv3_0_2_weight*
+model_23_cv3_0_2_weight
+x
+
+	input_283%
+	dilations
+
+var_1092_dilations_0#
+pad_type
+
+var_1092_pad_type_0*
 var_1092
 
 
@@ -14706,15 +14706,15 @@ interleave
 
 "	
 op_1093y
-reshape
-x
-
-
-var_1092
+reshape
 shape
 
 
-var_1093%
+var_1093
+x
+
+
+var_1092%
 var_1094
 
 
@@ -14793,31 +14793,31 @@ interleave
 
 "
 input_285_dilations_0ñ
-conv
-x
-
-	input_205(
-bias 
-
-model_23_cv3_1_0_0_conv_bias 
-groups
-
-input_285_groups_0
-pad
-
-input_285_pad_0$
-pad_type
-
-input_285_pad_type_0"
+conv"
 strides
 
-input_285_strides_0&
-	dilations
-
-input_285_dilations_0,
+input_285_strides_0
+pad
+
+input_285_pad_0 
+groups
+
+input_285_groups_0(
+bias 
+
+model_23_cv3_1_0_0_conv_bias,
 weight"
  
-model_23_cv3_1_0_0_conv_weight,
+model_23_cv3_1_0_0_conv_weight
+x
+
+	input_205&
+	dilations
+
+input_285_dilations_0$
+pad_type
+
+input_285_pad_type_0,
 	input_285
 
 
@@ -14910,31 +14910,31 @@ interleave
 
 "
 input_289_groups_0ð
-conv
-x
-
-	input_287(
-bias 
-
-model_23_cv3_1_0_1_conv_bias 
-groups
-
-input_289_groups_0
-pad
-
-input_289_pad_0$
-pad_type
-
-input_289_pad_type_0"
+conv"
 strides
 
-input_289_strides_0&
-	dilations
-
-input_289_dilations_0,
+input_289_strides_0
+pad
+
+input_289_pad_0 
+groups
+
+input_289_groups_0(
+bias 
+
+model_23_cv3_1_0_1_conv_bias,
 weight"
  
-model_23_cv3_1_0_1_conv_weight+
+model_23_cv3_1_0_1_conv_weight
+x
+
+	input_287&
+	dilations
+
+input_289_dilations_0$
+pad_type
+
+input_289_pad_type_0+
 	input_289
 
 
@@ -15028,31 +15028,31 @@ interleave
 
 "
 input_293_dilations_0ð
-conv
-x
-
-	input_291(
-bias 
-
-model_23_cv3_1_1_0_conv_bias 
-groups
-
-input_293_groups_0
-pad
-
-input_293_pad_0$
-pad_type
-
-input_293_pad_type_0"
+conv"
 strides
 
-input_293_strides_0&
-	dilations
-
-input_293_dilations_0,
+input_293_strides_0
+pad
+
+input_293_pad_0 
+groups
+
+input_293_groups_0(
+bias 
+
+model_23_cv3_1_1_0_conv_bias,
 weight"
  
-model_23_cv3_1_1_0_conv_weight+
+model_23_cv3_1_1_0_conv_weight
+x
+
+	input_291&
+	dilations
+
+input_293_dilations_0$
+pad_type
+
+input_293_pad_type_0+
 	input_293
 
 
@@ -15145,31 +15145,31 @@ interleave
 
 "
 input_297_groups_0ð
-conv
-x
-
-	input_295(
-bias 
-
-model_23_cv3_1_1_1_conv_bias 
-groups
-
-input_297_groups_0
-pad
-
-input_297_pad_0$
-pad_type
-
-input_297_pad_type_0"
+conv"
 strides
 
-input_297_strides_0&
-	dilations
-
-input_297_dilations_0,
+input_297_strides_0
+pad
+
+input_297_pad_0 
+groups
+
+input_297_groups_0(
+bias 
+
+model_23_cv3_1_1_1_conv_bias,
 weight"
  
-model_23_cv3_1_1_1_conv_weight+
+model_23_cv3_1_1_1_conv_weight
+x
+
+	input_295&
+	dilations
+
+input_297_dilations_0$
+pad_type
+
+input_297_pad_type_0+
 	input_297
 
 
@@ -15262,31 +15262,31 @@ interleave
 
 "
 op_1144_groups_0Ú
-conv
-x
-
-	input_299!
-bias
-
-model_23_cv3_1_2_bias
-groups
-
-var_1144_groups_0
-pad
-
-var_1144_pad_0#
-pad_type
-
-var_1144_pad_type_0!
+conv!
 strides
 
-var_1144_strides_0%
-	dilations
-
-var_1144_dilations_0%
+var_1144_strides_0
+pad
+
+var_1144_pad_0
+groups
+
+var_1144_groups_0!
+bias
+
+model_23_cv3_1_2_bias%
 weight
 
-model_23_cv3_1_2_weight*
+model_23_cv3_1_2_weight
+x
+
+	input_299%
+	dilations
+
+var_1144_dilations_0#
+pad_type
+
+var_1144_pad_type_0*
 var_1144
 
 
@@ -15312,15 +15312,15 @@ interleave
 
 "	
 op_1145y
-reshape
-x
-
-
-var_1144
+reshape
 shape
 
 
-var_1145%
+var_1145
+x
+
+
+var_1144%
 var_1146
 
 
@@ -15399,31 +15399,31 @@ interleave
 
 "
 input_301_dilations_0ñ
-conv
-x
-
-	input_259(
-bias 
-
-model_23_cv3_2_0_0_conv_bias 
-groups
-
-input_301_groups_0
-pad
-
-input_301_pad_0$
-pad_type
-
-input_301_pad_type_0"
+conv"
 strides
 
-input_301_strides_0&
-	dilations
-
-input_301_dilations_0,
+input_301_strides_0
+pad
+
+input_301_pad_0 
+groups
+
+input_301_groups_0(
+bias 
+
+model_23_cv3_2_0_0_conv_bias,
 weight"
  
-model_23_cv3_2_0_0_conv_weight,
+model_23_cv3_2_0_0_conv_weight
+x
+
+	input_259&
+	dilations
+
+input_301_dilations_0$
+pad_type
+
+input_301_pad_type_0,
 	input_301
 
 
@@ -15516,31 +15516,31 @@ interleave
 
 "
 input_305_groups_0ð
-conv
-x
-
-	input_303(
-bias 
-
-model_23_cv3_2_0_1_conv_bias 
-groups
-
-input_305_groups_0
-pad
-
-input_305_pad_0$
-pad_type
-
-input_305_pad_type_0"
+conv"
 strides
 
-input_305_strides_0&
-	dilations
-
-input_305_dilations_0,
+input_305_strides_0
+pad
+
+input_305_pad_0 
+groups
+
+input_305_groups_0(
+bias 
+
+model_23_cv3_2_0_1_conv_bias,
 weight"
  
-model_23_cv3_2_0_1_conv_weight+
+model_23_cv3_2_0_1_conv_weight
+x
+
+	input_303&
+	dilations
+
+input_305_dilations_0$
+pad_type
+
+input_305_pad_type_0+
 	input_305
 
 
@@ -15634,31 +15634,31 @@ interleave
 
 "
 input_309_dilations_0ð
-conv
-x
-
-	input_307(
-bias 
-
-model_23_cv3_2_1_0_conv_bias 
-groups
-
-input_309_groups_0
-pad
-
-input_309_pad_0$
-pad_type
-
-input_309_pad_type_0"
+conv"
 strides
 
-input_309_strides_0&
-	dilations
-
-input_309_dilations_0,
+input_309_strides_0
+pad
+
+input_309_pad_0 
+groups
+
+input_309_groups_0(
+bias 
+
+model_23_cv3_2_1_0_conv_bias,
 weight"
  
-model_23_cv3_2_1_0_conv_weight+
+model_23_cv3_2_1_0_conv_weight
+x
+
+	input_307&
+	dilations
+
+input_309_dilations_0$
+pad_type
+
+input_309_pad_type_0+
 	input_309
 
 
@@ -15751,31 +15751,31 @@ interleave
 
 "
 input_313_groups_0ð
-conv
-x
-
-	input_311(
-bias 
-
-model_23_cv3_2_1_1_conv_bias 
-groups
-
-input_313_groups_0
-pad
-
-input_313_pad_0$
-pad_type
-
-input_313_pad_type_0"
+conv"
 strides
 
-input_313_strides_0&
-	dilations
-
-input_313_dilations_0,
+input_313_strides_0
+pad
+
+input_313_pad_0 
+groups
+
+input_313_groups_0(
+bias 
+
+model_23_cv3_2_1_1_conv_bias,
 weight"
  
-model_23_cv3_2_1_1_conv_weight+
+model_23_cv3_2_1_1_conv_weight
+x
+
+	input_311&
+	dilations
+
+input_313_dilations_0$
+pad_type
+
+input_313_pad_type_0+
 	input_313
 
 
@@ -15868,31 +15868,31 @@ interleave
 
 "
 op_1196_groups_0Ú
-conv
-x
-
-	input_315!
-bias
-
-model_23_cv3_2_2_bias
-groups
-
-var_1196_groups_0
-pad
-
-var_1196_pad_0#
-pad_type
-
-var_1196_pad_type_0!
+conv!
 strides
 
-var_1196_strides_0%
-	dilations
-
-var_1196_dilations_0%
+var_1196_strides_0
+pad
+
+var_1196_pad_0
+groups
+
+var_1196_groups_0!
+bias
+
+model_23_cv3_2_2_bias%
 weight
 
-model_23_cv3_2_2_weight*
+model_23_cv3_2_2_weight
+x
+
+	input_315%
+	dilations
+
+var_1196_dilations_0#
+pad_type
+
+var_1196_pad_type_0*
 var_1196
 
 
@@ -15918,15 +15918,15 @@ interleave
 
 "	
 op_1197y
-reshape
-x
-
-
-var_1196
+reshape
 shape
 
 
-var_1197%
+var_1197
+x
+
+
+var_1196%
 var_1198
 
 
@@ -15947,14 +15947,7 @@ interleave
 
 "
 op_1200_interleave_0¼
-concat'
-
-interleave
-
-var_1200_interleave_0
-axis
-	
-var_924.
+concat.
 values$
 
 
@@ -15964,7 +15957,14 @@ interleave
 var_1146
 
 
-var_1198%
+var_1198'
+
+interleave
+
+var_1200_interleave_0
+axis
+	
+var_924%
 var_1200
 
 
@@ -16043,31 +16043,31 @@ interleave
 
 "
 input_317_groups_0ì
-conv
+conv"
+strides
+
+input_317_strides_0
+pad
+
+input_317_pad_0 
+groups
+
+input_317_groups_0&
+bias
+
+model_23_cv4_0_0_conv_bias*
+weight 
+
+model_23_cv4_0_0_conv_weight
 x
 
 	input_185&
-bias
-
-model_23_cv4_0_0_conv_bias 
-groups
-
-input_317_groups_0
-pad
-
-input_317_pad_0$
-pad_type
-
-input_317_pad_type_0"
-strides
-
-input_317_strides_0&
 	dilations
 
-input_317_dilations_0*
-weight 
-
-model_23_cv4_0_0_conv_weight+
+input_317_dilations_0$
+pad_type
+
+input_317_pad_type_0+
 	input_317
 
 
@@ -16161,31 +16161,31 @@ interleave
 
 "
 input_321_groups_0ì
-conv
+conv"
+strides
+
+input_321_strides_0
+pad
+
+input_321_pad_0 
+groups
+
+input_321_groups_0&
+bias
+
+model_23_cv4_0_1_conv_bias*
+weight 
+
+model_23_cv4_0_1_conv_weight
 x
 
 	input_319&
-bias
-
-model_23_cv4_0_1_conv_bias 
-groups
-
-input_321_groups_0
-pad
-
-input_321_pad_0$
-pad_type
-
-input_321_pad_type_0"
-strides
-
-input_321_strides_0&
 	dilations
 
-input_321_dilations_0*
-weight 
-
-model_23_cv4_0_1_conv_weight+
+input_321_dilations_0$
+pad_type
+
+input_321_pad_type_0+
 	input_321
 
 
@@ -16278,31 +16278,31 @@ interleave
 
 "
 op_1229_groups_0Ú
-conv
-x
-
-	input_323!
-bias
-
-model_23_cv4_0_2_bias
-groups
-
-var_1229_groups_0
-pad
-
-var_1229_pad_0#
-pad_type
-
-var_1229_pad_type_0!
+conv!
 strides
 
-var_1229_strides_0%
-	dilations
-
-var_1229_dilations_0%
+var_1229_strides_0
+pad
+
+var_1229_pad_0
+groups
+
+var_1229_groups_0!
+bias
+
+model_23_cv4_0_2_bias%
 weight
 
-model_23_cv4_0_2_weight*
+model_23_cv4_0_2_weight
+x
+
+	input_323%
+	dilations
+
+var_1229_dilations_0#
+pad_type
+
+var_1229_pad_type_0*
 var_1229
 
 
@@ -16328,15 +16328,15 @@ interleave
 
 "	
 op_1230y
-reshape
-x
-
-
-var_1229
+reshape
 shape
 
 
-var_1230%
+var_1230
+x
+
+
+var_1229%
 var_1231
 
 
@@ -16415,31 +16415,31 @@ interleave
 
 "
 input_325_groups_0ì
-conv
+conv"
+strides
+
+input_325_strides_0
+pad
+
+input_325_pad_0 
+groups
+
+input_325_groups_0&
+bias
+
+model_23_cv4_1_0_conv_bias*
+weight 
+
+model_23_cv4_1_0_conv_weight
 x
 
 	input_205&
-bias
-
-model_23_cv4_1_0_conv_bias 
-groups
-
-input_325_groups_0
-pad
-
-input_325_pad_0$
-pad_type
-
-input_325_pad_type_0"
-strides
-
-input_325_strides_0&
 	dilations
 
-input_325_dilations_0*
-weight 
-
-model_23_cv4_1_0_conv_weight+
+input_325_dilations_0$
+pad_type
+
+input_325_pad_type_0+
 	input_325
 
 
@@ -16533,31 +16533,31 @@ interleave
 
 "
 input_329_groups_0ì
-conv
+conv"
+strides
+
+input_329_strides_0
+pad
+
+input_329_pad_0 
+groups
+
+input_329_groups_0&
+bias
+
+model_23_cv4_1_1_conv_bias*
+weight 
+
+model_23_cv4_1_1_conv_weight
 x
 
 	input_327&
-bias
-
-model_23_cv4_1_1_conv_bias 
-groups
-
-input_329_groups_0
-pad
-
-input_329_pad_0$
-pad_type
-
-input_329_pad_type_0"
-strides
-
-input_329_strides_0&
 	dilations
 
-input_329_dilations_0*
-weight 
-
-model_23_cv4_1_1_conv_weight+
+input_329_dilations_0$
+pad_type
+
+input_329_pad_type_0+
 	input_329
 
 
@@ -16650,31 +16650,31 @@ interleave
 
 "
 op_1259_groups_0Ú
-conv
-x
-
-	input_331!
-bias
-
-model_23_cv4_1_2_bias
-groups
-
-var_1259_groups_0
-pad
-
-var_1259_pad_0#
-pad_type
-
-var_1259_pad_type_0!
+conv!
 strides
 
-var_1259_strides_0%
-	dilations
-
-var_1259_dilations_0%
+var_1259_strides_0
+pad
+
+var_1259_pad_0
+groups
+
+var_1259_groups_0!
+bias
+
+model_23_cv4_1_2_bias%
 weight
 
-model_23_cv4_1_2_weight*
+model_23_cv4_1_2_weight
+x
+
+	input_331%
+	dilations
+
+var_1259_dilations_0#
+pad_type
+
+var_1259_pad_type_0*
 var_1259
 
 
@@ -16700,15 +16700,15 @@ interleave
 
 "	
 op_1260y
-reshape
-x
-
-
-var_1259
+reshape
 shape
 
 
-var_1260%
+var_1260
+x
+
+
+var_1259%
 var_1261
 
 
@@ -16787,31 +16787,31 @@ interleave
 
 "
 input_333_groups_0ì
-conv
+conv"
+strides
+
+input_333_strides_0
+pad
+
+input_333_pad_0 
+groups
+
+input_333_groups_0&
+bias
+
+model_23_cv4_2_0_conv_bias*
+weight 
+
+model_23_cv4_2_0_conv_weight
 x
 
 	input_259&
-bias
-
-model_23_cv4_2_0_conv_bias 
-groups
-
-input_333_groups_0
-pad
-
-input_333_pad_0$
-pad_type
-
-input_333_pad_type_0"
-strides
-
-input_333_strides_0&
 	dilations
 
-input_333_dilations_0*
-weight 
-
-model_23_cv4_2_0_conv_weight+
+input_333_dilations_0$
+pad_type
+
+input_333_pad_type_0+
 	input_333
 
 
@@ -16905,31 +16905,31 @@ interleave
 
 "
 input_337_groups_0ì
-conv
+conv"
+strides
+
+input_337_strides_0
+pad
+
+input_337_pad_0 
+groups
+
+input_337_groups_0&
+bias
+
+model_23_cv4_2_1_conv_bias*
+weight 
+
+model_23_cv4_2_1_conv_weight
 x
 
 	input_335&
-bias
-
-model_23_cv4_2_1_conv_bias 
-groups
-
-input_337_groups_0
-pad
-
-input_337_pad_0$
-pad_type
-
-input_337_pad_type_0"
-strides
-
-input_337_strides_0&
 	dilations
 
-input_337_dilations_0*
-weight 
-
-model_23_cv4_2_1_conv_weight+
+input_337_dilations_0$
+pad_type
+
+input_337_pad_type_0+
 	input_337
 
 
@@ -17022,31 +17022,31 @@ interleave
 
 "
 op_1289_groups_0Ú
-conv
-x
-
-	input_339!
-bias
-
-model_23_cv4_2_2_bias
-groups
-
-var_1289_groups_0
-pad
-
-var_1289_pad_0#
-pad_type
-
-var_1289_pad_type_0!
+conv!
 strides
 
-var_1289_strides_0%
-	dilations
-
-var_1289_dilations_0%
+var_1289_strides_0
+pad
+
+var_1289_pad_0
+groups
+
+var_1289_groups_0!
+bias
+
+model_23_cv4_2_2_bias%
 weight
 
-model_23_cv4_2_2_weight*
+model_23_cv4_2_2_weight
+x
+
+	input_339%
+	dilations
+
+var_1289_dilations_0#
+pad_type
+
+var_1289_pad_type_0*
 var_1289
 
 
@@ -17072,15 +17072,15 @@ interleave
 
 "	
 op_1290y
-reshape
-x
-
-
-var_1289
+reshape
 shape
 
 
-var_1290%
+var_1290
+x
+
+
+var_1289%
 var_1291
 
 
@@ -17101,14 +17101,7 @@ interleave
 
 "
 op_1293_interleave_0¼
-concat'
-
-interleave
-
-var_1293_interleave_0
-axis
-	
-var_920.
+concat.
 values$
 
 
@@ -17118,7 +17111,14 @@ interleave
 var_1261
 
 
-var_1291%
+var_1291'
+
+interleave
+
+var_1293_interleave_0
+axis
+	
+var_920%
 var_1293
 
 
@@ -17143,15 +17143,15 @@ interleave
 
 "	
 op_1297x
-reshape
-
-x
-
-x
+reshape
 shape
 
 
-var_1297+
+var_1297
+
+x
+
+x+
 var_1298
 
 
@@ -17196,14 +17196,14 @@ interleave
 
 "
 transpose_0€
-softmax
+softmax
+axis
+	
+var_926
 x
 
 
-var_1299
-axis
-	
-var_926,
+var_1299,
 	input_341
 
 
@@ -17285,25 +17285,25 @@ interleave
 conv#
 pad_type
 
-var_1306_pad_type_0!
-strides
-
-var_1306_strides_0%
+var_1306_pad_type_0%
 	dilations
 
-var_1306_dilations_0&
-weight
-
-model_23_dfl_conv_weight
+var_1306_dilations_0
 groups
 
-var_1306_groups_0
-x
-
-	input_341
+var_1306_groups_0!
+strides
+
+var_1306_strides_0
 pad
 
-var_1306_pad_0+
+var_1306_pad_0&
+weight
+
+model_23_dfl_conv_weight
+x
+
+	input_341+
 var_1306
 
 
@@ -17330,15 +17330,15 @@ interleave
 
 "	
 op_1307z
-reshape
-x
-
-
-var_1306
+reshape
 shape
 
 
-var_1307%
+var_1307
+x
+
+
+var_1306%
 distance
 
 
@@ -17418,14 +17418,14 @@ var_1310_1
 
 "	
 op_1310q
-sub
-x
-
-anchor_points
+sub
 y
 
 
-var_1310_0!
+var_1310_0
+x
+
+anchor_points!
 x1y1
 
 
@@ -17436,14 +17436,14 @@ var_1310_0!
 
 "
 x1y1q
-add
-x
-
-anchor_points
+add
 y
 
 
-var_1310_1!
+var_1310_1
+x
+
+anchor_points!
 x2y2
 
 
@@ -17455,12 +17455,12 @@ var_1310_1!
 "
 x2y2i
 add
-x
-
-x1y1
 y
 
-x2y2%
+x2y2
+x
+
+x1y1%
 var_1314
 
 
@@ -17483,14 +17483,14 @@ var_1310_1!
 
 "
 _inversed_c_xy_y_0ˆ
-mul
+mul
+y
+
+_inversed_c_xy_y_0
 x
 
 
-var_1314
-y
-
-_inversed_c_xy_y_0+
+var_1314+
 _inversed_c_xy
 
 
@@ -17501,12 +17501,12 @@ var_1310_1!
 "
 _inversed_c_xy^
 sub
-x
-
-x2y2
 y
 
-x1y1
+x1y1
+x
+
+x2y2
 wh
 
 
@@ -17527,19 +17527,19 @@ var_1310_1!
 
 "
 op_1319_interleave_0°
-concat'
+concat"
+values
+
+_inversed_c_xy
+
+wh'
 
 interleave
 
 var_1319_interleave_0
 axis
 	
-var_926"
-values
-
-_inversed_c_xy
-
-wh%
+var_926%
 var_1319
 
 
@@ -17549,14 +17549,14 @@ interleave
 
 "	
 op_1319i
-mul
+mul
+y
+	
+var_915
 x
 
 
-var_1319
-y
-	
-var_915!
+var_1319!
 dbox
 
 
@@ -17592,14 +17592,7 @@ interleave
 
 "
 op_1323_interleave_0¸
-concat'
-
-interleave
-
-var_1323_interleave_0
-axis
-	
-var_926*
+concat*
 values 
 
 dbox
@@ -17608,7 +17601,14 @@ interleave
 var_1321
 
 
-var_1293%
+var_1293'
+
+interleave
+
+var_1323_interleave_0
+axis
+	
+var_926%
 var_1323
 
 
@@ -17687,31 +17687,31 @@ interleave
 
 "
 input_343_groups_0ð
-conv
-x
-
-	input_185(
-bias 
-
-model_23_proto_cv1_conv_bias 
-groups
-
-input_343_groups_0
-pad
-
-input_343_pad_0$
-pad_type
-
-input_343_pad_type_0"
+conv"
 strides
 
-input_343_strides_0&
-	dilations
-
-input_343_dilations_0,
+input_343_strides_0
+pad
+
+input_343_pad_0 
+groups
+
+input_343_groups_0(
+bias 
+
+model_23_proto_cv1_conv_bias,
 weight"
  
-model_23_proto_cv1_conv_weight+
+model_23_proto_cv1_conv_weight
+x
+
+	input_185&
+	dilations
+
+input_343_dilations_0$
+pad_type
+
+input_343_pad_type_0+
 	input_343
 
 
@@ -17820,34 +17820,34 @@ interleave
 /
 -"+
 )input_347_has_output_shape_output_shape_0Ý
-conv_transpose
-x
-
-	input_345(
-bias 
-
-model_23_proto_upsample_bias 
-groups
-
-input_347_groups_0
-pad
-
-input_347_pad_0$
+conv_transpose$
 pad_type
 
-input_347_pad_type_0"
-strides
-
-input_347_strides_0&
-	dilations
-
-input_347_dilations_0,
+input_347_pad_type_0
+pad
+
+input_347_pad_0 
+groups
+
+input_347_groups_0(
+bias 
+
+model_23_proto_upsample_bias,
 weight"
  
-model_23_proto_upsample_weight=
+model_23_proto_upsample_weight
+x
+
+	input_345&
+	dilations
+
+input_347_dilations_0=
 output_shape-
 +
-)input_347_has_output_shape_output_shape_0>
+)input_347_has_output_shape_output_shape_0"
+strides
+
+input_347_strides_0>
 input_347_has_output_shape 
 
 
@@ -17927,31 +17927,31 @@ interleave
 
 "
 input_349_groups_0ƒ
-conv#
-x
-
-input_347_has_output_shape(
-bias 
-
-model_23_proto_cv2_conv_bias 
-groups
-
-input_349_groups_0
-pad
-
-input_349_pad_0$
-pad_type
-
-input_349_pad_type_0"
+conv"
 strides
 
-input_349_strides_0&
-	dilations
-
-input_349_dilations_0,
+input_349_strides_0
+pad
+
+input_349_pad_0 
+groups
+
+input_349_groups_0(
+bias 
+
+model_23_proto_cv2_conv_bias,
 weight"
  
-model_23_proto_cv2_conv_weight-
+model_23_proto_cv2_conv_weight#
+x
+
+input_347_has_output_shape&
+	dilations
+
+input_349_dilations_0$
+pad_type
+
+input_349_pad_type_0-
 	input_349 
 
 
@@ -18044,31 +18044,31 @@ interleave
 
 "
 input_groups_0Ö
-conv
-x
-
-	input_351(
-bias 
-
-model_23_proto_cv3_conv_bias
-groups
-
-input_groups_0
-pad
-
-input_pad_0 
-pad_type
-
-input_pad_type_0
+conv
 strides
 
-input_strides_0"
-	dilations
-
-input_dilations_0,
+input_strides_0
+pad
+
+input_pad_0
+groups
+
+input_groups_0(
+bias 
+
+model_23_proto_cv3_conv_bias,
 weight"
  
-model_23_proto_cv3_conv_weight)
+model_23_proto_cv3_conv_weight
+x
+
+	input_351"
+	dilations
+
+input_dilations_0 
+pad_type
+
+input_pad_type_0)
 input 
 
 

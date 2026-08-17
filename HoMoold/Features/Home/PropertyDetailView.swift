@@ -14,10 +14,13 @@ struct PropertyDetailView: View {
     @State private var showAddInspection = false
     @State private var roomPendingDelete: RoomInspection?
     @State private var roomPendingEdit: RoomInspection?
+    @State private var roomPendingRename: RoomInspection?
+    @State private var roomNameInput = ""
     @State private var showDeletePropertyConfirm = false
     @State private var showRenameAlert = false
     @State private var renameText = ""
 
+    @MainActor
     init(store: AppDataStore, propertyID: UUID, path: Binding<NavigationPath>) {
         self.store = store
         self._path = path
@@ -39,7 +42,7 @@ struct PropertyDetailView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "plus")
-                    Text("Add Room")
+                    Text("Add new Room")
                 }
                 .font(.headline)
                 .foregroundStyle(Color.accentColor)
@@ -55,6 +58,7 @@ struct PropertyDetailView: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Add a room to inspect in this house")
             .accessibilityLabel("Add a room to inspect in this house")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
@@ -76,20 +80,29 @@ struct PropertyDetailView: View {
                             roomPendingDelete = room
                         } label: {
                             Label("Delete", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                     .contextMenu {
                         Button {
+                            roomNameInput = room.name
+                            roomPendingRename = room
+                        } label: {
+                            Label("Rename Room", systemImage: "pencil")
+                        }
+                        Button {
                             roomPendingEdit = room
                         } label: {
-                            Label("Edit Condition", systemImage: "pencil")
+                            Label("Edit Condition", systemImage: "checklist")
                         }
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
                             Label("Delete Room", systemImage: "trash")
+                            Label("Delete Room", systemImage: "trash")
                         }
                     }
+                    .tint(.primary)
                 }
             }
         }
@@ -106,15 +119,19 @@ struct PropertyDetailView: View {
                         showRenameAlert = true
                     } label: {
                         Label("Rename House", systemImage: "pencil")
+                        Label("Rename House", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
                         showDeletePropertyConfirm = true
                     } label: {
                         Label("Delete House", systemImage: "trash")
+                        Label("Delete House", systemImage: "trash")
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                 }
+                // Kontrol chrome — warna label bawaan, bukan brand.
+                .tint(.primary)
                 .accessibilityLabel("House options")
             }
         }
@@ -135,11 +152,14 @@ struct PropertyDetailView: View {
         }
         .alert(
             "Delete Room",
+            "Delete Room",
             isPresented: Binding(
                 get: { roomPendingDelete != nil },
                 set: { if !$0 { roomPendingDelete = nil } }
             )
         ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
@@ -148,8 +168,11 @@ struct PropertyDetailView: View {
                 roomPendingDelete = nil
             }
         } message: {
-            Text("The inspection result for this room will be deleted. This action cannot be undone.")
+            Text("This room's inspection result will be deleted. This can't be undone.")
         }
+        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
         .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -159,15 +182,32 @@ struct PropertyDetailView: View {
                 dismiss()
             }
         } message: {
-            Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This action cannot be undone.")
+            Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This can't be undone.")
+        }
+        // Alert bawaan, sama kayak rename rumah — konsisten dan HIG.
+        .alert(
+            "Rename Room",
+            isPresented: Binding(
+                get: { roomPendingRename != nil },
+                set: { if !$0 { roomPendingRename = nil } }
+            )
+        ) {
+            TextField("Room name", text: $roomNameInput)
+            Button("Cancel", role: .cancel) { roomPendingRename = nil }
+            Button("Save") {
+                if let roomID = roomPendingRename?.id, let propertyID = viewModel.property?.id {
+                    store.renameRoom(roomID: roomID, ofProperty: propertyID, to: roomNameInput)
+                }
+                roomPendingRename = nil
+            }
         }
         .alert("Rename House", isPresented: $showRenameAlert) {
             TextField("House name", text: $renameText)
             Button("Cancel", role: .cancel) {}
             Button("Save") {
-                if let id = viewModel.property?.id {
-                    store.renameProperty(id: id, to: renameText)
-                }
+                let name = renameText.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty, let id = viewModel.property?.id else { return }
+                store.renameProperty(id: id, to: name)
             }
         }
     }
@@ -180,47 +220,47 @@ private struct RoomInspectionCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             ZStack(alignment: .topLeading) {
-                Image(uiImage: room.thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 132, height: 166)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(.black.opacity(0.12))
-                    )
-                    .accessibilityHidden(true)
-
-                if let topFinding = room.findings.first {
-                    BoundingBoxOverlay(findingClass: topFinding.findingClass, boundingBox: topFinding.boundingBox)
+                if room.hasMold {
+                    Image(uiImage: room.thumbnail)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
                         .frame(width: 132, height: 166)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .strokeBorder(.black.opacity(0.12))
+                        )
+                        .accessibilityHidden(true)
+
+                    if let topFinding = room.findings.first {
+                        BoundingBoxOverlay(findingClass: topFinding.findingClass, boundingBox: topFinding.boundingBox)
+                            .frame(width: 132, height: 166)
+                    }
+                } else {
+                    noMoldPlaceholder
                 }
             }
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(room.roomType.rawValue)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(room.name)
+                            .font(Theme.font.subheadlineMedium)
+                            .foregroundStyle(Theme.color.textPrimary)
+                            .lineLimit(1)
+
+                        Text(room.roomType.rawValue)
+                            .font(Theme.font.caption)
+                            .foregroundStyle(Theme.color.textSecondary)
+                            .lineLimit(1)
+                    }
                     Spacer(minLength: 8)
                     Text(relativeDate(room.date))
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.color.textSecondary)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
-                    ForEach(room.detectionChecklist) { item in
-                        HStack {
-                            Text(item.label)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Spacer(minLength: 8)
-                            Image(systemName: item.isPresent ? "checkmark.square" : "xmark.square")
-                                .font(.caption)
-                                .foregroundStyle(item.isPresent ? .secondary : Color.secondary.opacity(0.4))
-                        }
-                    }
-                }
+                conditionChips
 
                 Spacer(minLength: 0)
 
@@ -231,53 +271,99 @@ private struct RoomInspectionCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 3)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDescription)
+    }
+
+    /// Grafis "no mold" buat ruangan yang nggak ada temuannya (Figma 1339:6825,
+    /// kartu ketiga).
+    ///
+    /// Pakai `.fit` di atas latar putih, BUKAN `.fill` kayak foto biasa —
+    /// gambarnya persegi dan ada tulisan "no mold" di bawahnya, jadi kalau
+    /// di-fill ke slot potret 132x166 tulisannya kepotong.
+    private var noMoldPlaceholder: some View {
+        Image("NoMoldPlaceholder")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .padding(8)
+            .frame(width: 132, height: 166)
+            .background(Color.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(.black.opacity(0.12))
+            )
+            .accessibilityHidden(true)
+    }
+
+    private var conditionChips: some View {
+        let items = room.detectionChecklist
+        return VStack(alignment: .leading, spacing: 6) {
+            ForEach(Array(stride(from: 0, to: items.count, by: 2)), id: \.self) { start in
+                HStack(spacing: 6) {
+                    ForEach(items[start..<min(start + 2, items.count)]) { item in
+                        conditionChip(item)
+                    }
+                }
+            }
+        }
+    }
+
+    private func conditionChip(_ item: DetectionItem) -> some View {
+        HStack(spacing: 3) {
+            Image(systemName: item.isPresent ? "checkmark" : "xmark")
+                .font(.system(size: 8, weight: .bold))
+
+            Text(item.label)
+                .font(.caption2)
+                // Kolom kanan cuma ~196pt, dan "Dampness" + "Wall Crack" dalam
+                // satu baris pas-pasan. Dikunci satu baris + boleh mengecil
+                // dikit supaya nggak pernah kepotong jadi "Wall Cra…".
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+        }
+        .foregroundStyle(item.isPresent ? Theme.color.brand : Theme.color.textSecondary)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 4)
+        .background(
+            (item.isPresent ? Theme.color.brand : Theme.color.textSecondary).opacity(0.12),
+            in: Capsule()
+        )
     }
 
     private func relativeDate(_ date: Date) -> String {
-        if Calendar.current.isDateInToday(date) { return "Today" }
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today" }
+        if calendar.isDateInYesterday(date) { return "Yesterday" }
         let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM"
+        formatter.dateFormat = calendar.isDate(date, equalTo: Date(), toGranularity: .year)
+            ? "d MMM"
+            : "d MMM yyyy"
         return formatter.string(from: date)
     }
 
+    private var accessibilityDescription: String {
+        let spots = room.findings.isEmpty
+            ? "no mold spots"
+            : "\(room.findings.count) mold spot\(room.findings.count == 1 ? "" : "s")"
+        return "\(room.name), \(room.roomType.rawValue), \(spots), \(room.riskLevel.pillLabel)"
+    }
+
     private var moldGrowRateBadge: some View {
-        HStack(spacing: 6) {
-            Text("Mold Grow Rate")
-                .font(.caption2)
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Mold Growth Rate")
+                .font(Theme.font.caption)
+                .foregroundStyle(Theme.color.textSecondary)
+
+            Text(room.riskLevel.pillLabel)
+                .font(Theme.font.caption)
                 .foregroundStyle(.white)
-            Text(room.riskLevel.labelID)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.white)
-            SignalBars(level: room.riskLevel)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-    }
-}
-
-/// Mini bar-chart 3-batang (rendah/sedang/tinggi) yang nunjukin RiskLevel —
-/// dipakai di badge "Mold Grow Rate".
-private struct SignalBars: View {
-    let level: RiskLevel
-
-    private var activeBars: Int {
-        switch level {
-        case .low: return 1
-        case .medium: return 2
-        case .high: return 3
-        }
-    }
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 2) {
-            ForEach(0..<3, id: \.self) { index in
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(.white.opacity(index < activeBars ? 1 : 0.35))
-                    .frame(width: 3, height: 6 + CGFloat(index) * 4)
-            }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background(
+                    room.riskLevel.color,
+                    in: RoundedRectangle(cornerRadius: 5, style: .continuous)
+                )
         }
     }
 }
