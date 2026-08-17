@@ -59,6 +59,7 @@ struct PropertyDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add a room to inspect in this house")
+            .accessibilityLabel("Add a room to inspect in this house")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
@@ -79,6 +80,7 @@ struct PropertyDetailView: View {
                             roomPendingDelete = room
                         } label: {
                             Label("Delete", systemImage: "trash")
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                     .contextMenu {
@@ -96,6 +98,7 @@ struct PropertyDetailView: View {
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
+                            Label("Delete Room", systemImage: "trash")
                             Label("Delete Room", systemImage: "trash")
                         }
                     }
@@ -116,10 +119,12 @@ struct PropertyDetailView: View {
                         showRenameAlert = true
                     } label: {
                         Label("Rename House", systemImage: "pencil")
+                        Label("Rename House", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
                         showDeletePropertyConfirm = true
                     } label: {
+                        Label("Delete House", systemImage: "trash")
                         Label("Delete House", systemImage: "trash")
                     }
                 } label: {
@@ -147,11 +152,14 @@ struct PropertyDetailView: View {
         }
         .alert(
             "Delete Room",
+            "Delete Room",
             isPresented: Binding(
                 get: { roomPendingDelete != nil },
                 set: { if !$0 { roomPendingDelete = nil } }
             )
         ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
@@ -162,6 +170,9 @@ struct PropertyDetailView: View {
         } message: {
             Text("This room's inspection result will be deleted. This can't be undone.")
         }
+        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
         .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
@@ -232,13 +243,6 @@ private struct RoomInspectionCard: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
-                    // Nama DAN tipe — kartu ruangan di Figma nampilin dua-duanya,
-                    // dan tipe doang nggak cukup buat mbedain dua kamar tidur.
-                    // Nama DAN tipe, SELALU dua-duanya. Sebelumnya tipe-nya
-                    // disembunyiin kalau kebetulan sama persis dengan namanya
-                    // (kejadian pas user nggak ngisi nama, karena nama-nya
-                    // jatuh ke nama tipe) — tapi itu bikin barisnya kadang ada
-                    // kadang nggak, dan kartunya jadi nggak konsisten.
                     VStack(alignment: .leading, spacing: 1) {
                         Text(room.name)
                             .font(Theme.font.subheadlineMedium)
@@ -292,11 +296,6 @@ private struct RoomInspectionCard: View {
             .accessibilityHidden(true)
     }
 
-    /// Empat kondisi jadi chip, bukan empat baris label+ikon.
-    ///
-    /// Versi baris itu makan tinggi kartu paling banyak padahal isinya cuma
-    /// ya/tidak. Sebagai chip, yang ADA langsung kelihatan karena berwarna, dan
-    /// yang nggak ada tetap kebaca tapi mundur ke belakang.
     private var conditionChips: some View {
         let items = room.detectionChecklist
         return VStack(alignment: .leading, spacing: 6) {
@@ -350,9 +349,6 @@ private struct RoomInspectionCard: View {
         return "\(room.name), \(room.roomType.rawValue), \(spots), \(room.riskLevel.pillLabel)"
     }
 
-    /// Label abu di atas, pil warna selebar kartu di bawah — sesuai desain.
-    /// Sebelumnya cuma badge hitam kecil, dan warnanya (yang justru info
-    /// utamanya) nyaris nggak kelihatan.
     private var moldGrowRateBadge: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Mold Growth Rate")
@@ -378,7 +374,7 @@ private struct RoomInspectionCard: View {
         hasAC: false, hasWindow: true, dampness: true, wallCrack: true, date: Date()
     )
     let property = KosProperty(
-        name: "Kos Contoh", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
+        name: "Sample House", location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )
     let store = AppDataStore(properties: [property])

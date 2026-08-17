@@ -171,7 +171,7 @@ struct PropertyCard: View {
         hasAC: true, hasWindow: true, dampness: true, wallCrack: false, date: Date()
     )
     let inspected = KosProperty(
-        name: "House Assetti",
+        name: "Sample House",
         location: HomeLocation(region: "Banten", city: "Tangerang", district: "Kec. Cisauk"),
         price: 850_000, rooms: [room]
     )

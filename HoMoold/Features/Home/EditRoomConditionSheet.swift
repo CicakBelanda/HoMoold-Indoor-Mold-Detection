@@ -37,7 +37,7 @@ struct EditRoomConditionSheet: View {
                     Toggle("Air conditioner", isOn: $hasAC)
                     Toggle("Window", isOn: $hasWindow)
                 } header: {
-                    Text("Room condition")
+                    Text("Room Condition")
                 }
             }
             .navigationTitle(room.roomType.rawValue)
@@ -45,8 +45,10 @@ struct EditRoomConditionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
                     Button("Save") {
                         onSave(hasAC, hasWindow, dampness, wallCrack)
                         dismiss()

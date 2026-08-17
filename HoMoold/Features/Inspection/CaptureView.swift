@@ -249,6 +249,7 @@ struct CaptureView: View {
             }
         }
         .accessibilityLabel("Take photo")
+        .accessibilityLabel("Take photo")
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
@@ -307,6 +308,7 @@ struct CaptureView: View {
                 VStack(spacing: 10) {
                     HStack(spacing: 12) {
                         Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
+                        Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -321,6 +323,7 @@ struct CaptureView: View {
                             .background(.white.opacity(0.2), in: Capsule())
                     }
 
+                    Button("Done") { finish() }
                     Button("Done") { finish() }
                         .buttonStyle(.pillProminent)
                 }
@@ -341,6 +344,7 @@ struct CaptureView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(result.detections) { detection in
                     HStack(alignment: .firstTextBaseline) {
+                        Text("Mold")
                         Text("Mold")
                             .font(.subheadline.weight(.semibold))
                         Text(String(format: "(%.0f%%)", detection.confidence * 100))
@@ -406,6 +410,7 @@ struct CaptureView: View {
                 .font(.largeTitle)
                 .foregroundStyle(.white)
             Text("No LiDAR sensor")
+            Text("No LiDAR sensor")
                 .font(.headline)
                 .foregroundStyle(.white)
             Text("Measuring mold area only works on an iPhone/iPad Pro with LiDAR.")
@@ -441,6 +446,6 @@ struct CaptureView: View {
 }
 
 #Preview {
-    let property = KosProperty(name: "Kos Contoh", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
+    let property = KosProperty(name: "Sample Property", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
     return CaptureView(flow: InspectionFlowState(existingProperty: property))
 }

@@ -2,16 +2,6 @@
 //  ReportView.swift
 //  HoMoold
 //
-//  Figma 1339:7594 ("Report Page 11").
-//
-//  Susunannya: judul nama ruangan + tombol info, tumpukan foto yang bisa
-//  di-swipe (dengan kotak deteksi MOLD oranye), tiga kartu — prediksi risiko,
-//  potensi dampak kesehatan, rekomendasi — lalu Discard & Save di bawah.
-//
-//  Dua kartu terakhir isinya BULLET, bukan paragraf. Ini perbaikan yang
-//  diminta: versi lama semuanya paragraf panjang sampai laporannya kebaca
-//  seperti dinding teks.
-//
 
 import SwiftUI
 
