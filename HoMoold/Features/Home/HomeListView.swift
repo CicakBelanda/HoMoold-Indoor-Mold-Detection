@@ -62,7 +62,6 @@ struct HomeListView: View {
                                     propertyPendingDelete = property
                                 } label: {
                                     Label("Delete", systemImage: "trash")
-                                    Label("Delete", systemImage: "trash")
                                 }
                             }
                             .contextMenu {
@@ -71,12 +70,10 @@ struct HomeListView: View {
                                     propertyPendingRename = property
                                 } label: {
                                     Label("Rename", systemImage: "pencil")
-                                    Label("Rename", systemImage: "pencil")
                                 }
                                 Button(role: .destructive) {
                                     propertyPendingDelete = property
                                 } label: {
-                                    Label("Delete House", systemImage: "trash")
                                     Label("Delete House", systemImage: "trash")
                                 }
                             }
@@ -118,14 +115,11 @@ struct HomeListView: View {
             }
             .alert(
                 "Delete House",
-                "Delete House",
                 isPresented: Binding(
                     get: { propertyPendingDelete != nil },
                     set: { if !$0 { propertyPendingDelete = nil } }
                 )
             ) {
-                Button("Cancel", role: .cancel) {}
-                Button("Delete", role: .destructive) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
                     if let id = propertyPendingDelete?.id {
@@ -137,7 +131,6 @@ struct HomeListView: View {
                 Text("All inspection data in \"\(propertyPendingDelete?.name ?? "")\" will be deleted too. This can't be undone.")
             }
             .alert(
-                "Rename House",
                 "Rename House",
                 isPresented: Binding(
                     get: { propertyPendingRename != nil },

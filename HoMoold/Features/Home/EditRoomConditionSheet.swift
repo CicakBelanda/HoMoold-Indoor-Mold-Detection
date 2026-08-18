@@ -45,10 +45,8 @@ struct EditRoomConditionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
                     Button("Save") {
                         onSave(hasAC, hasWindow, dampness, wallCrack)
                         dismiss()

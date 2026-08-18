@@ -249,7 +249,6 @@ struct CaptureView: View {
             }
         }
         .accessibilityLabel("Take photo")
-        .accessibilityLabel("Take photo")
         .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
@@ -343,7 +342,6 @@ struct CaptureView: View {
                 ForEach(result.detections) { detection in
                     HStack(alignment: .firstTextBaseline) {
                         Text("Mold")
-                        Text("Mold")
                             .font(.subheadline.weight(.semibold))
                         Text(String(format: "(%.0f%%)", detection.confidence * 100))
                             .font(.caption)
@@ -407,7 +405,6 @@ struct CaptureView: View {
             Image(systemName: "sensor.fill")
                 .font(.largeTitle)
                 .foregroundStyle(.white)
-            Text("No LiDAR sensor")
             Text("No LiDAR sensor")
                 .font(.headline)
                 .foregroundStyle(.white)

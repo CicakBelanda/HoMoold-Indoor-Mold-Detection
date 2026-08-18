@@ -59,7 +59,6 @@ struct PropertyDetailView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Add a room to inspect in this house")
-            .accessibilityLabel("Add a room to inspect in this house")
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
@@ -80,7 +79,6 @@ struct PropertyDetailView: View {
                             roomPendingDelete = room
                         } label: {
                             Label("Delete", systemImage: "trash")
-                            Label("Delete", systemImage: "trash")
                         }
                     }
                     .contextMenu {
@@ -98,7 +96,6 @@ struct PropertyDetailView: View {
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
-                            Label("Delete Room", systemImage: "trash")
                             Label("Delete Room", systemImage: "trash")
                         }
                     }
@@ -119,12 +116,10 @@ struct PropertyDetailView: View {
                         showRenameAlert = true
                     } label: {
                         Label("Rename House", systemImage: "pencil")
-                        Label("Rename House", systemImage: "pencil")
                     }
                     Button(role: .destructive) {
                         showDeletePropertyConfirm = true
                     } label: {
-                        Label("Delete House", systemImage: "trash")
                         Label("Delete House", systemImage: "trash")
                     }
                 } label: {
@@ -152,14 +147,11 @@ struct PropertyDetailView: View {
         }
         .alert(
             "Delete Room",
-            "Delete Room",
             isPresented: Binding(
                 get: { roomPendingDelete != nil },
                 set: { if !$0 { roomPendingDelete = nil } }
             )
         ) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
                 if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
@@ -170,9 +162,6 @@ struct PropertyDetailView: View {
         } message: {
             Text("This room's inspection result will be deleted. This can't be undone.")
         }
-        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
         .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
             Button("Cancel", role: .cancel) {}
             Button("Delete", role: .destructive) {
