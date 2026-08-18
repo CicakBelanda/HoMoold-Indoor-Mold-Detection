@@ -119,9 +119,6 @@ final class CaptureViewModel: ObservableObject {
     // MoldDetector otomatis baca jumlah kelasnya dari shape tensor (lihat
     // decodeDetections), jadi gak perlu ubah kode lain pas ganti model lagi.
     private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: 0.35)
-    /// Konteks Core Image buat estimasi luminansi (CIAreaAverage) — di-reuse,
-    /// bukan bikin baru tiap tick.
-    private let ciContext = CIContext()
     /// Rata-rata luminansi (0–1, Rec. 601 luma) yang di-smooth biar
     /// peringatannya gak kelap-kelip tiap tick.
     private var luminanceEMA: Double?
@@ -349,25 +346,31 @@ final class CaptureViewModel: ObservableObject {
         }
     }
 
-    /// Estimasi luminansi rata-rata (0–1) pakai CIAreaAverage — render citra
-    /// ke bitmap 1×1, baca saluran RGB, terus hitung luma Rec. 601.
+    /// Estimasi luminansi rata-rata (0–1) dengan cara yang ANDAL: turunin
+    /// citra ke 32×32 lewat CGContext, terus rata-ratakan pikselnya (luma
+    /// Rec. 601). Pendekatan CIAreaAverage + render(toBitmap:) terbukti
+    /// ngasih 0,0 di sini (masalah manajemen warna Core Image), jadi pakai
+    /// CGContext aja yang deterministik.
     private func estimateLuminance(_ cgImage: CGImage) -> Double? {
-        let ciImage = CIImage(cgImage: cgImage)
-        guard let filter = CIFilter(name: "CIAreaAverage") else { return nil }
-        filter.setValue(ciImage, forKey: kCIInputImageKey)
-        guard let output = filter.outputImage else { return nil }
-        var bitmap = [UInt8](repeating: 0, count: 4)
-        ciContext.render(
-            output,
-            toBitmap: &bitmap, rowBytes: 4,
-            bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
-            format: .RGBA8,
-            colorSpace: CGColorSpaceCreateDeviceRGB()
-        )
-        let r = Double(bitmap[0]) / 255
-        let g = Double(bitmap[1]) / 255
-        let b = Double(bitmap[2]) / 255
-        return 0.299 * r + 0.587 * g + 0.114 * b
+        let size = 32
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+        guard let data = ctx.data else { return nil }
+        let ptr = data.bindMemory(to: UInt8.self, capacity: size * size * 4)
+        var sum = 0.0
+        let n = size * size
+        for i in 0..<n {
+            let o = i * 4
+            sum += 0.299 * Double(ptr[o]) / 255
+                 + 0.587 * Double(ptr[o + 1]) / 255
+                 + 0.114 * Double(ptr[o + 2]) / 255
+        }
+        return sum / Double(n)
     }
 
     private func resetStability() {
