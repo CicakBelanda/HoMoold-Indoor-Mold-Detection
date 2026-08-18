@@ -223,7 +223,8 @@ final class CaptureViewModel: ObservableObject {
                 frameImage: captured.image,
                 findingClass: .mold,
                 locationNote: Self.locationNote(for: detection.box),
-                areaCM2: detection.areaCM2
+                areaCM2: detection.areaCM2,
+                confidence: Double(detection.confidence)
             ))
         }
         self.captured = nil
