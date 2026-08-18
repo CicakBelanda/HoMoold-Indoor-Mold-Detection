@@ -299,8 +299,15 @@ struct CaptureView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
 
-                    ForEach(result.detections) { detection in
-                        BoundingBoxOverlay(findingClass: .mold, boundingBox: detection.box)
+                    // Dinomorin sesuai urutan di daftar bawah — `detections`
+                    // udah diurut dari confidence tertinggi waktu dirakit di
+                    // CaptureViewModel, jadi indeksnya konsisten di dua tempat.
+                    ForEach(Array(result.detections.enumerated()), id: \.element.id) { index, detection in
+                        BoundingBoxOverlay(
+                            findingClass: .mold,
+                            boundingBox: detection.box,
+                            label: moldLabel(index, total: result.detections.count)
+                        )
                     }
                 }
                 .aspectRatio(result.image.size.width / max(result.image.size.height, 1), contentMode: .fit)
@@ -318,14 +325,24 @@ struct CaptureView: View {
                     // `.tint(.white)` dipasang eksplisit: app dikunci light mode
                     // (lihat HoMooldApp), jadi `.primary` di sini jatuh jadi
                     // HITAM di atas latar preview yang hitam.
-                    HStack(spacing: 12) {
-                        Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
+                    // `.frame(maxWidth: .infinity)` ditaruh DI LABEL, bukan di
+                    // Button-nya. Kalau dipasang di luar, yang melar cuma area
+                    // ketuknya — kapsul kacanya tetap nyempit ngikutin lebar
+                    // teks, dan sisanya jadi ruang kosong.
+                    HStack(spacing: 10) {
+                        Button {
+                            viewModel.retake()
+                        } label: {
+                            Label("Retake", systemImage: "arrow.counterclockwise")
+                                .frame(maxWidth: .infinity)
+                        }
 
-                        Button("Another Spot") { viewModel.acceptAndScanAnother() }
-                            .frame(maxWidth: .infinity)
+                        Button {
+                            viewModel.acceptAndScanAnother()
+                        } label: {
+                            Text("Another Spot")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                     .buttonStyle(.glass)
                     .buttonBorderShape(.capsule)
@@ -341,6 +358,13 @@ struct CaptureView: View {
         }
     }
 
+    /// "Mold 1", "Mold 2", ... — tapi cuma kalau emang ada lebih dari satu.
+    /// Satu temuan yang dilabeli "Mold 1" malah bikin user nyari "Mold 2" yang
+    /// nggak ada.
+    private func moldLabel(_ index: Int, total: Int) -> String {
+        total > 1 ? "Mold \(index + 1)" : "Mold"
+    }
+
     @ViewBuilder
     private func resultList(_ result: CaptureViewModel.CapturedResult) -> some View {
         if result.detections.isEmpty {
@@ -350,9 +374,9 @@ struct CaptureView: View {
                 .padding(.horizontal, 20)
         } else {
             VStack(alignment: .leading, spacing: 8) {
-                ForEach(result.detections) { detection in
+                ForEach(Array(result.detections.enumerated()), id: \.element.id) { index, detection in
                     HStack(alignment: .firstTextBaseline) {
-                        Text("Mold")
+                        Text(moldLabel(index, total: result.detections.count))
                             .font(.subheadline.weight(.semibold))
                         Text(String(format: "(%.0f%%)", detection.confidence * 100))
                             .font(.caption)

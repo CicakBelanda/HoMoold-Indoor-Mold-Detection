@@ -12,8 +12,12 @@ struct BoundingBoxOverlay: View {
     let color: Color
     let boundingBox: CGRect
 
-    init(findingClass: FindingClass, boundingBox: CGRect) {
-        self.label = findingClass.rawValue
+    /// - Parameter label: teks di kotaknya. Default-nya nama kelas ("Mold"),
+    ///   tapi bisa ditimpa buat NOMORIN temuan — satu jepretan bisa berisi
+    ///   beberapa noda, dan kalau semuanya cuma nulis "Mold" user nggak bisa
+    ///   nyocokin kotak yang mana sama baris luas yang mana di daftar bawah.
+    init(findingClass: FindingClass, boundingBox: CGRect, label: String? = nil) {
+        self.label = label ?? findingClass.rawValue
         self.color = findingClass.color
         self.boundingBox = boundingBox
     }

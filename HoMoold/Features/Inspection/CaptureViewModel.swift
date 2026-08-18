@@ -184,7 +184,18 @@ final class CaptureViewModel: ObservableObject {
     // "Mold" (SEKARANG, 1 kelas single-class + segmentasi) — model paling baru,
     // MoldDetector otomatis baca jumlah kelasnya dari shape tensor (lihat
     // decodeDetections), jadi gak perlu ubah kode lain pas ganti model lagi.
-    private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: 0.35)
+    private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: CaptureViewModel.minimumConfidence)
+
+    /// Ambang keyakinan minimum. Temuan di bawah ini dibuang sebelum sampai ke
+    /// mana pun — nggak digambar kotaknya, nggak masuk daftar hasil, nggak ikut
+    /// dihitung luasnya, dan nggak nge-trigger "Detected, hold steady" waktu
+    /// scanning.
+    ///
+    /// Dinaikin dari 0.35: di bawah 40% model ini sering nandain bayangan sudut
+    /// tembok dan nat keramik sebagai jamur, dan temuan meragukan yang tetap
+    /// ditampilin lebih merugikan daripada temuan yang kelewat — angka luas
+    /// cm²-nya kelihatan sama pastinya entah keyakinannya 39% atau 95%.
+    private static let minimumConfidence: Float = 0.40
     /// Rata-rata luminansi (0–1, Rec. 601 luma) yang di-smooth biar
     /// peringatannya gak kelap-kelip tiap tick.
     private var luminanceEMA: Double?
