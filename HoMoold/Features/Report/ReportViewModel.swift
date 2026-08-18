@@ -175,10 +175,12 @@ final class ReportViewModel: ObservableObject {
 
     /// Rekomendasi sebagai daftar — sama alasannya kayak `healthRisks`.
     ///
-    /// Semuanya diambil dari INPUT nyata, bukan hardcode: ada/tidaknya temuan
-    /// jamur (foto yang diupload), checklist kondisi ruangan, cuaca, dan
-    /// Risk_Class model. Kalau gak ada foto jamur, rekomendasi "bersihin
-    /// jamur" GAK boleh muncul — cuma saran pencegahan sesuai kondisinya.
+    /// Semuanya diambil dari INPUT nyata (temuan jamur, checklist kondisi,
+    /// cuaca, Risk_Class model). TAPI sudut pandangnya bukan penghuni yang
+    /// lagi ngelola rumahnya sendiri, melainkan ORANG YANG LAGI NYARI RUMAH
+    /// SEKEN / PROPERTI — jadi sarannya soal due diligence & keputusan
+    /// (cek ke agent/penjual, pertimbangan harga, walk-away), bukan "bersihin
+    /// jamurnya di kamarmu".
     var recommendations: [String] {
         var items: [String] = []
 
@@ -186,32 +188,37 @@ final class ReportViewModel: ObservableObject {
         let risk = riskClass?.lowercased()
 
         if hasMold {
-            // Cuma disarankan kalau emang ada jamur yang kelihatan.
-            items.append("Clean the visible mold spots with an antifungal cleaner")
+            // Ketemu pas viewing -> jadi sinyal buat keputusan, bukan tugas
+            // bersih-bersih sendiri.
+            items.append("Treat visible mold as a red flag when deciding on this property")
             if inspection.moldSeverityLevel >= 2 || risk == "high" {
-                items.append("For heavy or widespread growth, consider professional remediation")
+                items.append("For heavy or widespread growth, ask the seller/landlord to remediate before you commit, or negotiate the price down")
+                items.append("Consider walking away if they won't address it")
+            } else {
+                items.append("Ask the landlord/seller to remediate it before you move in")
             }
         } else {
-            items.append("No mold detected in the photos — keep monitoring this room")
+            items.append("No mold found in your check — still weigh it in your final decision")
         }
 
-        // Pencegahan berdasarkan kondisi ruangan (input model juga).
+        // Kondisi -> apa yang perlu DIVERIFIKASI / dipertimbangkan, bukan
+        // yang harus kamu benerin sendiri.
         if inspection.wallCrack {
-            items.append("Seal wall cracks to block hidden moisture pathways")
+            items.append("Check for hidden moisture or past leaks behind the wall cracks")
         }
         if inspection.dampness {
-            items.append("Reduce moisture sources — avoid drying laundry indoors and fix any leaks")
+            items.append("Watch for dampness — ask about the property's leak and moisture history")
         }
         if !inspection.hasWindow {
-            items.append("Improve airflow and ventilation in this room")
+            items.append("Limited ventilation here — a longer-term mold risk to factor in")
         }
         if !inspection.hasAC, let h = inspection.humidity, h >= 65 {
-            items.append("Use a dehumidifier or AC to keep humidity below 60% (outdoor reading \(Int(h))%)")
+            items.append("Outdoor humidity is high (\(Int(h))%) with no AC — budget for a dehumidifier if you take this place")
         }
 
         // Cadangan biar kartunya nggak pernah kosong.
         if items.isEmpty {
-            items.append("Keep humidity low and ventilate the room to prevent mold")
+            items.append("Conditions look reasonable — still worth a final moisture check before deciding")
         }
         return items
     }
