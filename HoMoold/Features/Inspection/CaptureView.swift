@@ -308,7 +308,6 @@ struct CaptureView: View {
                 VStack(spacing: 10) {
                     HStack(spacing: 12) {
                         Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
-                        Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -323,7 +322,6 @@ struct CaptureView: View {
                             .background(.white.opacity(0.2), in: Capsule())
                     }
 
-                    Button("Done") { finish() }
                     Button("Done") { finish() }
                         .buttonStyle(.pillProminent)
                 }

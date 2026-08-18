@@ -103,10 +103,9 @@ final class ReportViewModel: ObservableObject {
         guard let t = inspection.temperature, let h = inspection.humidity else { return [] }
         return [
             ("Temperature (outdoor)", String(format: "%.0f °C", t)),
-            // +5 itu offset yang dipasang di RiskClassifierService buat nebak
-            // selisih indoor vs outdoor. Ditampilin apa adanya, bukan angka
-            // mentahnya, supaya cocok sama yang beneran masuk ke model.
-            ("Humidity (outdoor +5)", String(format: "%.0f %%", h + 5)),
+            // Kelembapan outdoor apa adanya (model tetap pakai offset +5
+            // internalnya di RiskClassifierService).
+            ("Humidity", String(format: "%.0f %%", h)),
             ("Air conditioner", inspection.hasAC ? "Yes" : "No"),
             ("Window", inspection.hasWindow ? "Yes" : "No"),
             ("Dampness", inspection.dampness ? "Yes" : "No"),
