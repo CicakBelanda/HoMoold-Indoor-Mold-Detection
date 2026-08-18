@@ -151,16 +151,44 @@ final class ReportViewModel: ObservableObject {
     }
 
     /// Rekomendasi sebagai daftar — sama alasannya kayak `healthRisks`.
+    ///
+    /// Semuanya diambil dari INPUT nyata, bukan hardcode: ada/tidaknya temuan
+    /// jamur (foto yang diupload), checklist kondisi ruangan, cuaca, dan
+    /// Risk_Class model. Kalau gak ada foto jamur, rekomendasi "bersihin
+    /// jamur" GAK boleh muncul — cuma saran pencegahan sesuai kondisinya.
     var recommendations: [String] {
-        var items = ["Deep clean the mold spots"]
-        if inspection.wallCrack {
-            items.append("Patch the leak in the wall")
+        var items: [String] = []
+
+        let hasMold = !inspection.findings.isEmpty
+        let risk = riskClass?.lowercased()
+
+        if hasMold {
+            // Cuma disarankan kalau emang ada jamur yang kelihatan.
+            items.append("Clean the visible mold spots with an antifungal cleaner")
+            if inspection.moldSeverityLevel >= 2 || risk == "high" {
+                items.append("For heavy or widespread growth, consider professional remediation")
+            }
+        } else {
+            items.append("No mold detected in the photos — keep monitoring this room")
         }
-        if !inspection.hasWindow {
-            items.append("Improve airflow in this room")
+
+        // Pencegahan berdasarkan kondisi ruangan (input model juga).
+        if inspection.wallCrack {
+            items.append("Seal wall cracks to block hidden moisture pathways")
         }
         if inspection.dampness {
-            items.append("Don't dry laundry indoors here")
+            items.append("Reduce moisture sources — avoid drying laundry indoors and fix any leaks")
+        }
+        if !inspection.hasWindow {
+            items.append("Improve airflow and ventilation in this room")
+        }
+        if !inspection.hasAC, let h = inspection.humidity, h >= 65 {
+            items.append("Use a dehumidifier or AC to keep humidity below 60% (outdoor reading \(Int(h))%)")
+        }
+
+        // Cadangan biar kartunya nggak pernah kosong.
+        if items.isEmpty {
+            items.append("Keep humidity low and ventilate the room to prevent mold")
         }
         return items
     }
