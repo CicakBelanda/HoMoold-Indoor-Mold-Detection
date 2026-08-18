@@ -19,6 +19,7 @@ struct PropertyDetailView: View {
     @State private var showDeletePropertyConfirm = false
     @State private var showRenameAlert = false
     @State private var renameText = ""
+    @State private var riskFilter: HomeRiskFilter = .all
 
     @MainActor
     init(store: AppDataStore, propertyID: UUID, path: Binding<NavigationPath>) {
@@ -37,6 +38,11 @@ struct PropertyDetailView: View {
                     .listRowBackground(Color.clear)
             }
 
+            // Kotak putus-putus, BUKAN tombol sistem. Ini bukan tombol biasa
+            // yang kebetulan digambar manual — bentuknya "slot kosong yang minta
+            // diisi", dan itu makna yang nggak kebawa sama kapsul kaca. Sempat
+            // diganti ke `.buttonStyle(.glass)` dan hasilnya kehilangan maksud
+            // itu, jadi dibalikin. Jangan diseragamin lagi.
             Button {
                 showAddInspection = true
             } label: {
@@ -63,7 +69,22 @@ struct PropertyDetailView: View {
             .listRowBackground(Color.clear)
             .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
 
-            ForEach(viewModel.rooms) { room in
+            // Chip saringan DI SINI, bukan di daftar rumah. Yang disaring
+            // sekarang hasil per ruangan (Mold Growth Rate tiap ruangan), dan
+            // itu memang cuma masuk akal di dalam satu rumah.
+            //
+            // Selalu ditampilin selama rumahnya punya ruangan — kalau cuma
+            // muncul waktu hasilnya nggak kosong, user yang nyaring sampai nol
+            // nggak punya jalan buat balikin.
+            if !viewModel.rooms.isEmpty {
+                filterChips
+            }
+
+            if viewModel.rooms.count > 0 && filteredRooms.isEmpty {
+                noResultsRow
+            }
+
+            ForEach(filteredRooms) { room in
                 if let property = viewModel.property {
                     Button {
                         path.append(RoomNavigationTarget(propertyID: property.id, roomID: room.id))
@@ -74,12 +95,17 @@ struct PropertyDetailView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 7, leading: 16, bottom: 7, trailing: 16))
+                    // `.tint(.red)` DI TOMBOLNYA, bukan cuma role `.destructive`.
+                    // Baris ini kena `.tint(.primary)` di bawah (buat context
+                    // menu), dan tint itu turun juga ke tombol swipe — jadi
+                    // tombol Delete-nya kegambar HITAM, bukan merah.
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             roomPendingDelete = room
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(Theme.color.riskHigh)
                     }
                     .contextMenu {
                         Button {
@@ -173,7 +199,8 @@ struct PropertyDetailView: View {
         } message: {
             Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This can't be undone.")
         }
-        // Alert bawaan, sama kayak rename rumah — konsisten dan HIG.
+        // Alert bawaan, sama kayak modal isi-nama yang lain — bentuk & tombolnya
+        // diserahin ke sistem.
         .alert(
             "Rename Room",
             isPresented: Binding(
@@ -184,11 +211,14 @@ struct PropertyDetailView: View {
             TextField("Room name", text: $roomNameInput)
             Button("Cancel", role: .cancel) { roomPendingRename = nil }
             Button("Save") {
-                if let roomID = roomPendingRename?.id, let propertyID = viewModel.property?.id {
-                    store.renameRoom(roomID: roomID, ofProperty: propertyID, to: roomNameInput)
+                let name = roomNameInput.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty,
+                   let roomID = roomPendingRename?.id,
+                   let propertyID = viewModel.property?.id {
+                    store.renameRoom(roomID: roomID, ofProperty: propertyID, to: name)
                 }
                 roomPendingRename = nil
-            }
+            }.keyboardShortcut(.defaultAction)
         }
         .alert("Rename House", isPresented: $showRenameAlert) {
             TextField("House name", text: $renameText)
@@ -197,8 +227,83 @@ struct PropertyDetailView: View {
                 let name = renameText.trimmingCharacters(in: .whitespaces)
                 guard !name.isEmpty, let id = viewModel.property?.id else { return }
                 store.renameProperty(id: id, to: name)
-            }
+            }.keyboardShortcut(.defaultAction)
         }
+    }
+}
+
+private extension PropertyDetailView {
+
+    var filteredRooms: [RoomInspection] {
+        viewModel.rooms.filtered(by: riskFilter)
+    }
+
+    /// Deretan chip saringan. Dipindah ke sini dari daftar rumah — lebih kebaca
+    /// daripada di dalam menu: saringan yang lagi aktif kelihatan tanpa harus
+    /// dibuka dulu, dan gantinya cukup satu tap.
+    var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(HomeRiskFilter.roomCases) { filter in
+                    let isSelected = filter == riskFilter
+
+                    Button {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            riskFilter = filter
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if let level = filter.matchingLevel {
+                                Circle()
+                                    .fill(level.color)
+                                    .frame(width: 7, height: 7)
+                            }
+
+                            Text(filter == .all ? "All rooms" : filter.label)
+                                .font(Theme.font.subheadline)
+                        }
+                        .foregroundStyle(isSelected ? Color.white : Theme.color.textPrimary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background {
+                            if isSelected {
+                                Capsule().fill(Theme.color.brand)
+                            } else {
+                                Capsule().fill(Color.white.opacity(0.7))
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 2)
+        }
+        // Chip-nya boleh ngelewatin tepi layar pas di-scroll, tapi list-nya
+        // tetap punya inset normal.
+        .listRowInsets(EdgeInsets())
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
+    }
+
+    /// Baris "kosong" DI DALAM list, bukan layar penuh — chip saringannya harus
+    /// tetap kelihatan di atasnya biar user bisa langsung ganti.
+    var noResultsRow: some View {
+        VStack(spacing: 2) {
+            Text("No Results")
+                .font(Theme.font.title2Emphasized)
+                .foregroundStyle(Theme.color.textPrimary)
+
+            Text("No rooms match the \"\(riskFilter.label)\" filter.")
+                .font(Theme.font.subheadline)
+                .foregroundStyle(Theme.color.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
+        .padding(.horizontal, 32)
+        .listRowSeparator(.hidden)
+        .listRowBackground(Color.clear)
     }
 }
 
@@ -249,12 +354,16 @@ private struct RoomInspectionCard: View {
                         .foregroundStyle(Theme.color.textSecondary)
                 }
 
+                // Mold Growth Rate DI ATAS checklist. Itu kesimpulan kartunya
+                // — yang dicari user waktu nyapu daftar ruangan — jadi dia yang
+                // harus kebaca duluan; checklist kondisinya cuma penjelasan
+                // kenapa angkanya segitu.
+                moldGrowRateBadge
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 conditionChips
 
                 Spacer(minLength: 0)
-
-                moldGrowRateBadge
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(14)

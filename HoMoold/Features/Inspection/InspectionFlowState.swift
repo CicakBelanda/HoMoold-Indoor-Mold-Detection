@@ -31,7 +31,11 @@ final class InspectionFlowState: ObservableObject {
     // sekarang nama + tipe dua-duanya di form itu (kartu ruangan di Figma
     // nampilin dua-duanya).
     @Published var roomName = ""
-    @Published var roomType: RoomType = .bedroom
+    /// `nil` = user belum milih. Sengaja NGGAK default ke `.bedroom`: field
+    /// yang udah keisi duluan bikin user nge-skip tanpa sadar, dan setengah
+    /// laporan jadi "Bedroom" padahal kamar mandi. Tombol lanjut di form
+    /// dikunci selama ini masih `nil`.
+    @Published var roomType: RoomType?
     @Published var capturedFindings: [Finding] = []
     /// Foto yang diambil tapi 0 jamur kedeteksi — lihat CaptureViewModel.Outcome.
     @Published var capturedPhotos: [UIImage] = []
@@ -86,9 +90,12 @@ final class InspectionFlowState: ObservableObject {
         let predicted = RiskLevel.level(fromClassifier: predictedRiskClass())
         let riskLevel = predicted ?? RiskLevel.level(forScore: score)
 
+        // Tombol lanjut di form dikunci selama tipe-nya belum dipilih, jadi
+        // sampai sini `roomType` selalu keisi. Fallback-nya cuma jaring
+        // pengaman biar model ini nggak perlu ikut jadi opsional.
         resultInspection = RoomInspection(
             name: roomName,
-            roomType: roomType,
+            roomType: roomType ?? .bedroom,
             riskLevel: riskLevel,
             riskScore: score,
             findings: capturedFindings,
@@ -107,7 +114,11 @@ final class InspectionFlowState: ObservableObject {
     /// Jalanin RiskClassifier dengan input yang udah dikumpulin. `nil` kalau
     /// cuaca nggak keambil atau modelnya gagal dimuat.
     private func predictedRiskClass() -> String? {
-        guard let t = temperature, let h = humidity else { return nil }
+        // Cuaca yang gagal keambil pakai WeatherDefaults, bukan nyerah — sama
+        // kayak yang dilakuin ReportViewModel, biar rate yang DISIMPAN di kartu
+        // ruangan dan yang DITAMPILIN di laporan nggak pernah beda.
+        let t = temperature ?? WeatherDefaults.temperature
+        let h = humidity ?? WeatherDefaults.humidity
         let totalArea = capturedFindings.compactMap(\.areaCM2).reduce(0, +)
         let moldLevel = totalArea > 0 ? MoldSeverity.severity(fromAreaCM2: totalArea).level : 0
         return (try? RiskClassifierService())?.predict(

@@ -84,9 +84,28 @@ struct ConditionFormView: View {
         .safeAreaInset(edge: .bottom) {
             Button(primaryButtonTitle) { advance() }
                 .buttonStyle(.pillProminent)
+                // Tipe ruangan wajib — dia salah satu yang muncul di kartu
+                // ruangan dan di laporan, dan nggak ada nilai "nggak tau"-nya.
+                .disabled(flow.roomType == nil)
+                .opacity(flow.roomType == nil ? 0.5 : 1)
                 .padding(.horizontal, 22)
                 .padding(.bottom, 12)
         }
+        // Tombolnya DIAM di bawah layar waktu keyboard naik, nggak ikut
+        // kedorong nempel di atas keyboard.
+        //
+        // Ditempel DI SINI — di luar `safeAreaInset`, bukan di dalam tombolnya.
+        // Keyboard itu salah satu inset safe area, dan yang bikin tombolnya naik
+        // itu penempatan inset-nya, bukan tombolnya sendiri; naruh pengecualian
+        // ini di dalam closure inset nggak ngefek apa-apa (versi pertama fix ini
+        // salah di situ). Yang harus mengabaikan keyboard itu view yang MEMILIKI
+        // inset-nya.
+        //
+        // Efek sampingnya konten form juga nggak ikut kegeser, dan itu aman di
+        // layar ini: satu-satunya field yang bisa diketik ("Name") ada di urutan
+        // kedua dari atas, jauh di atas keyboard. Nutup keyboardnya lewat tombol
+        // "Done" di aksesori, tap di area kosong, atau geser layar.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // MARK: - Fields
@@ -97,16 +116,21 @@ struct ConditionFormView: View {
             // pipih dengan chevron.up.chevron.down di kanan, dan itu tampilan
             // menu-style picker.
             Menu {
+                // Tag-nya `RoomType?`, bukan `RoomType` — selection-nya
+                // opsional, dan tag yang tipenya beda bikin Picker-nya nggak
+                // pernah nyantol ke pilihan mana pun.
                 Picker("Type", selection: $flow.roomType) {
                     ForEach(RoomType.allCases) { type in
-                        Text(type.rawValue).tag(type)
+                        Text(type.rawValue).tag(RoomType?.some(type))
                     }
                 }
             } label: {
                 HStack {
-                    Text(flow.roomType.rawValue)
+                    // Belum dipilih -> teks placeholder abu, sama kayak
+                    // TextField kosong di bawahnya.
+                    Text(flow.roomType?.rawValue ?? "Select room type...")
                         .font(Theme.font.body)
-                        .foregroundStyle(Theme.color.textPrimary)
+                        .foregroundStyle(flow.roomType == nil ? Theme.color.textSecondary : Theme.color.textPrimary)
 
                     Spacer()
 

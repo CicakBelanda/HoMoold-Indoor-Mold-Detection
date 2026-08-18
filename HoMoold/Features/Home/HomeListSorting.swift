@@ -10,28 +10,33 @@
 
 import Foundation
 
+/// Urutan daftar rumah di layar Inspection.
+///
+/// Sortir berdasarkan risiko dibuang: kartu rumah nggak nampilin tingkat risiko
+/// lagi (lihat PropertyCard), jadi user bakal ngurutin pakai sesuatu yang
+/// hasilnya nggak bisa dia lihat sendiri di layar.
+///
+/// Sisanya dibikin BERPASANGAN — tiap sumbu punya dua arah, biar nggak ada
+/// pilihan yang cuma satu arah tanpa kebalikannya.
 enum HomeSortOrder: String, CaseIterable, Identifiable {
     case recent
-    case riskHighest
-    case riskLowest
+    case oldest
     case nameAscending
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .recent: return "Last updated"
-        case .riskHighest: return "Highest risk"
-        case .riskLowest: return "Lowest risk"
+        case .recent: return "Newest first"
+        case .oldest: return "Oldest first"
         case .nameAscending: return "Name (A–Z)"
         }
     }
 
     var symbol: String {
         switch self {
-        case .recent: return "clock"
-        case .riskHighest: return "arrow.down.right"
-        case .riskLowest: return "arrow.up.right"
+        case .recent: return "arrow.down"
+        case .oldest: return "arrow.up"
         case .nameAscending: return "textformat"
         }
     }
@@ -50,7 +55,7 @@ enum HomeRiskFilter: String, CaseIterable, Identifiable {
         switch self {
         case .all: return "All houses"
         case .high: return "High"
-        case .medium: return "Moderate"
+        case .medium: return "Medium"
         case .low: return "Low"
         case .notInspected: return "Not inspected"
         }
@@ -67,29 +72,41 @@ enum HomeRiskFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    func matches(_ property: KosProperty) -> Bool {
+    /// Ruangan SELALU punya hasil (dibuat lewat alur inspeksi), jadi
+    /// "Not inspected" nggak pernah kena apa-apa di daftar ruangan — chip-nya
+    /// ikut dibuang di `roomCases`.
+    func matches(_ room: RoomInspection) -> Bool {
         switch self {
         case .all:
             return true
         case .notInspected:
-            return property.overallRisk == nil
+            return false
         case .high, .medium, .low:
-            return property.overallRisk == matchingLevel
+            return room.riskLevel == matchingLevel
         }
+    }
+
+    /// Chip yang dipakai di daftar ruangan.
+    static let roomCases: [HomeRiskFilter] = [.all, .high, .medium, .low]
+}
+
+extension Array where Element == RoomInspection {
+    /// Saringan risiko sekarang tinggal di daftar RUANGAN (di bawah tombol
+    /// "Add new Room"), bukan di daftar rumah — di situ yang disaring memang
+    /// hasil per ruangan, bukan rata-rata satu rumah.
+    func filtered(by riskFilter: HomeRiskFilter) -> [RoomInspection] {
+        filter { riskFilter.matches($0) }
     }
 }
 
 extension Array where Element == KosProperty {
-    /// Saring lalu urutkan. Urutannya sengaja begini: menyaring dulu bikin
-    /// pengurutan cuma jalan di sisa datanya.
-    /// Parameternya `riskFilter`, bukan `filter` — nama `filter` bakal nutupin
-    /// method `Array.filter` di dalam badan fungsinya sendiri.
-    func filtered(by riskFilter: HomeRiskFilter, searchText: String) -> [KosProperty] {
+    /// Cuma nyaring teks pencarian. Saringan risikonya udah pindah ke daftar
+    /// ruangan — lihat `Array<RoomInspection>.filtered(by:)`.
+    func filtered(bySearchText searchText: String) -> [KosProperty] {
         let trimmed = searchText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return self }
         return filter { property in
-            guard riskFilter.matches(property) else { return false }
-            guard !trimmed.isEmpty else { return true }
-            return property.name.localizedCaseInsensitiveContains(trimmed)
+            property.name.localizedCaseInsensitiveContains(trimmed)
                 || property.location.displayText.localizedCaseInsensitiveContains(trimmed)
         }
     }
@@ -98,37 +115,10 @@ extension Array where Element == KosProperty {
         switch order {
         case .recent:
             return sorted { $0.lastInspectionDate > $1.lastInspectionDate }
+        case .oldest:
+            return sorted { $0.lastInspectionDate < $1.lastInspectionDate }
         case .nameAscending:
             return sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
-        case .riskHighest:
-            return sortedByRisk(descending: true)
-        case .riskLowest:
-            return sortedByRisk(descending: false)
-        }
-    }
-
-    /// Urut berdasarkan risiko.
-    ///
-    /// Yang BELUM DIPERIKSA selalu ditaruh paling bawah — di kedua arah. Bukan
-    /// dianggap risiko nol: "belum dicek" beda sama "aman", jadi kalau diurut
-    /// dari terendah pun dia nggak boleh nangkring di atas rumah yang beneran
-    /// Low.
-    private func sortedByRisk(descending: Bool) -> [KosProperty] {
-        sorted { lhs, rhs in
-            let l = lhs.overallRisk?.severityRank
-            let r = rhs.overallRisk?.severityRank
-
-            switch (l, r) {
-            case (nil, nil):
-                return lhs.lastInspectionDate > rhs.lastInspectionDate
-            case (nil, _):
-                return false
-            case (_, nil):
-                return true
-            case let (l?, r?):
-                if l == r { return lhs.lastInspectionDate > rhs.lastInspectionDate }
-                return descending ? l > r : l < r
-            }
         }
     }
 }

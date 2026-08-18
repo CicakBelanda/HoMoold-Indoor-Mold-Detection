@@ -46,8 +46,13 @@ struct CaptureView: View {
             Color.black.ignoresSafeArea()
 
             if arSession.isLiDARSupported {
+                // Ukuran view ini dilaporin ke view model: dia yang nentuin
+                // bagian mana dari frame kamera yang beneran kelihatan, dan
+                // hasil jepretannya dipotong persis segitu — lihat PreviewCrop
+                // di CaptureViewModel.
                 ARPassthroughView(session: arSession.session)
                     .ignoresSafeArea()
+                    .onGeometryChange(for: CGSize.self) { $0.size } action: { viewModel.previewSize = $0 }
                 scanningLayer
             } else {
                 unsupportedView
@@ -305,21 +310,27 @@ struct CaptureView: View {
                 resultList(result)
 
                 VStack(spacing: 10) {
+                    // Kaca sistem, bukan kapsul putih 20% yang digambar sendiri
+                    // — dulu itu cuma NIRU tampilan kaca dan nggak ikut efek
+                    // Liquid Glass beneran (nggak ada refraksi, nggak nyesuain
+                    // isi di belakangnya).
+                    //
+                    // `.tint(.white)` dipasang eksplisit: app dikunci light mode
+                    // (lihat HoMooldApp), jadi `.primary` di sini jatuh jadi
+                    // HITAM di atas latar preview yang hitam.
                     HStack(spacing: 12) {
                         Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(.white.opacity(0.2), in: Capsule())
 
                         Button("Another Spot") { viewModel.acceptAndScanAnother() }
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(.white.opacity(0.2), in: Capsule())
                     }
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.large)
+                    .tint(.white)
 
                     Button("Done") { finish() }
                         .buttonStyle(.pillProminent)

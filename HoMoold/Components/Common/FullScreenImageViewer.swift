@@ -84,32 +84,41 @@ struct FullScreenImageViewer: View {
                     }
                 }
         }
+        // Tombol tutup: kaca sistem bentuk lingkaran, sama persis kayak tombol
+        // X di layar kamera. Dulu cuma glyph `xmark.circle.fill` polos yang
+        // ngandelin lingkaran bawaan simbolnya sebagai "latar".
         .overlay(alignment: .topTrailing) {
             Button {
                 dismiss()
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.white, .black.opacity(0.4))
+                Image(systemName: "xmark")
+                    .font(.headline)
+                    .frame(width: 20, height: 20)
             }
+            .buttonStyle(.glass)
+            .buttonBorderShape(.circle)
+            .controlSize(.large)
+            .tint(.white)
             .padding(20)
             .accessibilityLabel("Close")
         }
         .overlay(alignment: .bottom) {
-            if onDelete != nil {
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Delete photo", systemImage: "trash")
-                        .font(Theme.font.headline)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(.red.opacity(0.85), in: Capsule())
-                }
-                .padding(.bottom, 28)
-                .safeAreaPadding(.bottom)
-            }
+//            if onDelete != nil {
+//                // Kaca ber-tint merah, bukan kapsul merah yang digambar sendiri.
+//                // Tetap merah karena ini aksi destruktif — yang berubah cuma
+//                // siapa yang menggambar latarnya.
+//                Button(role: .destructive) {
+//                    showDeleteConfirm = true
+//                } label: {
+//                    Label("Delete photo", systemImage: "trash")
+//                }
+//                .buttonStyle(.glassProminent)
+//                .buttonBorderShape(.capsule)
+//                .controlSize(.large)
+//                .tint(Theme.color.riskHigh)
+//                .padding(.bottom, 28)
+//                .safeAreaPadding(.bottom)
+//            }
         }
         .confirmationDialog(
             "Delete this photo?",

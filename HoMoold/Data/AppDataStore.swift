@@ -115,9 +115,11 @@ final class AppDataStore: ObservableObject {
     /// yang lama dibiarin — lebih baik nilai lama daripada nebak.
     private func recomputeRiskLevel(propertyIndex: Int, roomIndex: Int) {
         let room = properties[propertyIndex].rooms[roomIndex]
-        guard let t = room.temperature, let h = room.humidity else { return }
+        // Cuaca yang nil jatuh ke WeatherDefaults (lihat RoomInspection) — dulu
+        // di sini ada `guard` yang bikin ruangan tanpa cuaca nggak pernah ikut
+        // dihitung ulang, jadi ngubah checklist kondisinya nggak ngefek apa-apa.
         let predicted = classifier?.predict(
-            temperature: t, humidity: h,
+            temperature: room.effectiveTemperature, humidity: room.effectiveHumidity,
             hasAC: room.hasAC, hasWindow: room.hasWindow,
             dampness: room.dampness, wallCrack: room.wallCrack,
             moldLevel: room.moldSeverityLevel
