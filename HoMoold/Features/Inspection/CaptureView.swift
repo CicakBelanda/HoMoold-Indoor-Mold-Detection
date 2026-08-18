@@ -397,6 +397,9 @@ struct CaptureView: View {
         if viewModel.isWaitingForDepth {
             return "Waiting for LiDAR depth data..."
         }
+        if viewModel.isLightTooDim {
+            return "Lighting is too dim — move to a brighter area or turn on the flash."
+        }
         return nil
     }
 

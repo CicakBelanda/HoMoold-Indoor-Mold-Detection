@@ -97,6 +97,10 @@ final class CaptureViewModel: ObservableObject {
     @Published private(set) var isWaitingForDepth = false
     @Published private(set) var modelUnavailable = false
     @Published private(set) var debugText = ""
+    /// Cahaya lagi kurang — dipakai CaptureView buat nampilin peringatan
+    /// "pindah ke tempat lebih terang / nyalain flash". Diperbarui tiap tick
+    /// dari estimasi luminansinya frame kamera.
+    @Published private(set) var isLightTooDim = false
     /// Jumlah foto yang udah diterima (Jamur Lain / Selesai) — ditampilin di
     /// UI biar user tahu progres di ruangan ini.
     @Published private(set) var acceptedFindings: [Finding] = []
@@ -115,6 +119,12 @@ final class CaptureViewModel: ObservableObject {
     // MoldDetector otomatis baca jumlah kelasnya dari shape tensor (lihat
     // decodeDetections), jadi gak perlu ubah kode lain pas ganti model lagi.
     private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: 0.35)
+    /// Konteks Core Image buat estimasi luminansi (CIAreaAverage) — di-reuse,
+    /// bukan bikin baru tiap tick.
+    private let ciContext = CIContext()
+    /// Rata-rata luminansi (0–1, Rec. 601 luma) yang di-smooth biar
+    /// peringatannya gak kelap-kelip tiap tick.
+    private var luminanceEMA: Double?
     private var timer: Timer?
     private var isProcessing = false
     private let tickInterval: TimeInterval = 0.4
@@ -279,6 +289,7 @@ final class CaptureViewModel: ObservableObject {
             await MainActor.run {
                 guard let self else { return }
                 self.updateScanState(detected: best != nil, depth: depth)
+                self.updateLighting(cgImage)
                 self.debugText = diagnostics
                 self.isProcessing = false
             }
@@ -317,6 +328,46 @@ final class CaptureViewModel: ObservableObject {
             stabilizeProgress = Double(stableTicks) / Double(Self.requiredStableTicks)
             guidanceText = "Detected, hold the camera steady"
         }
+    }
+
+    // MARK: - Lighting
+
+    /// Perbarui `isLightTooDim` dari luminansi frame sekarang. Pakai EMA biar
+    /// peringatannya gak kelap-kelip tiap tick (0,4 dtk), plus hysteresis
+    /// dikit biar gak bolak-balik pas di ambang.
+    private func updateLighting(_ cgImage: CGImage) {
+        guard let lum = estimateLuminance(cgImage) else { return }
+        let alpha = 0.3
+        luminanceEMA = (luminanceEMA ?? lum) * (1 - alpha) + lum * alpha
+        guard let avg = luminanceEMA else { return }
+        let threshold = 0.12
+        let hysteresis = 0.04
+        if avg < threshold {
+            isLightTooDim = true
+        } else if avg > threshold + hysteresis {
+            isLightTooDim = false
+        }
+    }
+
+    /// Estimasi luminansi rata-rata (0–1) pakai CIAreaAverage — render citra
+    /// ke bitmap 1×1, baca saluran RGB, terus hitung luma Rec. 601.
+    private func estimateLuminance(_ cgImage: CGImage) -> Double? {
+        let ciImage = CIImage(cgImage: cgImage)
+        guard let filter = CIFilter(name: "CIAreaAverage") else { return nil }
+        filter.setValue(ciImage, forKey: kCIInputImageKey)
+        guard let output = filter.outputImage else { return nil }
+        var bitmap = [UInt8](repeating: 0, count: 4)
+        ciContext.render(
+            output,
+            toBitmap: &bitmap, rowBytes: 4,
+            bounds: CGRect(x: 0, y: 0, width: 1, height: 1),
+            format: .RGBA8,
+            colorSpace: CGColorSpaceCreateDeviceRGB()
+        )
+        let r = Double(bitmap[0]) / 255
+        let g = Double(bitmap[1]) / 255
+        let b = Double(bitmap[2]) / 255
+        return 0.299 * r + 0.587 * g + 0.114 * b
     }
 
     private func resetStability() {
