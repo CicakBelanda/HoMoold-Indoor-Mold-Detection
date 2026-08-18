@@ -60,6 +60,62 @@ private enum FrameImageRenderer {
     }
 }
 
+/// Preview kamera (`ARSCNView`) nampilin frame ARKit dengan aspect-FILL: frame
+/// sensor itu 4:3, layar iPhone jauh lebih jangkung, jadi yang kelihatan cuma
+/// pita tengahnya — kiri-kanannya kepotong di luar layar.
+///
+/// `capturedImage` yang kita simpan itu frame PENUH, jadi hasil jepretannya
+/// selalu lebih lebar dari yang barusan dilihat user: ada isi yang nongol
+/// tiba-tiba di foto padahal nggak pernah ada di viewfinder. Helper ini
+/// ngitung bagian mana dari frame penuh yang beneran kelihatan, biar fotonya
+/// bisa dipotong persis segitu.
+private enum PreviewCrop {
+    /// Bagian frame yang kelihatan di preview, ternormalisasi (origin kiri-atas)
+    /// terhadap frame penuh. `previewAspect` = lebar/tinggi view preview.
+    nonisolated static func visibleRect(imageSize: CGSize, previewAspect: CGFloat) -> CGRect {
+        guard imageSize.width > 0, imageSize.height > 0, previewAspect > 0 else {
+            return CGRect(x: 0, y: 0, width: 1, height: 1)
+        }
+        let imageAspect = imageSize.width / imageSize.height
+        if imageAspect > previewAspect {
+            // Gambar lebih lebar dari preview -> yang kepotong kiri-kanan.
+            let width = previewAspect / imageAspect
+            return CGRect(x: (1 - width) / 2, y: 0, width: width, height: 1)
+        } else {
+            let height = imageAspect / previewAspect
+            return CGRect(x: 0, y: (1 - height) / 2, width: 1, height: height)
+        }
+    }
+
+    /// Kotak ternormalisasi di ruang frame PENUH -> ruang frame yang udah
+    /// dipotong. `nil` kalau kotaknya nggak nyentuh area yang kelihatan sama
+    /// sekali (jamur di luar layar — user nggak pernah lihat, jadi jangan
+    /// dilaporin).
+    nonisolated static func remap(_ box: CGRect, into visible: CGRect) -> CGRect? {
+        guard visible.width > 0, visible.height > 0, box.intersects(visible) else { return nil }
+        let mapped = CGRect(
+            x: (box.minX - visible.minX) / visible.width,
+            y: (box.minY - visible.minY) / visible.height,
+            width: box.width / visible.width,
+            height: box.height / visible.height
+        )
+        // Dijepit ke tepi gambar — bagian yang nongol keluar emang nggak ada
+        // gambarnya, jadi kotaknya nggak boleh ikut nongol.
+        return mapped.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+    }
+
+    /// Potong CGImage sesuai `visibleRect`.
+    nonisolated static func crop(_ image: CGImage, to visible: CGRect) -> CGImage? {
+        let rect = CGRect(
+            x: visible.minX * CGFloat(image.width),
+            y: visible.minY * CGFloat(image.height),
+            width: visible.width * CGFloat(image.width),
+            height: visible.height * CGFloat(image.height)
+        ).integral
+        return image.cropping(to: rect)
+    }
+}
+
 @MainActor
 final class CaptureViewModel: ObservableObject {
 
@@ -106,6 +162,16 @@ final class CaptureViewModel: ObservableObject {
     @Published private(set) var acceptedPhotos: [UIImage] = []
 
     let arSession = ARDepthCaptureSession()
+
+    /// Ukuran view preview di layar, dilaporin sama CaptureView. Dipakai buat
+    /// motong foto hasil jepretan supaya isinya sama persis dengan yang barusan
+    /// kelihatan di viewfinder. `.zero` (belum kelaporan) = jangan potong.
+    @Published var previewSize: CGSize = .zero
+
+    private var previewAspect: CGFloat? {
+        guard previewSize.width > 0, previewSize.height > 0 else { return nil }
+        return previewSize.width / previewSize.height
+    }
 
     // Riwayat model yang udah dicoba: "MoldDampSeg" (2 kelas, segmentasi) —
     // belum kelar training-nya, skor gak pernah lewat ~3% di gambar apa pun.
@@ -255,6 +321,7 @@ final class CaptureViewModel: ObservableObject {
         let pixelBuffer = frame.capturedImage
         let intrinsics = frame.camera.intrinsics
         let imageResolution = frame.camera.imageResolution
+        let previewAspect = self.previewAspect
 
         Task.detached(priority: .userInitiated) { [weak self] in
             // Render ke CGImage tegak dulu, baru deteksi di atas situ (lihat
@@ -263,8 +330,22 @@ final class CaptureViewModel: ObservableObject {
                 await MainActor.run { self?.isProcessing = false }
                 return
             }
-            let detections = detector.detect(in: cgImage)
+            let allDetections = detector.detect(in: cgImage)
             let diagnostics = detector.lastDiagnostics
+
+            // Cuma hitung yang KELIHATAN di viewfinder. Tanpa ini pil status
+            // bisa bilang "Detected, hold steady" gara-gara jamur yang ada di
+            // pinggir frame sensor tapi di luar layar — user nggak lihat apa-apa
+            // dan nggak ngerti kenapa disuruh nahan kamera.
+            let visible = previewAspect.map {
+                PreviewCrop.visibleRect(
+                    imageSize: CGSize(width: cgImage.width, height: cgImage.height),
+                    previewAspect: $0
+                )
+            }
+            let detections = visible.map { rect in
+                allDetections.filter { $0.uiKitBoundingBox.intersects(rect) }
+            } ?? allDetections
 
             let best = detections.max { $0.confidence < $1.confidence }
             var depth: Float?
@@ -339,14 +420,28 @@ final class CaptureViewModel: ObservableObject {
         let pixelBuffer = frame.capturedImage
         let intrinsics = frame.camera.intrinsics
         let imageResolution = frame.camera.imageResolution
+        let previewAspect = self.previewAspect
 
         Task.detached(priority: .userInitiated) { [weak self] in
             // Render ke CGImage tegak dulu (sama kayak di tick()), baru
             // deteksi DI ATAS gambar itu — kali ini pakai mask, hasilnya
             // dipakai buat gambar overlay + hitung luas yang lebih presisi
             // daripada sekadar kotak.
-            let cgImage = FrameImageRenderer.uprightCGImage(from: pixelBuffer)
-            let instances = cgImage.map { detector.detectWithMasks(in: $0) } ?? []
+            let fullImage = FrameImageRenderer.uprightCGImage(from: pixelBuffer)
+            let instances = fullImage.map { detector.detectWithMasks(in: $0) } ?? []
+
+            // Bagian frame yang tadi beneran kelihatan di viewfinder. Deteksi
+            // dan pengukuran tetap jalan di frame PENUH — depthMap, intrinsics,
+            // dan mask semuanya di ruang koordinat itu — yang dipotong cuma
+            // gambar yang disimpan, plus kotaknya dipetakan ulang belakangan.
+            let visible = fullImage.flatMap { image in
+                previewAspect.map {
+                    PreviewCrop.visibleRect(
+                        imageSize: CGSize(width: image.width, height: image.height),
+                        previewAspect: $0
+                    )
+                }
+            } ?? CGRect(x: 0, y: 0, width: 1, height: 1)
 
             var results: [CapturedDetection] = []
             for instance in instances.sorted(by: { $0.confidence > $1.confidence }).prefix(Self.maxDetectionsInPreview) {
@@ -356,6 +451,9 @@ final class CaptureViewModel: ObservableObject {
                     width: instance.boundingBox.width,
                     height: instance.boundingBox.height
                 )
+                // Jamur yang jatuh di luar layar dibuang — user nggak pernah
+                // lihat, dan fotonya nanti juga nggak ngandung bagian itu.
+                guard let visibleBox = PreviewCrop.remap(box, into: visible) else { continue }
                 let hasMask = instance.maskPixelCount > 0
                 let measurement = hasMask
                     ? ARAreaCalculator.measure(
@@ -379,19 +477,24 @@ final class CaptureViewModel: ObservableObject {
                 }
 
                 results.append(CapturedDetection(
-                    box: box, mask: hasMask ? instance : nil, confidence: instance.confidence,
+                    box: visibleBox, mask: hasMask ? instance : nil, confidence: instance.confidence,
                     areaCM2: measurement?.areaCM2, areaText: areaText, note: note
                 ))
             }
 
+            // Potongnya BELAKANGAN, setelah semua pengukuran selesai — kalau
+            // dipotong duluan, mask & depthMap nggak sejajar lagi sama gambarnya
+            // dan luasnya salah.
+            let croppedImage = fullImage.flatMap { PreviewCrop.crop($0, to: visible) } ?? fullImage
+
             await MainActor.run {
                 guard let self else { return }
                 self.isCapturing = false
-                guard let cgImage else {
+                guard let croppedImage else {
                     self.captureError = "Couldn't capture an image from the camera."
                     return
                 }
-                self.captured = CapturedResult(image: UIImage(cgImage: cgImage), detections: results)
+                self.captured = CapturedResult(image: UIImage(cgImage: croppedImage), detections: results)
             }
         }
     }

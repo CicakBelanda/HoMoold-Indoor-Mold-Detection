@@ -29,7 +29,7 @@ struct RiskPredictionDetailSheet: View {
                     confidenceCard
                     severityCard
                     areaCard
-                    inputsCard
+//                    inputsCard
                 }
                 .padding(.horizontal, 22)
                 .padding(.vertical, 16)
@@ -52,6 +52,16 @@ struct RiskPredictionDetailSheet: View {
             Text(viewModel.riskClass ?? "Unavailable")
                 .font(Theme.font.statValue)
                 .foregroundStyle(viewModel.riskClassColor)
+
+            // Cuma nongol kalau prediksinya jalan pakai cuaca tebakan. Ditaruh
+            // NEMPEL di angkanya, bukan di kartu terpisah di bawah — user yang
+            // cuma ngelirik angka gede itu harus ikut lihat catatan ini.
+            if let note = viewModel.estimatedWeatherNote {
+                Label(note, systemImage: "exclamationmark.triangle.fill")
+                    .font(Theme.font.footnote)
+                    .foregroundStyle(Theme.color.textMuted)
+                    .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
@@ -170,6 +180,9 @@ struct RiskPredictionDetailSheet: View {
     /// Penjelasan singkat + "See more". Di Figma link-nya biru (`#08f`), tapi
     /// warna itu sengaja diganti brand teal — biru Apple nggak dipakai di app
     /// ini.
+    /// Tombolnya SELALU ada, cuma labelnya yang ganti — dulu cuma muncul waktu
+    /// teksnya masih pendek, jadi begitu user tap "See more" nggak ada jalan
+    /// balik: paragraf panjangnya nempel terus sampai halamannya ditutup.
     private var explanation: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(isExplanationExpanded ? Self.explanationFull : Self.explanationShort)
@@ -177,14 +190,12 @@ struct RiskPredictionDetailSheet: View {
                 .foregroundStyle(Theme.color.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if !isExplanationExpanded {
-                Button("See more") {
-                    withAnimation(.easeOut(duration: 0.2)) {
-                        isExplanationExpanded = true
-                    }
+            Button(isExplanationExpanded ? "See less" : "See more") {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    isExplanationExpanded.toggle()
                 }
-                .font(Theme.font.body)
             }
+            .font(Theme.font.body)
         }
     }
 

@@ -10,16 +10,30 @@ struct ReportView: View {
     @State private var viewerItem: ImageViewerItem?
     @State private var photoIndex = 0
     @State private var showRiskInfo = false
-    @State private var showEditCondition = false
-    @State private var addPhotoSession: AddPhotoSession?
+    /// Lebar kolom konten, diukur pas layout. Dipakai buat ngitung sisi kartu
+    /// foto yang persegi — nggak bisa dari `UIScreen`, itu ngabaikan padding
+    /// konten dan bakal meleset di iPad/Split View.
+    @State private var contentWidth: CGFloat = 0
     @Environment(\.dismiss) private var dismiss
     private var onSaved: (() -> Void)?
+    /// Dipanggil waktu user tap "Discard". Diisi sama InspectionFlowView biar
+    /// tombolnya nutup SELURUH flow inspeksi dan balik ke daftar ruangan —
+    /// `dismiss()` doang cuma nge-pop satu layar, jadi user malah mendarat di
+    /// layar loading dan langsung kedorong maju ke report lagi.
+    private var onDiscard: (() -> Void)?
 
     /// Mode draft: hasil analisis baru, nempel ke rumah yang sudah ada — tombol
     /// Save langsung menyimpan (`location` cuma beneran ditulis kalau rumahnya
     /// belum punya lokasi, lihat AppDataStore.attachInspection).
     @MainActor
-    init(store: AppDataStore, draftInspection: RoomInspection, existingPropertyID: UUID, location: HomeLocation, onSaved: (() -> Void)? = nil) {
+    init(
+        store: AppDataStore,
+        draftInspection: RoomInspection,
+        existingPropertyID: UUID,
+        location: HomeLocation,
+        onSaved: (() -> Void)? = nil,
+        onDiscard: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: ReportViewModel(
             store: store,
             inspection: draftInspection,
@@ -27,6 +41,7 @@ struct ReportView: View {
             isReadOnly: false
         ))
         self.onSaved = onSaved
+        self.onDiscard = onDiscard
     }
 
     /// Mode "saved": lihat ulang temuan yang sudah tersimpan, read-only.
@@ -41,11 +56,12 @@ struct ReportView: View {
             isReadOnly: true
         ))
         self.onSaved = nil
+        self.onDiscard = nil
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 22) {
+            VStack(spacing: 10) {
                 photoStack
 
                 predictionCard
@@ -55,6 +71,7 @@ struct ReportView: View {
             .padding(.horizontal, 22)
             .padding(.top, 12)
             .padding(.bottom, 24)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
         // Latar lewat `.background`, bukan sibling ZStack — lihat catatan di
         // MoldReferenceView soal kenapa struktur itu bikin konten naik ke
@@ -63,64 +80,25 @@ struct ReportView: View {
         .navigationTitle(viewModel.inspection.name)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(!viewModel.isReadOnly)
+        // Satu tombol "i" doang. Dulu ini menu titik-tiga (Add photos / Edit
+        // condition / info) — dua aksi pertama dibuang: kondisi ruangan itu
+        // masukan model, jadi ngubahnya DI report bikin angka prediksinya
+        // berubah setelah user lihat hasilnya. Yang tersisa cuma penjelasan
+        // gimana angkanya dihitung, dan buat satu aksi menu itu kelebihan.
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        startAddingPhotos()
-                    } label: {
-                        Label("Add photos", systemImage: "camera")
-                    }
-
-                    Button {
-                        showEditCondition = true
-                    } label: {
-                        Label("Edit condition", systemImage: "checklist")
-                    }
-
-                    Divider()
-
-                    Button {
-                        showRiskInfo = true
-                    } label: {
-                        Label("How this is calculated", systemImage: "info.circle")
-                    }
+                Button {
+                    showRiskInfo = true
                 } label: {
-                    Image(systemName: "ellipsis")
+                    Image(systemName: "info.circle")
                 }
                 // Kontrol chrome — warna label bawaan, bukan brand.
                 .tint(.primary)
-                .accessibilityLabel("Report options")
+                .accessibilityLabel("How this is calculated")
             }
         }
         .sheet(isPresented: $showRiskInfo) {
             MoldRiskInfoSheet()
-        }
-        // Sheet yang sama kayak di daftar ruangan, tapi hasilnya lewat view
-        // model — di sini kondisi yang berubah harus nge-trigger hitung ulang
-        // prediksi, bukan cuma disimpen.
-        .sheet(isPresented: $showEditCondition) {
-            EditRoomConditionSheet(room: viewModel.inspection) { hasAC, hasWindow, dampness, wallCrack in
-                viewModel.updateConditions(
-                    hasAC: hasAC, hasWindow: hasWindow,
-                    dampness: dampness, wallCrack: wallCrack
-                )
-            }
-        }
-        // Kamera dibuka lagi dari sini buat nambah jepretan yang kelupaan.
-        // `onFinish` bikin CaptureView balik ke sini, bukan maju ke loading.
-        //
-        // Pakai `item:`, BUKAN `isPresented:` + `if let`. Dengan isPresented,
-        // flag-nya bisa nyala sepersekian detik sebelum flow-nya keisi, dan
-        // cover-nya kebuka dengan konten kosong.
-        .fullScreenCover(item: $addPhotoSession) { session in
-            CaptureView(flow: session.flow) {
-                viewModel.appendPhotos(
-                    findings: session.flow.capturedFindings,
-                    photos: session.flow.capturedPhotos
-                )
-                addPhotoSession = nil
-            }
         }
         // Hapus foto dilakukan DARI preview-nya — user lihat dulu yang mau
         // dihapus, baru hapus. `item.index` dipegang di sini biar yang kehapus
@@ -181,15 +159,18 @@ struct ReportView: View {
             // foto di iOS emang polanya geser. Yang di-loop indeksnya, bukan
             // fotonya — `photoCard` butuh tau posisinya buat preview & hapus.
             VStack(spacing: 12) {
+                // Tingginya IKUT lebar halaman, bukan angka tetap — kartunya
+                // harus persegi. Lebar halaman = lebar carousel dikurangi
+                // intipan halaman sebelah, jadi tingginya dihitung dari situ.
                 PagedCarousel(
                     items: Array(photos.indices),
-                    peek: photos.count > 1 ? 24 : 0,
+                    peek: peekWidth,
                     spacing: 10,
                     index: $photoIndex
                 ) { i in
-                    photoCard(photos[i], at: i)
+                    photoCard(photos[i])
                 }
-                .frame(height: 290)
+                .frame(height: squarePageSide)
 
                 if photos.count > 1 {
                     PageDots(count: photos.count, index: photoIndex)
@@ -198,41 +179,69 @@ struct ReportView: View {
         }
     }
 
+    /// User yang bilang "nggak ada jamur keliatan" nggak pernah lewat kamera,
+    /// jadi laporannya emang nggak punya foto — itu hasil yang normal, bukan
+    /// kekurangan. Dulu di sini ada ikon + tombol "Add photos", dan itu kebaca
+    /// kayak laporannya belum selesai. Sekarang yang muncul ilustrasi "no mold"
+    /// yang sama persis dengan yang dipakai kartu ruangan.
     private var emptyPhotoCard: some View {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .fill(Theme.color.card)
-            .frame(height: 300)
-            .overlay {
-                VStack(spacing: 10) {
-                    Image(systemName: "photo.badge.plus")
-                        .font(.largeTitle)
-                        .foregroundStyle(Theme.color.textSecondary)
-                    Text("No photos yet")
-                        .font(Theme.font.subheadline)
-                        .foregroundStyle(Theme.color.textSecondary)
-
-                    Button("Add photos") { startAddingPhotos() }
-                        .font(Theme.font.headline)
-                        .padding(.top, 2)
-                }
-            }
+        Image("NoMoldPlaceholder")
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .padding(24)
+            .frame(width: squarePageSide, height: squarePageSide)
+            .background(
+                Theme.color.card,
+                in: RoundedRectangle(cornerRadius: 28, style: .continuous)
+            )
+            .accessibilityLabel("No mold found in this room")
     }
 
-    private func photoCard(_ photo: ReportPhoto, at index: Int) -> some View {
-        // Gambar + kotak deteksi dibungkus ZStack ber-aspect-ratio sama dengan
-        // gambarnya, biar koordinat ternormalisasi kotaknya nempel presisi.
-        ZStack {
-            Image(uiImage: photo.image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
+    private var peekWidth: CGFloat { photos.count > 1 ? 24 : 0 }
 
-            ForEach(photo.findings) { finding in
-                MoldDetectionBox(boundingBox: finding.boundingBox)
+    /// Sisi kartu foto persegi = lebar satu halaman carousel.
+    private var squarePageSide: CGFloat {
+        max(contentWidth - peekWidth, 1)
+    }
+
+    /// Kartu foto PERSEGI, dan crop-nya NGIKUTIN jamurnya.
+    ///
+    /// Cara kerjanya: gambar dibesarkan sampai nutup penuh kotak (aspect-fill),
+    /// lalu digeser supaya titik tengah semua temuan jatuh di tengah kotak —
+    /// jadi kalau jamurnya di bawah, yang kepotong bagian atasnya, bukan
+    /// jamurnya. Geserannya dijepit (`clamped`) supaya nggak pernah nongol
+    /// bidang kosong di tepi.
+    ///
+    /// Kotak deteksi ditaruh DI DALAM ZStack yang ukurannya sama dengan gambar
+    /// yang udah dibesarkan, jadi kotaknya ikut kegeser sendiri — nggak perlu
+    /// ngitung ulang koordinatnya.
+    private func photoCard(_ photo: ReportPhoto) -> some View {
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
+            let imageAspect = photo.image.size.width / max(photo.image.size.height, 1)
+            let scaledWidth = imageAspect >= 1 ? side * imageAspect : side
+            let scaledHeight = imageAspect >= 1 ? side : side / imageAspect
+
+            let focus = photo.moldFocus
+            let maxOffsetX = max(0, (scaledWidth - side) / 2)
+            let maxOffsetY = max(0, (scaledHeight - side) / 2)
+            let offsetX = min(max((0.5 - focus.x) * scaledWidth, -maxOffsetX), maxOffsetX)
+            let offsetY = min(max((0.5 - focus.y) * scaledHeight, -maxOffsetY), maxOffsetY)
+
+            ZStack {
+                Image(uiImage: photo.image)
+                    .resizable()
+
+                ForEach(photo.findings) { finding in
+                    MoldDetectionBox(boundingBox: finding.boundingBox)
+                }
             }
+            .frame(width: scaledWidth, height: scaledHeight)
+            .offset(x: offsetX, y: offsetY)
+            .frame(width: side, height: side)
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 290)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .onTapGesture {
             viewerItem = ImageViewerItem(
                 image: photo.image,
@@ -240,16 +249,6 @@ struct ReportView: View {
                 plainPhotoOffset: photo.plainPhotoOffset
             )
         }
-    }
-
-    /// Bikin flow state kosong yang cuma dipakai sebagai wadah hasil jepretan,
-    /// terus buka kamera. Tipe & nama ruangan diikutin dari inspeksi yang lagi
-    /// dibuka biar konsisten.
-    private func startAddingPhotos() {
-        let flow = InspectionFlowState(existingProperty: viewModel.owningProperty)
-        flow.roomName = viewModel.inspection.name
-        flow.roomType = viewModel.inspection.roomType
-        addPhotoSession = AddPhotoSession(flow: flow)
     }
 
     // MARK: - Kartu
@@ -368,8 +367,10 @@ struct ReportView: View {
     private var bottomBar: some View {
         if !viewModel.isReadOnly {
             HStack(spacing: 16) {
-                Button("Discard") { dismiss() }
-                    .buttonStyle(.pillSecondary)
+                Button("Discard") {
+                    if let onDiscard { onDiscard() } else { dismiss() }
+                }
+                .buttonStyle(.pillSecondary)
 
                 Button("Save") {
                     viewModel.save()
@@ -395,13 +396,19 @@ private struct ReportPhoto {
     let findings: [Finding]
     /// Posisi di `capturedPhotos` buat foto tanpa temuan; `nil` kalau punya.
     let plainPhotoOffset: Int?
-}
 
-/// Pembungkus `Identifiable` buat `fullScreenCover(item:)` — sesi "nambah foto"
-/// yang bawa flow state sementaranya.
-private struct AddPhotoSession: Identifiable {
-    let id = UUID()
-    let flow: InspectionFlowState
+    /// Titik (ternormalisasi, origin kiri-atas) yang harus kelihatan waktu
+    /// fotonya dipotong jadi persegi.
+    ///
+    /// Diambil dari tengah GABUNGAN semua kotak temuan, bukan cuma yang
+    /// pertama — foto dengan dua noda di sudut berlawanan kalau ngikutin satu
+    /// noda doang bikin noda yang lain kepotong. Foto tanpa temuan jatuh ke
+    /// tengah gambar, sama kayak crop biasa.
+    var moldFocus: CGPoint {
+        guard let first = findings.first else { return CGPoint(x: 0.5, y: 0.5) }
+        let union = findings.dropFirst().reduce(first.boundingBox) { $0.union($1.boundingBox) }
+        return CGPoint(x: union.midX, y: union.midY)
+    }
 }
 
 /// Pembungkus `Identifiable` buat `fullScreenCover(item:)` — UIImage sendiri

@@ -62,12 +62,13 @@ enum RiskLevel: String, Codable {
         }
     }
 
-    /// Teks di pil kartu ruangan. "Moderate", bukan "Medium" — itu yang dipakai
-    /// di desainnya.
+    /// Teks di pil kartu ruangan. "Medium", bukan "Moderate" — istilahnya
+    /// disamain sama `rawValue` dan sama output RiskClassifier, jadi cuma ada
+    /// satu kata buat tingkat ini di seluruh app.
     var pillLabel: String {
         switch self {
         case .low: return "Low Risk"
-        case .medium: return "Moderate Risk"
+        case .medium: return "Medium Risk"
         case .high: return "High Risk"
         }
     }

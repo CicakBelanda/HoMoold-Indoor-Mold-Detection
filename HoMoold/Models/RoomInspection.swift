@@ -99,6 +99,22 @@ struct RoomInspection: Identifiable {
             DetectionItem(label: "Wall Crack", isPresent: wallCrack),
         ]
     }
+
+    // MARK: - Cuaca
+
+    /// `true` kalau cuaca aslinya nggak keambil waktu inspeksi, jadi prediksi
+    /// di laporan ini jalan pakai `WeatherDefaults`.
+    ///
+    /// Sengaja DITURUNKAN dari `temperature`/`humidity` yang nil, bukan disimpan
+    /// sebagai kolom sendiri — dengan begini laporan lama yang udah tersimpan di
+    /// properties.json ikut kebaca benar tanpa perlu migrasi apa pun.
+    var isWeatherEstimated: Bool { temperature == nil || humidity == nil }
+
+    /// Nilai yang BENERAN dikirim ke RiskClassifier. Pakai ini, jangan
+    /// `temperature`/`humidity` mentah — yang mentah boleh nil, dan tiap
+    /// pemanggil yang nge-guard sendiri bakal balik lagi ke "Unavailable".
+    var effectiveTemperature: Float { temperature ?? WeatherDefaults.temperature }
+    var effectiveHumidity: Float { humidity ?? WeatherDefaults.humidity }
 }
 
 /// Codable manual — sama alasannya kayak `Finding`: `capturedPhotos` itu

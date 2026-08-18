@@ -6,8 +6,8 @@
 //  (hasil ukur LiDAR, lihat RoomInspection.totalAreaCM2), bukan dari model.
 //  Aturan (dari product):
 //    - gak ada jamur / luas nil  → No Mold
-//    - < 600 cm²                 → Level 1 - Light Mold
-//    - 600–16400 cm²             → Level 2 - Moderate Mold
+//    - < 600 cm²                 → Level 1 - Low Mold
+//    - 600–16400 cm²             → Level 2 - Medium Mold
 //    - > 16400 cm²               → Level 3 - Severe Mold
 //
 
@@ -36,8 +36,8 @@ enum MoldSeverity {
     var title: String {
         switch self {
         case .none: return "No Mold"
-        case .level1: return "Level 1 - Light Mold"
-        case .level2: return "Level 2 - Moderate Mold"
+        case .level1: return "Level 1 - Low Mold"
+        case .level2: return "Level 2 - Medium Mold"
         case .level3: return "Level 3 - Severe Mold"
         }
     }
@@ -61,12 +61,12 @@ enum MoldSeverity {
     }
 
     /// Label pendek buat kartu "Mold Severity" di halaman detail prediksi —
-    /// desainnya nampilin "Moderate", bukan "Level 2 - Moderate Mold".
+    /// desainnya nampilin "Medium", bukan "Level 2 - Medium Mold".
     var shortTitle: String {
         switch self {
         case .none: return "None"
-        case .level1: return "Light"
-        case .level2: return "Moderate"
+        case .level1: return "Low"
+        case .level2: return "Medium"
         case .level3: return "Severe"
         }
     }

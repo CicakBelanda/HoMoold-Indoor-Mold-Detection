@@ -2,24 +2,6 @@
 //  Typography.swift
 //  HoMoold
 //
-//  Semua gaya teks di app, dipetakan langsung dari named text style di Figma.
-//
-//  Hal penting soal file Figma-nya: dia pakai Apple UI Kit resmi, jadi text
-//  style-nya (Title1/Emphasized, Title2/Regular, Body/Regular, Body/Emphasized,
-//  Large Title/Regular) itu SF Pro pada metrik HIG yang persis — 28/34 Bold,
-//  22/28 Regular, 17/22 Regular, 17/22 Semibold, 34/41 Regular.
-//
-//  Karena angkanya persis metrik sistem, mapping-nya ke text style semantik
-//  SwiftUI (`.title`, `.title2`, `.body`, `.headline`, `.largeTitle`) — BUKAN
-//  `.system(size: 22)`. Bedanya nyata: text style semantik ikut Dynamic Type,
-//  jadi user yang naikin ukuran teks di Settings tetap kebaca. Ukuran hardcode
-//  nggak ikut, dan itu bug aksesibilitas yang nggak keliatan sampai ada yang
-//  ngeluh.
-//
-//  Letter spacing negatif yang keliatan di Figma (-0.26, -0.43) itu tracking
-//  bawaan SF Pro pada ukuran tersebut — sistem udah nerapin sendiri, jadi
-//  sengaja nggak ditulis ulang di sini.
-//
 
 import SwiftUI
 

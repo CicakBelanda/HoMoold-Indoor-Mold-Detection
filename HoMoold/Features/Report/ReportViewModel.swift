@@ -50,10 +50,16 @@ final class ReportViewModel: ObservableObject {
         return value
     }
 
+    /// Nggak ada lagi `guard` buat cuaca nil di sini.
+    ///
+    /// Dulu cuaca yang gagal keambil bikin seluruh laporan nulis "Unavailable",
+    /// padahal enam input lainnya lengkap — dan enam itu justru yang diamati
+    /// langsung sama user. Sekarang cuacanya jatuh ke `WeatherDefaults` dan
+    /// laporannya ditandai `isWeatherEstimated`.
     private func computePrediction() -> RiskClassifierService.Prediction? {
-        guard let t = inspection.temperature, let h = inspection.humidity else { return nil }
         return classifier?.predictDetailed(
-            temperature: t, humidity: h,
+            temperature: inspection.effectiveTemperature,
+            humidity: inspection.effectiveHumidity,
             hasAC: inspection.hasAC, hasWindow: inspection.hasWindow,
             dampness: inspection.dampness, wallCrack: inspection.wallCrack,
             moldLevel: inspection.moldSeverityLevel
@@ -100,13 +106,17 @@ final class ReportViewModel: ObservableObject {
     /// di iklim tropis angkanya jarang di bawah 75%. Nilai setinggi itu bikin
     /// satu input mendominasi hasil, seberapa pun kondisi ruangannya bagus.
     var modelInputs: [(label: String, value: String)] {
-        guard let t = inspection.temperature, let h = inspection.humidity else { return [] }
+        let t = inspection.effectiveTemperature
+        let h = inspection.effectiveHumidity
+        // Ditandai "(estimated)" kalau angkanya dari WeatherDefaults, bukan dari
+        // Open-Meteo — biar user nggak salah baca tebakan sebagai ukuran.
+        let suffix = inspection.isWeatherEstimated ? ", estimated" : ""
         return [
-            ("Temperature (outdoor)", String(format: "%.0f °C", t)),
+            ("Temperature (outdoor\(suffix))", String(format: "%.0f °C", t)),
             // +5 itu offset yang dipasang di RiskClassifierService buat nebak
             // selisih indoor vs outdoor. Ditampilin apa adanya, bukan angka
             // mentahnya, supaya cocok sama yang beneran masuk ke model.
-            ("Humidity (outdoor +5)", String(format: "%.0f %%", h + 5)),
+            ("Humidity (outdoor +5\(suffix))", String(format: "%.0f %%", h + 5)),
             ("Air conditioner", inspection.hasAC ? "Yes" : "No"),
             ("Window", inspection.hasWindow ? "Yes" : "No"),
             ("Dampness", inspection.dampness ? "Yes" : "No"),
@@ -129,6 +139,20 @@ final class ReportViewModel: ObservableObject {
         case "medium": return Theme.color.riskMedium
         default: return Theme.color.riskHigh
         }
+    }
+
+    /// Peringatan kalau prediksi ini jalan pakai cuaca tebakan, bukan cuaca
+    /// asli di lokasi rumahnya. `nil` = cuacanya beneran keambil.
+    ///
+    /// WAJIB ditampilin di mana pun prediksinya dipajang. Angka yang keluar dari
+    /// model kelihatan sama persis meyakinkannya entah input cuacanya diukur
+    /// atau ditebak — satu-satunya yang bisa mbedain itu catatan ini.
+    var estimatedWeatherNote: String? {
+        guard inspection.isWeatherEstimated else { return nil }
+        return String(
+            format: "Local weather wasn't available during this inspection, so the prediction uses Indonesia's typical outdoor climate (%.0f°C, %.0f%% humidity). Treat the result as a rough estimate.",
+            WeatherDefaults.temperature, WeatherDefaults.humidity
+        )
     }
 
     /// Teks besar di kartu prediksi, mis. "Medium Rate" (Figma 1339:7594).
@@ -211,59 +235,6 @@ final class ReportViewModel: ObservableObject {
         formatter.groupingSeparator = "."
         let formatted = formatter.string(from: NSNumber(value: cm2)) ?? String(format: "%.0f", cm2)
         return "\(formatted) cm²"
-    }
-
-    /// Properti yang punya ruangan ini — dipakai buat nyiapin flow sementara
-    /// waktu kamera dibuka lagi dari Report.
-    var owningProperty: KosProperty {
-        let id: UUID
-        switch source {
-        case .draftExisting(let propertyID, _): id = propertyID
-        case .saved(let propertyID): id = propertyID
-        }
-        return store.properties.first { $0.id == id }
-            ?? KosProperty(name: "", location: HomeLocation(region: "", city: "", district: ""), price: nil, rooms: [])
-    }
-
-    /// Tambahin jepretan baru ke inspeksi ini.
-    ///
-    /// Kalau inspeksinya udah tersimpan, langsung ditulis ke store juga —
-    /// user masuk ke sini dari daftar ruangan, bukan dari alur yang ada tombol
-    /// "Save"-nya, jadi kalau nggak ditulis sekarang perubahannya ilang.
-    func appendPhotos(findings newFindings: [Finding], photos newPhotos: [UIImage]) {
-        guard !newFindings.isEmpty || !newPhotos.isEmpty else { return }
-        inspection.findings.append(contentsOf: newFindings)
-        inspection.capturedPhotos.append(contentsOf: newPhotos)
-        recomputeSeverity()
-        persistPhotoEditIfSaved()
-    }
-
-    /// Ubah checklist kondisi ruangan dari halaman Report.
-    ///
-    /// Keempat kondisi ini INPUT model, jadi prediksinya harus dihitung ulang —
-    /// beda dari `EditRoomConditionSheet` di daftar ruangan yang cuma nyimpen
-    /// nilainya tanpa nyentuh risiko.
-    func updateConditions(hasAC: Bool, hasWindow: Bool, dampness: Bool, wallCrack: Bool) {
-        inspection.hasAC = hasAC
-        inspection.hasWindow = hasWindow
-        inspection.dampness = dampness
-        inspection.wallCrack = wallCrack
-
-        // Salinan lokal dihitung ulang di sini supaya layar Report langsung
-        // berubah tanpa nunggu apa-apa — `inspection` itu @Published.
-        cachedPrediction = nil
-        if let updated = RiskLevel.level(fromClassifier: prediction?.riskClass) {
-            inspection.riskLevel = updated
-        }
-
-        // Store-nya ngitung ulang sendiri (lihat AppDataStore.updateRoomCondition),
-        // jadi di sini cukup kirim kondisinya. Nggak perlu ikut ngirim riskLevel:
-        // dua-duanya pakai model + input yang sama, hasilnya pasti sama.
-        guard case .saved(let propertyID) = source else { return }
-        store.updateRoomCondition(
-            roomID: inspection.id, ofProperty: propertyID,
-            hasAC: hasAC, hasWindow: hasWindow, dampness: dampness, wallCrack: wallCrack
-        )
     }
 
     /// Hapus satu FOTO.

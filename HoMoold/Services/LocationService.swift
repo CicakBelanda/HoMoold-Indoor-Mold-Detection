@@ -66,6 +66,21 @@ final class LocationService: NSObject, ObservableObject {
             let location = try await requestLocation()
             return location.coordinate
         } catch {
+            // Cadangan: fix terakhir yang masih disimpan iOS.
+            //
+            // Ini yang paling sering nolong. `requestLocation()` itu SEKALI
+            // COBA — gagal dapat sinyal, dia lapor `kCLErrorLocationUnknown`
+            // lalu berhenti, nggak nyoba lagi. Dan aplikasi ini dipakainya
+            // justru DI DALAM rumah: kamar mandi, lantai bawah, tembok beton —
+            // kondisi terburuk buat GPS.
+            //
+            // Koordinatnya cuma dipakai buat nanya cuaca REGIONAL ke Open-Meteo,
+            // jadi posisi beberapa jam lalu sama bergunanya — selama masih di
+            // kota yang sama, dan dalam 3 jam itu hampir pasti.
+            if let cached = manager.location,
+               cached.timestamp.timeIntervalSinceNow > -3 * 60 * 60 {
+                return cached.coordinate
+            }
             errorMessage = "Can't get your location right now, so the weather can't be fetched automatically."
             return nil
         }

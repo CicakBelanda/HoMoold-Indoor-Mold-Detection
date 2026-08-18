@@ -2,28 +2,6 @@
 //  InspectionFlowView.swift
 //  HoMoold
 //
-//  Container navigasi "Add new Room" — rumahnya selalu sudah ada duluan
-//  (dibuat lewat modal "Add New House" dari FAB Home), jadi flow ini selalu nempel
-//  ke rumah yang sudah punya nama.
-//
-//  Alur:
-//
-//    ConditionFormView  <- layar pertama, langsung kebuka pas user tap
-//                          "Add new Room" (nggak ada lagi layar pilih tipe
-//                          ruangan terpisah — nama & tipe diisi di form ini)
-//      |
-//      |-- (opsional, kalau user centang "Visible mold") --> GuidanceView
-//      |                                                        |
-//      |                                                        v
-//      |<---------------------- balik ke form -------------- CaptureView
-//      |
-//      v  Submit
-//    AnalyzingLoadingView -> ReportView
-//
-//  Kamera itu SUB-FLOW dari form kondisi, bukan langkah berurutan. Jadi
-//  guidance-nya muncul pas kamera mau dibuka (sesuai desain), dan setelah
-//  motret user balik ke form buat nyelesaiin sisanya lalu Submit.
-//
 
 import SwiftUI
 
@@ -54,12 +32,18 @@ struct InspectionFlowView: View {
                         AnalyzingLoadingView(flow: flow)
                     case .report:
                         if let inspection = flow.resultInspection {
+                            // Save DAN Discard sama-sama nutup cover-nya, jadi
+                            // dua-duanya mendarat di daftar ruangan rumah ini.
+                            // Discard nggak boleh cuma `dismiss()` dari dalam
+                            // ReportView: itu nge-pop balik ke layar loading,
+                            // yang langsung ngedorong user maju ke report lagi.
                             ReportView(
                                 store: store,
                                 draftInspection: inspection,
                                 existingPropertyID: flow.existingProperty.id,
                                 location: flow.location,
-                                onSaved: { dismiss() }
+                                onSaved: { dismiss() },
+                                onDiscard: { dismiss() }
                             )
                         }
                     }

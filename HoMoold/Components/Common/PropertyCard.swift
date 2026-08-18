@@ -5,10 +5,12 @@
 //  Kartu rumah di layar Inspection (Home). Ngikutin varian kartu paling ringkas
 //  di Figma 1339:7023 — putih, radius 39, TANPA foto thumbnail.
 //
-//  Keputusan desain: thumbnail dibuang, dan mold risk yang jadi elemen paling
-//  dominan. Alasannya foto ruangan random nggak ngasih info apa-apa buat orang
-//  yang lagi milih-milih rumah — yang dia mau tau itu "rumah ini aman apa nggak",
-//  dan itu si risk level. Jadi risk-nya dikasih tipografi paling gede di kartu.
+//  Keputusan desain: thumbnail dibuang. Risiko juga NGGAK ditampilin di sini —
+//  satu rumah bisa punya beberapa ruangan dengan tingkat yang beda-beda, dan
+//  meringkasnya jadi satu angka di kartu bikin rumah yang punya satu ruangan
+//  parah kebaca sama aja kayak yang semua ruangannya aman. Tingkatnya
+//  ditampilin per-ruangan di halaman detail rumah, di tempat yang angkanya
+//  beneran berlaku.
 //
 //  Nggak ada drop shadow — kartu putih di atas gradient teal udah cukup kebaca
 //  sebagai kartu, dan shadow-nya bikin terlalu dramatis.
@@ -28,10 +30,9 @@ struct PropertyCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Baris atas: identitas rumah di kiri, status risiko sebagai chip
-            // di kanan. Chip-nya sengaja bukan teks gede kayak sebelumnya —
-            // teks 22pt berwarna di pojok bikin kartunya kelihatan berat sebelah,
-            // sementara chip kebaca sekilas tanpa mendominasi.
+            // Baris atas: identitas rumah. `Spacer` di ujungnya dipertahankan
+            // supaya teks panjang berhenti di lebar kartu, bukan mendorong
+            // kartunya melar.
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(property.name)
@@ -50,8 +51,6 @@ struct PropertyCard: View {
                 }
 
                 Spacer(minLength: 8)
-
-                riskChip
             }
 
             // Baris bawah cuma muncul kalau rumahnya udah punya ruangan — kalau
@@ -78,34 +77,6 @@ struct PropertyCard: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityDescription)
-    }
-
-    /// Kalau belum ada ruangan yang diperiksa, tampilin "Not inspected" —
-    /// BUKAN "Low". Belum diperiksa itu beda makna sama aman, dan nampilin
-    /// "Low" di rumah yang belum dicek itu misleading.
-    @ViewBuilder
-    private var riskChip: some View {
-        if let risk = property.overallRisk {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(risk.color)
-                    .frame(width: 7, height: 7)
-
-                Text(risk.pillLabel)
-                    .font(Theme.font.caption)
-                    .foregroundStyle(risk.color)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(risk.color.opacity(0.12), in: Capsule())
-        } else {
-            Text("Not inspected")
-                .font(Theme.font.caption)
-                .foregroundStyle(Theme.color.textSecondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Theme.color.surfaceMuted, in: Capsule())
-        }
     }
 
     /// Kapan terakhir kali rumah ini diperiksa. Nggak ditampilin kalau belum
@@ -135,18 +106,14 @@ struct PropertyCard: View {
         return formatter.string(from: date)
     }
 
-    /// Baris jumlah ruangan per tipe, dipisah garis vertikal — sesuai Figma
-    /// (ikon + angka, 13pt, pemisah hairline).
+    /// Baris jumlah ruangan per tipe: ikon + angka, dipisah JARAK doang.
+    ///
+    /// Garis hairline antar tipe dibuang — tiap butirnya udah punya ikon
+    /// sendiri, jadi batasnya kebaca tanpa garis, dan garisnya cuma nambah
+    /// coretan di kartu yang isinya sedikit.
     private var roomCountRow: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(roomCounts.enumerated()), id: \.element.type) { index, entry in
-                if index > 0 {
-                    Rectangle()
-                        .fill(Theme.color.separator)
-                        .frame(width: 1, height: 12)
-                        .padding(.horizontal, 8)
-                }
-
+        HStack(spacing: 14) {
+            ForEach(Array(roomCounts.enumerated()), id: \.element.type) { _, entry in
                 Label {
                     Text("\(entry.count)")
                 } icon: {
@@ -159,9 +126,13 @@ struct PropertyCard: View {
         }
     }
 
+    /// Risiko sengaja NGGAK disebut — kartunya nggak nampilin itu, dan label
+    /// aksesibilitas yang nyebut sesuatu yang nggak ada di layar bikin
+    /// pengguna VoiceOver dapat gambaran yang beda dari pengguna lain.
     private var accessibilityDescription: String {
-        let risk = property.overallRisk.map { "\($0.label) mold risk" } ?? "not inspected yet"
-        return "\(property.name), \(property.location.displayText), \(risk)"
+        let rooms = property.rooms.count
+        let roomText = rooms == 0 ? "no rooms yet" : "\(rooms) room\(rooms == 1 ? "" : "s")"
+        return "\(property.name), \(property.location.displayText), \(roomText)"
     }
 }
 

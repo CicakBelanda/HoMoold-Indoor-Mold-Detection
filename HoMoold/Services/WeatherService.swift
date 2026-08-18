@@ -15,6 +15,27 @@ struct WeatherSnapshot {
     let humidity: Float       // %
 }
 
+/// Cuaca cadangan buat waktu Open-Meteo atau GPS-nya gagal.
+///
+/// Angkanya iklim rata-rata dataran rendah Indonesia sepanjang tahun. Dipakai
+/// karena alternatifnya jauh lebih buruk: tanpa cuaca, RiskClassifier nggak bisa
+/// jalan sama sekali dan seluruh laporan cuma nulis "Unavailable" — padahal
+/// enam input lainnya (AC, jendela, lembap, retak, level jamur) udah lengkap
+/// dan itu yang justru diamati langsung sama user.
+///
+/// Ini TEBAKAN, dan harus selalu diperlakukan begitu: tiap laporan yang
+/// kepaksa pakai nilai ini nandain dirinya sendiri lewat
+/// `RoomInspection.isWeatherEstimated`, dan halaman detail prediksi ngasih tau
+/// user secara eksplisit. Jangan pernah dipakai diam-diam.
+enum WeatherDefaults {
+    /// Suhu udara luar rata-rata, °C.
+    static let temperature: Float = 27
+    /// Kelembapan relatif luar rata-rata, %. Tinggi, dan itu wajar buat iklim
+    /// tropis — lihat catatan di `ReportViewModel.modelInputs` soal kenapa
+    /// angka segini bikin `RH_out` gampang mendominasi hasil model.
+    static let humidity: Float = 80
+}
+
 enum WeatherServiceError: LocalizedError {
     case badURL
     case decodingFailed

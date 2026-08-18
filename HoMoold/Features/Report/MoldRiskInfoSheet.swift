@@ -6,7 +6,7 @@
 //
 //  "See more" DI SINI bukan buat manjangin paragraf, tapi buat mbuka RINCIAN
 //  PER LEVEL-nya: "How Risk Levels Work" -> Low / Medium / High Rate,
-//  "How Severity Levels Work" -> No Mold / Low / Moderate / Severe.
+//  "How Severity Levels Work" -> No Mold / Low / Medium / Severe.
 //
 //  Level-levelnya dikasih titik berwarna + kartu sendiri, bukan ditumpuk jadi
 //  deretan judul tebal kayak versi sebelumnya. Alasannya: kalau semuanya
@@ -210,7 +210,7 @@ private struct InfoSection: Identifiable {
                     color: Theme.color.riskLow
                 ),
                 Level(
-                    title: "Moderate Severity",
+                    title: "Medium Severity",
                     body: """
                     Mold has spread across a noticeable area, between 600 cm² and 16.400 cm². At this stage it is worth \
                     treating the surface and fixing whatever is keeping it damp.
