@@ -112,11 +112,8 @@ final class ReportViewModel: ObservableObject {
         // Open-Meteo — biar user nggak salah baca tebakan sebagai ukuran.
         let suffix = inspection.isWeatherEstimated ? ", estimated" : ""
         return [
-            ("Temperature (outdoor\(suffix))", String(format: "%.0f °C", t)),
-            // +5 itu offset yang dipasang di RiskClassifierService buat nebak
-            // selisih indoor vs outdoor. Ditampilin apa adanya, bukan angka
-            // mentahnya, supaya cocok sama yang beneran masuk ke model.
-            ("Humidity (outdoor +5\(suffix))", String(format: "%.0f %%", h + 5)),
+            ("Temperature", String(format: "%.0f °C", t)),
+            ("Humidity", String(format: "%.0f %%", h)),
             ("Air conditioner", inspection.hasAC ? "Yes" : "No"),
             ("Window", inspection.hasWindow ? "Yes" : "No"),
             ("Dampness", inspection.dampness ? "Yes" : "No"),
@@ -166,28 +163,86 @@ final class ReportViewModel: ObservableObject {
     /// Sebelumnya ini satu paragraf panjang, dan itu yang bikin Report-nya
     /// "full tulisan semua". Desainnya (Figma 1339:7594) minta bullet — jauh
     /// lebih kebaca buat orang yang lagi keliling ngecek rumah.
+    ///
+    /// Sekarang digate sama TEMUAN, bukan cuma `riskLevel`: kalau gak ada foto
+    /// jamur, bahayanya cuma potensial (pantau + cegah), bukan gejala ekspos
+    /// yang beneran. "Mild musty smell" juga dipindahin ke SIGN, bukan health
+    /// risk — itu bau, bukan efek kesehatan.
     var healthRisks: [String] {
-        switch inspection.riskLevel {
-        case .low:
-            return ["Mild musty smell", "Occasional sneezing"]
-        case .medium:
-            return ["Sneezing", "Coughing", "Blocked nose", "Itchy eyes"]
-        case .high:
+        let hasMold = !inspection.findings.isEmpty
+        let risk = riskClass?.lowercased()
+
+        // Tanpa bukti jamur: jangan over-state bahayanya.
+        guard hasMold else {
+            switch risk {
+            case "high":
+                return ["Conditions here favor mold growth", "Monitor for musty smells or new spots"]
+            case "medium":
+                return ["Mold could develop in these conditions", "Keep the room dry and ventilated"]
+            default:
+                return ["No mold detected — low health concern", "Keep humidity low to stay safe"]
+            }
+        }
+
+        // Ada jamur: gejala ekspos nyata, diskalakan sama tingkat risiko.
+        switch risk {
+        case "high":
             return ["Persistent coughing", "Skin and eye irritation", "Allergy flare-ups", "Worsening asthma"]
+        case "medium":
+            return ["Sneezing", "Coughing", "Blocked nose", "Itchy eyes"]
+        default:
+            // Jamur kelihatan tapi model bilang risiko rendah — tetep ada
+            // iritasi ringan, cuma gak separah yang tinggi.
+            return ["Mild irritation possible", "Occasional sneezing"]
         }
     }
 
     /// Rekomendasi sebagai daftar — sama alasannya kayak `healthRisks`.
+    ///
+    /// Semuanya diambil dari INPUT nyata (temuan jamur, checklist kondisi,
+    /// cuaca, Risk_Class model). TAPI sudut pandangnya bukan penghuni yang
+    /// lagi ngelola rumahnya sendiri, melainkan ORANG YANG LAGI NYARI RUMAH
+    /// SEKEN / PROPERTI — jadi sarannya soal due diligence & keputusan
+    /// (cek ke agent/penjual, pertimbangan harga, walk-away), bukan "bersihin
+    /// jamurnya di kamarmu".
     var recommendations: [String] {
-        var items = ["Deep clean the mold spots"]
-        if inspection.wallCrack {
-            items.append("Patch the leak in the wall")
+        var items: [String] = []
+
+        let hasMold = !inspection.findings.isEmpty
+        let risk = riskClass?.lowercased()
+
+        if hasMold {
+            // Ketemu pas viewing -> jadi sinyal buat keputusan, bukan tugas
+            // bersih-bersih sendiri.
+            items.append("Treat visible mold as a red flag when deciding on this property")
+            if inspection.moldSeverityLevel >= 2 || risk == "high" {
+                items.append("For heavy or widespread growth, ask the seller/landlord to remediate before you commit, or negotiate the price down")
+                items.append("Consider walking away if they won't address it")
+            } else {
+                items.append("Ask the landlord/seller to remediate it before you move in")
+            }
+        } else {
+            items.append("No mold found in your check — still weigh it in your final decision")
         }
-        if !inspection.hasWindow {
-            items.append("Improve airflow in this room")
+
+        // Kondisi -> apa yang perlu DIVERIFIKASI / dipertimbangkan, bukan
+        // yang harus kamu benerin sendiri.
+        if inspection.wallCrack {
+            items.append("Check for hidden moisture or past leaks behind the wall cracks")
         }
         if inspection.dampness {
-            items.append("Don't dry laundry indoors here")
+            items.append("Watch for dampness — ask about the property's leak and moisture history")
+        }
+        if !inspection.hasWindow {
+            items.append("Limited ventilation here — a longer-term mold risk to factor in")
+        }
+        if !inspection.hasAC, let h = inspection.humidity, h >= 65 {
+            items.append("Outdoor humidity is high (\(Int(h))%) with no AC — budget for a dehumidifier if you take this place")
+        }
+
+        // Cadangan biar kartunya nggak pernah kosong.
+        if items.isEmpty {
+            items.append("Conditions look reasonable — still worth a final moisture check before deciding")
         }
         return items
     }

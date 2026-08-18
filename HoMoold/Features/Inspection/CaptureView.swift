@@ -320,6 +320,8 @@ struct CaptureView: View {
                     // HITAM di atas latar preview yang hitam.
                     HStack(spacing: 12) {
                         Button("Retake", systemImage: "arrow.counterclockwise") { viewModel.retake() }
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
 
                         Button("Another Spot") { viewModel.acceptAndScanAnother() }
@@ -405,6 +407,9 @@ struct CaptureView: View {
         }
         if viewModel.isWaitingForDepth {
             return "Waiting for LiDAR depth data..."
+        }
+        if viewModel.isLightTooDim {
+            return "Lighting is too dim — move to a brighter area or turn on the flash."
         }
         return nil
     }

@@ -153,6 +153,10 @@ final class CaptureViewModel: ObservableObject {
     @Published private(set) var isWaitingForDepth = false
     @Published private(set) var modelUnavailable = false
     @Published private(set) var debugText = ""
+    /// Cahaya lagi kurang — dipakai CaptureView buat nampilin peringatan
+    /// "pindah ke tempat lebih terang / nyalain flash". Diperbarui tiap tick
+    /// dari estimasi luminansinya frame kamera.
+    @Published private(set) var isLightTooDim = false
     /// Jumlah foto yang udah diterima (Jamur Lain / Selesai) — ditampilin di
     /// UI biar user tahu progres di ruangan ini.
     @Published private(set) var acceptedFindings: [Finding] = []
@@ -181,6 +185,9 @@ final class CaptureViewModel: ObservableObject {
     // MoldDetector otomatis baca jumlah kelasnya dari shape tensor (lihat
     // decodeDetections), jadi gak perlu ubah kode lain pas ganti model lagi.
     private let detector = MoldDetector(modelName: "Mold", confidenceThreshold: 0.35)
+    /// Rata-rata luminansi (0–1, Rec. 601 luma) yang di-smooth biar
+    /// peringatannya gak kelap-kelip tiap tick.
+    private var luminanceEMA: Double?
     private var timer: Timer?
     private var isProcessing = false
     private let tickInterval: TimeInterval = 0.4
@@ -282,7 +289,8 @@ final class CaptureViewModel: ObservableObject {
                 frameImage: captured.image,
                 findingClass: .mold,
                 locationNote: Self.locationNote(for: detection.box),
-                areaCM2: detection.areaCM2
+                areaCM2: detection.areaCM2,
+                confidence: Double(detection.confidence)
             ))
         }
         self.captured = nil
@@ -360,6 +368,7 @@ final class CaptureViewModel: ObservableObject {
             await MainActor.run {
                 guard let self else { return }
                 self.updateScanState(detected: best != nil, depth: depth)
+                self.updateLighting(cgImage)
                 self.debugText = diagnostics
                 self.isProcessing = false
             }
@@ -398,6 +407,52 @@ final class CaptureViewModel: ObservableObject {
             stabilizeProgress = Double(stableTicks) / Double(Self.requiredStableTicks)
             guidanceText = "Detected, hold the camera steady"
         }
+    }
+
+    // MARK: - Lighting
+
+    /// Perbarui `isLightTooDim` dari luminansi frame sekarang. Pakai EMA biar
+    /// peringatannya gak kelap-kelip tiap tick (0,4 dtk), plus hysteresis
+    /// dikit biar gak bolak-balik pas di ambang.
+    private func updateLighting(_ cgImage: CGImage) {
+        guard let lum = estimateLuminance(cgImage) else { return }
+        let alpha = 0.3
+        luminanceEMA = (luminanceEMA ?? lum) * (1 - alpha) + lum * alpha
+        guard let avg = luminanceEMA else { return }
+        let threshold = 0.12
+        let hysteresis = 0.04
+        if avg < threshold {
+            isLightTooDim = true
+        } else if avg > threshold + hysteresis {
+            isLightTooDim = false
+        }
+    }
+
+    /// Estimasi luminansi rata-rata (0–1) dengan cara yang ANDAL: turunin
+    /// citra ke 32×32 lewat CGContext, terus rata-ratakan pikselnya (luma
+    /// Rec. 601). Pendekatan CIAreaAverage + render(toBitmap:) terbukti
+    /// ngasih 0,0 di sini (masalah manajemen warna Core Image), jadi pakai
+    /// CGContext aja yang deterministik.
+    private func estimateLuminance(_ cgImage: CGImage) -> Double? {
+        let size = 32
+        guard let ctx = CGContext(
+            data: nil, width: size, height: size,
+            bitsPerComponent: 8, bytesPerRow: size * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: size, height: size))
+        guard let data = ctx.data else { return nil }
+        let ptr = data.bindMemory(to: UInt8.self, capacity: size * size * 4)
+        var sum = 0.0
+        let n = size * size
+        for i in 0..<n {
+            let o = i * 4
+            sum += 0.299 * Double(ptr[o]) / 255
+                 + 0.587 * Double(ptr[o + 1]) / 255
+                 + 0.114 * Double(ptr[o + 2]) / 255
+        }
+        return sum / Double(n)
     }
 
     private func resetStability() {

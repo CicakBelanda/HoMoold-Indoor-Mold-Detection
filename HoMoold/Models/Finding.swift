@@ -22,6 +22,7 @@ struct Finding: Identifiable {
     /// dibaca pas jepret (lihat CaptureViewModel/ARAreaCalculator) atau ini
     /// temuan dummy/preview yang gak lewat pengukuran LiDAR.
     var areaCM2: Double? = nil
+    let confidence: Double
     var isReviewed: Bool = false
 
     /// `id` di-default lewat parameter (bukan `let id = UUID()` inline) —
@@ -29,7 +30,7 @@ struct Finding: Identifiable {
     /// id yang beneran tersimpan, bukan ke-generate ulang tiap kali di-load.
     init(
         id: UUID = UUID(), captureID: UUID = UUID(), boundingBox: CGRect, frameImage: UIImage,
-        findingClass: FindingClass, locationNote: String, areaCM2: Double? = nil, isReviewed: Bool = false
+        findingClass: FindingClass, locationNote: String, areaCM2: Double? = nil, confidence:Double, isReviewed: Bool = false
     ) {
         self.id = id
         self.captureID = captureID
@@ -38,6 +39,7 @@ struct Finding: Identifiable {
         self.findingClass = findingClass
         self.locationNote = locationNote
         self.areaCM2 = areaCM2
+        self.confidence = confidence
         self.isReviewed = isReviewed
     }
 }
@@ -46,7 +48,7 @@ struct Finding: Identifiable {
 /// itu UIImage, disimpan sebagai JPEG Data.
 extension Finding: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, captureID, boundingBox, frameImageData, findingClass, locationNote, areaCM2, isReviewed
+        case id, captureID, boundingBox, frameImageData, findingClass, locationNote, areaCM2, confidence, isReviewed
     }
 
     init(from decoder: Decoder) throws {
@@ -62,6 +64,7 @@ extension Finding: Codable {
         findingClass = try container.decode(FindingClass.self, forKey: .findingClass)
         locationNote = try container.decode(String.self, forKey: .locationNote)
         areaCM2 = try container.decodeIfPresent(Double.self, forKey: .areaCM2)
+        confidence = try container.decode(Double.self, forKey: .confidence)
         isReviewed = try container.decode(Bool.self, forKey: .isReviewed)
     }
 
@@ -74,6 +77,7 @@ extension Finding: Codable {
         try container.encode(findingClass, forKey: .findingClass)
         try container.encode(locationNote, forKey: .locationNote)
         try container.encodeIfPresent(areaCM2, forKey: .areaCM2)
+        try container.encode(confidence, forKey: .confidence)
         try container.encode(isReviewed, forKey: .isReviewed)
     }
 }
