@@ -60,6 +60,22 @@ private enum FrameImageRenderer {
     }
 }
 
+/// Mode layar kamera: deteksi ML otomatis vs tandai manual.
+enum CaptureMode: String, CaseIterable, Identifiable {
+    case auto
+    case manual
+
+    var id: String { rawValue }
+
+    /// Label buat segmented control.
+    var label: String {
+        switch self {
+        case .auto: return "Auto"
+        case .manual: return "Manual"
+        }
+    }
+}
+
 @MainActor
 final class CaptureViewModel: ObservableObject {
 
@@ -111,6 +127,13 @@ final class CaptureViewModel: ObservableObject {
 
     let arSession = ARDepthCaptureSession()
 
+    /// Mode penanda: `.auto` pakai deteksi ML, `.manual` user yang tandain
+    /// polygongnya sendiri lewat raycast LiDAR (lihat ARPassthroughView).
+    /// `didSet` jalanin ulang sesi AR dengan konfigurasi yang sesuai.
+    @Published var captureMode: CaptureMode = .auto {
+        didSet { applyCaptureMode() }
+    }
+
     // Riwayat model yang udah dicoba: "MoldDampSeg" (2 kelas, segmentasi) —
     // belum kelar training-nya, skor gak pernah lewat ~3% di gambar apa pun.
     // "MoldDamp" (2 kelas, box doang) — confidence-nya OK (bisa 59%), tapi gak
@@ -158,6 +181,104 @@ final class CaptureViewModel: ObservableObject {
         arSession.stop()
     }
 
+    // MARK: - Mode & tandai manual
+
+    /// Jalanin ulang sesi AR pas mode berubah. Mode `.manual` nyalain
+    /// rekonstruksi mesh LiDAR biar raycast dari layar nabrak permukaan nyata
+    /// (bukan bidang datar perkiraan) — itu kunci biar luas polygong yang
+    /// dihitung dari koordinat dunia beneran akurat walau bidangnya miring.
+    private func applyCaptureMode() {
+        guard arSession.isLiDARSupported else { return }
+        arSession.applyManualMode(captureMode == .manual)
+    }
+
+    /// Poligon sudut (koordinat dunia, meter) -> luas nyata (cm²) pake metode
+    /// Newell di ruang 3D. Beda dari ARAreaCalculator yang ngandelin depth map
+    /// + intrinsics per-piksel: di sini titiknya udah di dunia nyata, jadi
+    /// luasnya langsung dari koordinat 3D, valid buat poligon apa pun (bukan
+    /// cuma persegi) dan tahan bidang miring.
+    static func polygonAreaCM2(_ points: [SIMD3<Float>]) -> Double? {
+        guard points.count >= 3 else { return nil }
+        var normal = SIMD3<Float>(0, 0, 0)
+        for i in 0..<points.count {
+            let current = points[i]
+            let next = points[(i + 1) % points.count]
+            normal.x += (current.y - next.y) * (current.z + next.z)
+            normal.y += (current.z - next.z) * (current.x + next.x)
+            normal.z += (current.x - next.x) * (current.y + next.y)
+        }
+        // simd_length(normal)/2 itu luas dalam m² -> kali 10000 jadi cm².
+        return Double(simd_length(normal) / 2) * 10_000
+    }
+
+    /// Ambil snapshot foto dari frame ARKit sekarang (sudah di-render tegak),
+    /// buat dipakai sebagai `frameImage` temuan tandai manual. Sengaja PAKAI
+    /// `capturedImage` (bukan `drawHierarchy` layar) karena `ARSCNView` itu
+    /// Metal-backed — `drawHierarchy(in:)` gak bisa nangkep layer Metal, hasilnya
+    /// cuma layar hitam di bagian kamera. Ini juga konsisten sama jalur deteksi
+    /// otomatis yang juga memakai `capturedImage` (lihat `capture()`).
+    func currentFrameSnapshot() -> UIImage? {
+        guard let frame = arSession.currentFrame() else { return nil }
+        return FrameImageRenderer.uprightCGImage(from: frame.capturedImage).map { UIImage(cgImage: $0) }
+    }
+
+    /// Bikin temuan jamur dari tandai manual: snapshot layar jadi foto, luas
+    /// dari poligon titik (cm²). `boundingBox` diproyeksikan dari titik dunia ke
+    /// koordinat Ternormalisasi layar (origin kiri-atas) pakai intrinsik kamera,
+    /// biar kotaknya nempel pas di-overlay Report sama kayak hasil deteksi ML.
+    /// Kalau proyeksi gagal, box-nya cuma titik (0,0) — overlay-nya kecil tapi
+    /// luas & temuannya tetep valid.
+    func buildManualFinding(corners worldPoints: [SIMD3<Float>], snapshot image: UIImage) -> Finding? {
+        guard worldPoints.count >= 3 else { return nil }
+        guard let areaCM2 = CaptureViewModel.polygonAreaCM2(worldPoints) else { return nil }
+
+        let box: CGRect = {
+            guard let frame = arSession.currentFrame() else { return .zero }
+            let intrinsics = frame.camera.intrinsics
+            let resolution = frame.camera.imageResolution
+            let fx = intrinsics[0][0], fy = intrinsics[1][1]
+            let cx = intrinsics[2][0], cy = intrinsics[2][1]
+            // `camera.transform` itu world = transform * camera. Balik dulu ke
+            // ruang kamera sebelum proyeksi: titik dunia langsung dipakai
+            // sebagai koordinat kamera itu SALAH (hasilnya melenceng jauh).
+            let worldToCamera = frame.camera.transform.inverse
+            // Proyeksi tiap titik (sekarang di ruang kamera) -> piksel gambar
+            // mentah (landscape), lalu putar ke orientasi tegak (sama kayak
+            // `FrameImageRenderer` yang `oriented(.right)`), terakhir normalisasi.
+            let projected = worldPoints.map { p -> CGPoint in
+                let pc = worldToCamera * SIMD4<Float>(p.x, p.y, p.z, 1)
+                // Kamera ARKit right-handed: titik di DEPAN punya Z negatif
+                // (lihat ke arah -Z). Pinhole harus membagi dengan |Z| = -pc.z,
+                // bukan pc.z — kalau pc.z yang dipakai, hasilnya melenceng jauh
+                // DAN tanda X/Y kebalik. Clamp -pc.z biar titik di belakang
+                // (Z >= 0, gak seharusnya kejadian) gak bagi nol.
+                let z = max(-pc.z, 0.001)
+                let px = (CGFloat(pc.x) / CGFloat(z)) * CGFloat(fx) + CGFloat(cx)
+                let py = (CGFloat(pc.y) / CGFloat(z)) * CGFloat(fy) + CGFloat(cy)
+                // Rotasi 90° CW (raw -> upright, lihat ARAreaCalculator.FrameRotation).
+                let ux = 1 - (py / CGFloat(resolution.height))
+                let uy = px / CGFloat(resolution.width)
+                return CGPoint(x: ux, y: uy)
+            }
+            let minX = projected.map(\.x).min() ?? 0
+            let maxX = projected.map(\.x).max() ?? 0
+            let minY = projected.map(\.y).min() ?? 0
+            let maxY = projected.map(\.y).max() ?? 0
+            return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+        }()
+
+        return Finding(
+            captureID: UUID(),
+            boundingBox: box,
+            frameImage: image,
+            findingClass: .mold,
+            locationNote: Self.locationNote(for: box),
+            areaCM2: areaCM2,
+            confidence: 1.0,
+            isManual: true
+        )
+    }
+
     // MARK: - Torch
 
     func toggleTorch() {
@@ -190,6 +311,14 @@ final class CaptureViewModel: ObservableObject {
     func acceptAndScanAnother() {
         acceptCurrentCapture()
         retake()
+    }
+
+    /// Simpan temuan dari tandai manual (dipanggil dari CaptureView saat user
+    /// menekan "Save area"). Foto snapshot-nya juga disimpan biar Report tetep
+    /// nunjukin foto aslinya — sama kayak jalur deteksi otomatis.
+    func acceptManualFinding(_ finding: Finding, photo: UIImage) {
+        acceptedFindings.append(finding)
+        acceptedPhotos.append(photo)
     }
 
     struct Outcome {
@@ -251,7 +380,9 @@ final class CaptureViewModel: ObservableObject {
 
     private func tick() {
         // Pas lagi preview atau lagi proses jepretan, scanning-nya berhenti dulu.
-        guard captured == nil, !isCapturing, !isProcessing,
+        // Di mode manual gak ada scanning ML — user yang tandain titiknya sendiri,
+        // jadi timer deteksi di-skip total.
+        guard captured == nil, !isCapturing, !isProcessing, captureMode == .auto,
               let detector, let frame = arSession.currentFrame() else { return }
         guard let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth else {
             isWaitingForDepth = true

@@ -24,13 +24,18 @@ struct Finding: Identifiable {
     var areaCM2: Double? = nil
     let confidence: Double
     var isReviewed: Bool = false
+    /// `true` kalau temuan ini dari tandai manual (bukan deteksi ML otomatis).
+    /// Dipakai buat nanda di preview/report kalau user sendiri yang nentuin
+    /// luasnya — dan biar kita gak ngaku ini hasil model.
+    var isManual: Bool = false
 
     /// `id` di-default lewat parameter (bukan `let id = UUID()` inline) —
     /// biar `init(from decoder:)` di extension Codable di bawah bisa decode
     /// id yang beneran tersimpan, bukan ke-generate ulang tiap kali di-load.
     init(
         id: UUID = UUID(), captureID: UUID = UUID(), boundingBox: CGRect, frameImage: UIImage,
-        findingClass: FindingClass, locationNote: String, areaCM2: Double? = nil, confidence:Double, isReviewed: Bool = false
+        findingClass: FindingClass, locationNote: String, areaCM2: Double? = nil, confidence:Double, isReviewed: Bool = false,
+        isManual: Bool = false
     ) {
         self.id = id
         self.captureID = captureID
@@ -41,6 +46,7 @@ struct Finding: Identifiable {
         self.areaCM2 = areaCM2
         self.confidence = confidence
         self.isReviewed = isReviewed
+        self.isManual = isManual
     }
 }
 
@@ -48,7 +54,7 @@ struct Finding: Identifiable {
 /// itu UIImage, disimpan sebagai JPEG Data.
 extension Finding: Codable {
     private enum CodingKeys: String, CodingKey {
-        case id, captureID, boundingBox, frameImageData, findingClass, locationNote, areaCM2, confidence, isReviewed
+        case id, captureID, boundingBox, frameImageData, findingClass, locationNote, areaCM2, confidence, isReviewed, isManual
     }
 
     init(from decoder: Decoder) throws {
@@ -66,6 +72,9 @@ extension Finding: Codable {
         areaCM2 = try container.decodeIfPresent(Double.self, forKey: .areaCM2)
         confidence = try container.decode(Double.self, forKey: .confidence)
         isReviewed = try container.decode(Bool.self, forKey: .isReviewed)
+        // `isManual` cuma ada sejak fitur tandai manual — data lama gak punya
+        // kuncinya, jadi `decodeIfPresent` + default false biar tetap ke-load.
+        isManual = try container.decodeIfPresent(Bool.self, forKey: .isManual) ?? false
     }
 
     func encode(to encoder: Encoder) throws {
@@ -79,5 +88,6 @@ extension Finding: Codable {
         try container.encodeIfPresent(areaCM2, forKey: .areaCM2)
         try container.encode(confidence, forKey: .confidence)
         try container.encode(isReviewed, forKey: .isReviewed)
+        try container.encode(isManual, forKey: .isManual)
     }
 }

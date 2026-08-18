@@ -25,7 +25,7 @@ enum PlaceholderImageFactory {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { ctx in
             let cg = ctx.cgContext
-            let rect = CGRect(origin: .zero, size: size)
+            _ = CGRect(origin: .zero, size: size)
 
             // Wall gradient background
             let colors = [palette.top.cgColor, palette.bottom.cgColor] as CFArray

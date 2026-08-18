@@ -22,6 +22,12 @@ struct CaptureView: View {
     @ObservedObject private var arSession: ARDepthCaptureSession
     @Environment(\.dismiss) private var dismiss
 
+    /// Titik sudut poligon (koordinat dunia, meter) hasil tandai manual — diisi
+    /// lewat `ARPassthroughView.onCornersChanged`. Kosong di mode Auto.
+    @State private var manualCorners: [SIMD3<Float>] = []
+    /// Naik tiap kali marker manual di-reset (long-press) biar Coordinator bersihin scene-nya.
+    @State private var manualResetToken = 0
+
     /// Dipanggil sebagai ganti maju ke loading, kalau kamera dibuka DI LUAR alur
     /// inspeksi — mis. nambah foto ke ruangan yang udah tersimpan dari halaman
     /// Report. `nil` = perilaku normal (lanjut ke loading → report).
@@ -46,9 +52,21 @@ struct CaptureView: View {
             Color.black.ignoresSafeArea()
 
             if arSession.isLiDARSupported {
-                ARPassthroughView(session: arSession.session)
-                    .ignoresSafeArea()
+                ARPassthroughView(
+                    session: arSession.session,
+                    manualMode: viewModel.captureMode == .manual,
+                    onCornersChanged: { manualCorners = $0 },
+                    resetToken: $manualResetToken
+                )
+                .ignoresSafeArea()
                 scanningLayer
+
+                // Overlay tandai manual: titik kuning + garis polygon di atas
+                // feed kamera, plus panduan jumlah titik. Cuma muncul di mode
+                // Manual dan lagi nggak preview (capture gak dipakai di sini).
+                if viewModel.captureMode == .manual, viewModel.captured == nil {
+                    manualOverlay
+                }
             } else {
                 unsupportedView
             }
@@ -133,6 +151,14 @@ struct CaptureView: View {
             }
             .padding(.horizontal, 22)
 
+            // Pilih antara deteksi ML otomatis dan tandai manual. Letaknya di
+            // panel atas biar keliatan sebagai mode kamera (kayak switch mode
+            // di app Kamera bawaan), bukan aksi sekali pakai.
+            if arSession.isLiDARSupported {
+                modePicker
+                    .padding(.top, 4)
+            }
+
             progressBar
                 .padding(.horizontal, 26)
         }
@@ -178,10 +204,35 @@ struct CaptureView: View {
         viewModel.phase == .ready ? .green : .orange
     }
 
+    /// Segmented control gaya HIG buat ganti mode: Auto (ML) / Manual (tandai
+    /// sendiri). Dibungkus kaca biar nyatu sama panel atas; `tint` warna label
+    /// bawaan, bukan brand, sama kayak tombol chrome lainnya.
+    private var modePicker: some View {
+        Picker("Detection mode", selection: $viewModel.captureMode) {
+            ForEach(CaptureMode.allCases) { mode in
+                Text(mode.label).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .buttonStyle(.glass)
+        .controlSize(.regular)
+        .frame(maxWidth: 220)
+        .accessibilityLabel("Detection mode")
+        // Balik ke Auto: bersihin marker 3D yang masih nangkring di scene.
+        .onChange(of: viewModel.captureMode) { _, newMode in
+            if newMode == .auto { manualResetToken += 1 }
+        }
+    }
+
     // MARK: Pil status
 
     private var statusPill: some View {
-        Text(statusBannerText ?? viewModel.guidanceText)
+        // Di mode Manual panduannya beda — user yang nandain titik, bukan
+        // nunggu deteksi ML, jadi teks "Find mold-like objects" gak berlaku.
+        let text: String = statusBannerText ?? (viewModel.captureMode == .manual
+            ? "Tap the mold area's corners"
+            : viewModel.guidanceText)
+        return Text(text)
             .font(viewModel.phase == .ready ? .title3.weight(.medium) : .headline)
             .foregroundStyle(.white)
             .multilineTextAlignment(.center)
@@ -190,6 +241,95 @@ struct CaptureView: View {
             .background(.black.opacity(0.5), in: Capsule())
             .padding(.horizontal, 24)
             .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
+    }
+
+    // MARK: Manual-area overlay
+
+    /// Panduan + tombol simpan buat mode Manual. Banner bawah nunjukin jumlah
+    /// titik dan luasnya (dari Newell 3D di CaptureViewModel); "Save area"
+    /// baru aktif pas >= 3 titik — sama kayak deteksi ML, hasilnya jadi
+    /// `Finding` yang masuk ke severity + RiskClassifier.
+    private var manualOverlay: some View {
+        VStack(spacing: 14) {
+            Spacer()
+
+            // Banner hitam semi-transparan ala capture preview: info progres.
+            VStack(spacing: 4) {
+                if manualCorners.count < 3 {
+                    Text("Tap \(manualCorners.count) point\(manualCorners.count == 1 ? "" : "s") — you need 3 to measure")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Long-press to reset")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                } else if let area = CaptureViewModel.polygonAreaCM2(manualCorners) {
+                    Text(String(format: "Area: %.0f cm²", area))
+                        .font(.headline)
+                    Text("\(manualCorners.count) points marked")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.7))
+                }
+            }
+            .foregroundStyle(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .padding(.horizontal, 24)
+
+            Button {
+                saveManualArea()
+            } label: {
+                Label("Save area", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(
+                        manualCorners.count >= 3 ? Theme.color.riskMedium : .white.opacity(0.2),
+                        in: Capsule()
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(manualCorners.count < 3)
+            .accessibilityLabel("Save marked area")
+            .padding(.horizontal, 24)
+
+            // "Done" di mode Manual gantikan tombol Done di layar preview
+            // (preview gak muncul di mode ini): ini yang bawa semua temuan
+            // tandai manual ke flow + maju ke loading/report, sama kayak jalur
+            // deteksi otomatis.
+            Button {
+                finish()
+            } label: {
+                Text("Done")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
+                    .background(.white.opacity(0.2), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Finish manual marking")
+            .padding(.horizontal, 24)
+        }
+        .padding(.bottom, 120)
+    }
+
+    /// Ambil snapshot foto dari frame ARKit (bukan layar — `ARSCNView` Metal
+    /// gak ke-tangkep `drawHierarchy`), bikin `Finding` dari poligon, terus
+    /// perlakukan sama kayak hasil deteksi ML (terima + lanjut). Marker 3D-nya
+    /// di-reset biar bersih buat tandai titik lainnya (kalau user mau lanjut).
+    private func saveManualArea() {
+        guard manualCorners.count >= 3,
+              let image = viewModel.currentFrameSnapshot()
+        else { return }
+
+        if let finding = viewModel.buildManualFinding(corners: manualCorners, snapshot: image) {
+            viewModel.acceptManualFinding(finding, photo: image)
+        }
+        // Bersihin marker + titik buat sesi berikutnya.
+        manualCorners.removeAll()
+        manualResetToken += 1
     }
 
     // MARK: Panel bawah — jepret & lampu
@@ -234,22 +374,31 @@ struct CaptureView: View {
     /// Sengaja tetap bisa dipencet walau belum hijau: kadang deteksinya kedip
     /// padahal jamurnya jelas keliatan, dan ngunci tombolnya bikin user mentok.
     /// Bedanya cuma di tampilan — putih terang pas siap, redup pas belum.
+    ///
+    /// Di mode Manual disembunyikan: di situ yang dipakai tombol "Save area"
+    /// dari `manualOverlay`, jadi tombol jepret ML gak boleh muncul.
     private var captureButton: some View {
-        Button {
-            viewModel.capture()
-        } label: {
-            ZStack {
-                Circle()
-                    .strokeBorder(.white.opacity(viewModel.phase == .ready ? 0.9 : 0.4), lineWidth: 4)
-                    .frame(width: 80, height: 80)
+        Group {
+            if viewModel.captureMode == .manual {
+                EmptyView()
+            } else {
+                Button {
+                    viewModel.capture()
+                } label: {
+                    ZStack {
+                        Circle()
+                            .strokeBorder(.white.opacity(viewModel.phase == .ready ? 0.9 : 0.4), lineWidth: 4)
+                            .frame(width: 80, height: 80)
 
-                Circle()
-                    .fill(viewModel.phase == .ready ? Color.white : Color.white.opacity(0.45))
-                    .frame(width: 62, height: 62)
+                        Circle()
+                            .fill(viewModel.phase == .ready ? Color.white : Color.white.opacity(0.45))
+                            .frame(width: 62, height: 62)
+                    }
+                }
+                .accessibilityLabel("Take photo")
+                .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
             }
         }
-        .accessibilityLabel("Take photo")
-        .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
     private var flashButton: some View {

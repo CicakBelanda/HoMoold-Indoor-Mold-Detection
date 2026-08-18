@@ -9,6 +9,7 @@
 
 import Combine
 import CoreLocation
+import MapKit
 
 @MainActor
 final class LocationService: NSObject, ObservableObject {
@@ -76,26 +77,27 @@ final class LocationService: NSObject, ObservableObject {
     /// Dipisah dari pengambilan koordinat supaya pemanggilnya bisa MINTA GPS
     /// SEKALI lalu memakai koordinat yang sama buat cuaca DAN nama lokasi —
     /// dua permintaan GPS berturut-turut bikin form-nya nunggu dua kali.
+    ///
+    /// Pakai `MKReverseGeocodingRequest` + `MKAddressRepresentations` (MapKit,
+    /// iOS 26) — `CLGeocoder` sudah deprecated sejak iOS 26. Semua akses pakai
+    /// property yang gak deprecated (gak lewat `MKPlacemark.placemark`).
     func placemark(for coordinate: CLLocationCoordinate2D) async -> HomeLocation? {
         let location = CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
-        guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
-            return nil
-        }
-        // `thoroughfare` = nama jalan, `subThoroughfare` = nomor rumah.
-        // Digabung jadi satu baris alamat kalau dua-duanya ada.
-        let street = [placemark.thoroughfare, placemark.subThoroughfare]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: " No. ")
+        guard let request = MKReverseGeocodingRequest(location: location) else { return nil }
+        // `mapItems` itu property (bukan method) hasil bridging async-nya,
+        // dan bisa throw — makanya `try await`.
+        guard let item = try? await request.mapItems.first else { return nil }
+        let addr = item.addressRepresentations
 
-        let district = placemark.subLocality ?? placemark.subAdministrativeArea ?? ""
-        let city = placemark.locality ?? placemark.subAdministrativeArea ?? ""
-        let region = placemark.administrativeArea ?? ""
-        guard !street.isEmpty || !district.isEmpty || !city.isEmpty || !region.isEmpty else {
-            return nil
-        }
-        let districtText = district.isEmpty || district.hasPrefix("Kec.") ? district : "Kec. \(district)"
-        return HomeLocation(street: street, region: region, city: city, district: districtText)
+        // Alamat lengkap (termasuk nama jalan + nomor) dari `fullAddress` —
+        // ini gantinya `thoroughfare`/`subThoroughfare` yang ada di placemark
+        // yang sudah deprecated.
+        let street = addr?.fullAddress(includingRegion: false, singleLine: true) ?? ""
+        let city = addr?.cityName ?? ""
+        let region = addr?.regionName ?? ""
+
+        guard !street.isEmpty || !city.isEmpty || !region.isEmpty else { return nil }
+        return HomeLocation(street: street, region: region, city: city, district: "")
     }
 
     private var isAuthorized: Bool {
