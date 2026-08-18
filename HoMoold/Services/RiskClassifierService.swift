@@ -79,9 +79,14 @@ struct RiskClassifierService {
         wallCrack: Bool,
         moldLevel: Int
     ) -> Prediction? {
+        // RH_out = kelembapan outdoor + offset. Dasar +5, plus +5 lagi untuk
+        // tiap kondisi yang "nggak mendukung" (AC mati / jendela tutup) —
+        // ruangan tanpa AC dan jendela tertutup cenderung lebih lembap, jadi
+        // kelembapannya dinaikin biar model nerima sinyal yang sama.
+        let humidityOffset = 5 + (hasAC ? 0 : 5) + (hasWindow ? 0 : 5)
         let dict: [String: MLFeatureValue] = [
             "T_out": MLFeatureValue(double: Double(temperature)),
-            "RH_out": MLFeatureValue(double: Double(humidity) + 5),
+            "RH_out": MLFeatureValue(double: Double(humidity) + Double(humidityOffset)),
             "AC": MLFeatureValue(int64: hasAC ? 1 : 0),
             "Window": MLFeatureValue(int64: hasWindow ? 1 : 0),
             "Dampness": MLFeatureValue(int64: dampness ? 1 : 0),
