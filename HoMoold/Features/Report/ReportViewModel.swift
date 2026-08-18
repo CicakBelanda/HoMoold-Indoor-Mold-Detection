@@ -139,14 +139,37 @@ final class ReportViewModel: ObservableObject {
     /// Sebelumnya ini satu paragraf panjang, dan itu yang bikin Report-nya
     /// "full tulisan semua". Desainnya (Figma 1339:7594) minta bullet — jauh
     /// lebih kebaca buat orang yang lagi keliling ngecek rumah.
+    ///
+    /// Sekarang digate sama TEMUAN, bukan cuma `riskLevel`: kalau gak ada foto
+    /// jamur, bahayanya cuma potensial (pantau + cegah), bukan gejala ekspos
+    /// yang beneran. "Mild musty smell" juga dipindahin ke SIGN, bukan health
+    /// risk — itu bau, bukan efek kesehatan.
     var healthRisks: [String] {
-        switch inspection.riskLevel {
-        case .low:
-            return ["Mild musty smell", "Occasional sneezing"]
-        case .medium:
-            return ["Sneezing", "Coughing", "Blocked nose", "Itchy eyes"]
-        case .high:
+        let hasMold = !inspection.findings.isEmpty
+        let risk = riskClass?.lowercased()
+
+        // Tanpa bukti jamur: jangan over-state bahayanya.
+        guard hasMold else {
+            switch risk {
+            case "high":
+                return ["Conditions here favor mold growth", "Monitor for musty smells or new spots"]
+            case "medium":
+                return ["Mold could develop in these conditions", "Keep the room dry and ventilated"]
+            default:
+                return ["No mold detected — low health concern", "Keep humidity low to stay safe"]
+            }
+        }
+
+        // Ada jamur: gejala ekspos nyata, diskalakan sama tingkat risiko.
+        switch risk {
+        case "high":
             return ["Persistent coughing", "Skin and eye irritation", "Allergy flare-ups", "Worsening asthma"]
+        case "medium":
+            return ["Sneezing", "Coughing", "Blocked nose", "Itchy eyes"]
+        default:
+            // Jamur kelihatan tapi model bilang risiko rendah — tetep ada
+            // iritasi ringan, cuma gak separah yang tinggi.
+            return ["Mild irritation possible", "Occasional sneezing"]
         }
     }
 
