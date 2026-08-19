@@ -93,6 +93,9 @@ final class CaptureViewModel: ObservableObject {
         let areaCM2: Double?
         let areaText: String?
         let note: String?
+        /// `true` kalau ini dari tandai manual (kotak di-drag user), bukan
+        /// deteksi ML. Diterusin ke `Finding` buat ditandai di Report.
+        let isManual: Bool
     }
 
     struct CapturedResult {
@@ -127,9 +130,11 @@ final class CaptureViewModel: ObservableObject {
 
     let arSession = ARDepthCaptureSession()
 
-    /// Mode penanda: `.auto` pakai deteksi ML, `.manual` user yang tandain
-    /// polygongnya sendiri lewat raycast LiDAR (lihat ARPassthroughView).
-    /// `didSet` jalanin ulang sesi AR dengan konfigurasi yang sesuai.
+    /// Mode penanda: `.auto` pakai deteksi ML, `.manual` user yang gambar
+    /// kotak area jamurnya sendiri lewat drag di layar (lihat DragRectangleOverlay
+    /// + `commitManualBox`). Gak nyalain rekonstruksi mesh — luas dihitung dari
+    /// depth map persis kayak deteksi otomatis.
+    /// `didSet` bisa dipakai kalau nanti tiap mode butuh konfigurasi AR beda.
     @Published var captureMode: CaptureMode = .auto {
         didSet { applyCaptureMode() }
     }
@@ -183,100 +188,58 @@ final class CaptureViewModel: ObservableObject {
 
     // MARK: - Mode & tandai manual
 
-    /// Jalanin ulang sesi AR pas mode berubah. Mode `.manual` nyalain
-    /// rekonstruksi mesh LiDAR biar raycast dari layar nabrak permukaan nyata
-    /// (bukan bidang datar perkiraan) — itu kunci biar luas polygong yang
-    /// dihitung dari koordinat dunia beneran akurat walau bidangnya miring.
+    /// Jalanin ulang sesi AR pas mode berubah. Mode `.manual` (drag kotak di
+    /// layar) gak butuh rekonstruksi mesh, jadi buat sekarang method ini
+    /// gak nge-restart sesi — placeholder biar `didSet` modePicker tetap
+    /// ke-trigger. Kalau nanti butuh beda konfigurasi per mode, tambahin
+    /// panggilan `arSession.applyManualMode` di sini.
     private func applyCaptureMode() {
-        guard arSession.isLiDARSupported else { return }
-        arSession.applyManualMode(captureMode == .manual)
+        // Tidak ada perubahan sesi AR yang dibutuhin buat mode Manual sekarang.
     }
 
-    /// Poligon sudut (koordinat dunia, meter) -> luas nyata (cm²) pake metode
-    /// Newell di ruang 3D. Beda dari ARAreaCalculator yang ngandelin depth map
-    /// + intrinsics per-piksel: di sini titiknya udah di dunia nyata, jadi
-    /// luasnya langsung dari koordinat 3D, valid buat poligon apa pun (bukan
-    /// cuma persegi) dan tahan bidang miring.
-    static func polygonAreaCM2(_ points: [SIMD3<Float>]) -> Double? {
-        guard points.count >= 3 else { return nil }
-        var normal = SIMD3<Float>(0, 0, 0)
-        for i in 0..<points.count {
-            let current = points[i]
-            let next = points[(i + 1) % points.count]
-            normal.x += (current.y - next.y) * (current.z + next.z)
-            normal.y += (current.z - next.z) * (current.x + next.x)
-            normal.z += (current.x - next.x) * (current.y + next.y)
-        }
-        // simd_length(normal)/2 itu luas dalam m² -> kali 10000 jadi cm².
-        return Double(simd_length(normal) / 2) * 10_000
-    }
+    /// Buat hasil tandai manual LANGSUNG jadi `CapturedResult` (satu deteksi)
+    /// dari kotak yang di-drag user — SAMA PERSIS dengan hasil deteksi ML, jadi
+    /// layar preview, Retake / Another Spot / Done, sampai penyimpanan
+    /// Findings-nya identik dengan jalur otomatis (lihat `commitManualBox`).
+    ///
+    /// Luas dihitung lewat `ARAreaCalculator.measure(box:)` — persis kayak
+    /// deteksi otomatis — biar dua jalur konsisten (gak ada rumus terpisah).
+    /// Kotaknya udah normalized (0–1, origin kiri-atas) dari layar, jadi tinggal
+    /// dipakai sebagai `boundingBox` deteksi.
+    func commitManualBox(_ rect: CGRect?) {
+        guard let rect, rect.width > 0.02, rect.height > 0.02,
+              let frame = arSession.currentFrame() else { return }
+        guard let cgImage = FrameImageRenderer.uprightCGImage(from: frame.capturedImage) else { return }
 
-    /// Ambil snapshot foto dari frame ARKit sekarang (sudah di-render tegak),
-    /// buat dipakai sebagai `frameImage` temuan tandai manual. Sengaja PAKAI
-    /// `capturedImage` (bukan `drawHierarchy` layar) karena `ARSCNView` itu
-    /// Metal-backed — `drawHierarchy(in:)` gak bisa nangkep layer Metal, hasilnya
-    /// cuma layar hitam di bagian kamera. Ini juga konsisten sama jalur deteksi
-    /// otomatis yang juga memakai `capturedImage` (lihat `capture()`).
-    func currentFrameSnapshot() -> UIImage? {
-        guard let frame = arSession.currentFrame() else { return nil }
-        return FrameImageRenderer.uprightCGImage(from: frame.capturedImage).map { UIImage(cgImage: $0) }
-    }
+        let intrinsics = frame.camera.intrinsics
+        let imageResolution = frame.camera.imageResolution
+        let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth
 
-    /// Bikin temuan jamur dari tandai manual: snapshot layar jadi foto, luas
-    /// dari poligon titik (cm²). `boundingBox` diproyeksikan dari titik dunia ke
-    /// koordinat Ternormalisasi layar (origin kiri-atas) pakai intrinsik kamera,
-    /// biar kotaknya nempel pas di-overlay Report sama kayak hasil deteksi ML.
-    /// Kalau proyeksi gagal, box-nya cuma titik (0,0) — overlay-nya kecil tapi
-    /// luas & temuannya tetep valid.
-    func buildManualFinding(corners worldPoints: [SIMD3<Float>], snapshot image: UIImage) -> Finding? {
-        guard worldPoints.count >= 3 else { return nil }
-        guard let areaCM2 = CaptureViewModel.polygonAreaCM2(worldPoints) else { return nil }
-
-        let box: CGRect = {
-            guard let frame = arSession.currentFrame() else { return .zero }
-            let intrinsics = frame.camera.intrinsics
-            let resolution = frame.camera.imageResolution
-            let fx = intrinsics[0][0], fy = intrinsics[1][1]
-            let cx = intrinsics[2][0], cy = intrinsics[2][1]
-            // `camera.transform` itu world = transform * camera. Balik dulu ke
-            // ruang kamera sebelum proyeksi: titik dunia langsung dipakai
-            // sebagai koordinat kamera itu SALAH (hasilnya melenceng jauh).
-            let worldToCamera = frame.camera.transform.inverse
-            // Proyeksi tiap titik (sekarang di ruang kamera) -> piksel gambar
-            // mentah (landscape), lalu putar ke orientasi tegak (sama kayak
-            // `FrameImageRenderer` yang `oriented(.right)`), terakhir normalisasi.
-            let projected = worldPoints.map { p -> CGPoint in
-                let pc = worldToCamera * SIMD4<Float>(p.x, p.y, p.z, 1)
-                // Kamera ARKit right-handed: titik di DEPAN punya Z negatif
-                // (lihat ke arah -Z). Pinhole harus membagi dengan |Z| = -pc.z,
-                // bukan pc.z — kalau pc.z yang dipakai, hasilnya melenceng jauh
-                // DAN tanda X/Y kebalik. Clamp -pc.z biar titik di belakang
-                // (Z >= 0, gak seharusnya kejadian) gak bagi nol.
-                let z = max(-pc.z, 0.001)
-                let px = (CGFloat(pc.x) / CGFloat(z)) * CGFloat(fx) + CGFloat(cx)
-                let py = (CGFloat(pc.y) / CGFloat(z)) * CGFloat(fy) + CGFloat(cy)
-                // Rotasi 90° CW (raw -> upright, lihat ARAreaCalculator.FrameRotation).
-                let ux = 1 - (py / CGFloat(resolution.height))
-                let uy = px / CGFloat(resolution.width)
-                return CGPoint(x: ux, y: uy)
+        var areaCM2: Double?
+        var areaText: String?
+        var note: String?
+        if let depthData,
+           let measurement = ARAreaCalculator.measure(
+               box: rect, depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
+               intrinsics: intrinsics, imageResolution: imageResolution) {
+            areaCM2 = measurement.areaCM2
+            if measurement.depthMeters < Self.minRangeMeters {
+                note = "too close, area is less accurate"
+            } else if measurement.depthMeters > Self.maxRangeMeters {
+                note = "too far for LiDAR, area is less accurate"
             }
-            let minX = projected.map(\.x).min() ?? 0
-            let maxX = projected.map(\.x).max() ?? 0
-            let minY = projected.map(\.y).min() ?? 0
-            let maxY = projected.map(\.y).max() ?? 0
-            return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
-        }()
+            areaText = String(format: "%.0f cm²", measurement.areaCM2)
+        } else {
+            note = "couldn't read depth in this area"
+        }
 
-        return Finding(
-            captureID: UUID(),
-            boundingBox: box,
-            frameImage: image,
-            findingClass: .mold,
-            locationNote: Self.locationNote(for: box),
-            areaCM2: areaCM2,
+        let detection = CapturedDetection(
+            box: rect, mask: nil,
             confidence: 1.0,
+            areaCM2: areaCM2, areaText: areaText, note: note,
             isManual: true
         )
+        self.captured = CapturedResult(image: UIImage(cgImage: cgImage), detections: [detection])
     }
 
     // MARK: - Torch
@@ -320,7 +283,6 @@ final class CaptureViewModel: ObservableObject {
         acceptedFindings.append(finding)
         acceptedPhotos.append(photo)
     }
-
     struct Outcome {
         let findings: [Finding]
         let photos: [UIImage]
@@ -353,7 +315,8 @@ final class CaptureViewModel: ObservableObject {
                 findingClass: .mold,
                 locationNote: Self.locationNote(for: detection.box),
                 areaCM2: detection.areaCM2,
-                confidence: Double(detection.confidence)
+                confidence: Double(detection.confidence),
+                isManual: detection.isManual
             ))
         }
         self.captured = nil
@@ -566,7 +529,8 @@ final class CaptureViewModel: ObservableObject {
 
                 results.append(CapturedDetection(
                     box: box, mask: hasMask ? instance : nil, confidence: instance.confidence,
-                    areaCM2: measurement?.areaCM2, areaText: areaText, note: note
+                    areaCM2: measurement?.areaCM2, areaText: areaText, note: note,
+                    isManual: false
                 ))
             }
 

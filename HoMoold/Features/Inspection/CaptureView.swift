@@ -22,12 +22,6 @@ struct CaptureView: View {
     @ObservedObject private var arSession: ARDepthCaptureSession
     @Environment(\.dismiss) private var dismiss
 
-    /// Titik sudut poligon (koordinat dunia, meter) hasil tandai manual — diisi
-    /// lewat `ARPassthroughView.onCornersChanged`. Kosong di mode Auto.
-    @State private var manualCorners: [SIMD3<Float>] = []
-    /// Naik tiap kali marker manual di-reset (long-press) biar Coordinator bersihin scene-nya.
-    @State private var manualResetToken = 0
-
     /// Dipanggil sebagai ganti maju ke loading, kalau kamera dibuka DI LUAR alur
     /// inspeksi — mis. nambah foto ke ruangan yang udah tersimpan dari halaman
     /// Report. `nil` = perilaku normal (lanjut ke loading → report).
@@ -53,20 +47,21 @@ struct CaptureView: View {
 
             if arSession.isLiDARSupported {
                 ARPassthroughView(
-                    session: arSession.session,
-                    manualMode: viewModel.captureMode == .manual,
-                    onCornersChanged: { manualCorners = $0 },
-                    resetToken: $manualResetToken
+                    session: arSession.session
                 )
                 .ignoresSafeArea()
-                scanningLayer
 
-                // Overlay tandai manual: titik kuning + garis polygon di atas
-                // feed kamera, plus panduan jumlah titik. Cuma muncul di mode
-                // Manual dan lagi nggak preview (capture gak dipakai di sini).
+                // Di mode Manual: overlay kotak drag (user yang gambar area
+                // jamurnya) + panduan, ditaruh DI BAWAH `scanningLayer` biar
+                // tombol chrome (tutup, flash, mode picker) tetap bisa ditekan.
+                // Kotaknya dipakai buat commit hasil manual yang SAMA dengan
+                // deteksi otomatis (lihat commitManualBox). Di mode Auto gak
+                // ada overlay — kamera bersih, sesuai desain.
                 if viewModel.captureMode == .manual, viewModel.captured == nil {
-                    manualOverlay
+                    manualDragOverlay
                 }
+
+                scanningLayer
             } else {
                 unsupportedView
             }
@@ -218,10 +213,6 @@ struct CaptureView: View {
         .controlSize(.regular)
         .frame(maxWidth: 220)
         .accessibilityLabel("Detection mode")
-        // Balik ke Auto: bersihin marker 3D yang masih nangkring di scene.
-        .onChange(of: viewModel.captureMode) { _, newMode in
-            if newMode == .auto { manualResetToken += 1 }
-        }
     }
 
     // MARK: Pil status
@@ -243,93 +234,38 @@ struct CaptureView: View {
             .animation(.easeInOut(duration: 0.2), value: viewModel.phase)
     }
 
-    // MARK: Manual-area overlay
+    // MARK: Manual-area overlay (drag rectangle)
 
-    /// Panduan + tombol simpan buat mode Manual. Banner bawah nunjukin jumlah
-    /// titik dan luasnya (dari Newell 3D di CaptureViewModel); "Save area"
-    /// baru aktif pas >= 3 titik — sama kayak deteksi ML, hasilnya jadi
-    /// `Finding` yang masuk ke severity + RiskClassifier.
-    private var manualOverlay: some View {
-        VStack(spacing: 14) {
-            Spacer()
+    /// Overlay mode Manual: user gambar kotak area jamur dengan drag (kayak
+    /// drag-select di foto editor), terus lepas = langsung ke layar preview
+    /// "Captured shot" — SAMA PERSIS dengan jalur deteksi otomatis. Gak ada
+    /// tombol "Save" terpisah; hasil drag langsung di-commit jadi `CapturedResult`.
+    ///
+    /// Pan gesture-nya di-handle oleh `DragRectangleOverlay` (SwiftUI native,
+    /// koordinat normalized 0–1 origin kiri-atas — persis yang dipakai
+    /// `CapturedDetection.boundingBox`).
+    private var manualDragOverlay: some View {
+        ZStack {
+            DragRectangleOverlay(onCommit: { rect in
+                viewModel.commitManualBox(rect)
+            })
 
-            // Banner hitam semi-transparan ala capture preview: info progres.
-            VStack(spacing: 4) {
-                if manualCorners.count < 3 {
-                    Text("Tap \(manualCorners.count) point\(manualCorners.count == 1 ? "" : "s") — you need 3 to measure")
-                        .font(.subheadline.weight(.semibold))
-                    Text("Long-press to reset")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
-                } else if let area = CaptureViewModel.polygonAreaCM2(manualCorners) {
-                    Text(String(format: "Area: %.0f cm²", area))
-                        .font(.headline)
-                    Text("\(manualCorners.count) points marked")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
-                }
+            VStack(spacing: 6) {
+                Text("Drag to select the mold area")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Text("Release to review — same as auto capture")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.7))
             }
-            .foregroundStyle(.white)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .padding(.horizontal, 24)
-
-            Button {
-                saveManualArea()
-            } label: {
-                Label("Save area", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(
-                        manualCorners.count >= 3 ? Theme.color.riskMedium : .white.opacity(0.2),
-                        in: Capsule()
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(manualCorners.count < 3)
-            .accessibilityLabel("Save marked area")
-            .padding(.horizontal, 24)
-
-            // "Done" di mode Manual gantikan tombol Done di layar preview
-            // (preview gak muncul di mode ini): ini yang bawa semua temuan
-            // tandai manual ke flow + maju ke loading/report, sama kayak jalur
-            // deteksi otomatis.
-            Button {
-                finish()
-            } label: {
-                Text("Done")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
-                    .background(.white.opacity(0.2), in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Finish manual marking")
-            .padding(.horizontal, 24)
+            // Taruh di atas tengah, di bawah status pill, biar gak nutupin area.
+            .frame(maxHeight: .infinity, alignment: .top)
+            .padding(.top, 120)
         }
-        .padding(.bottom, 120)
-    }
-
-    /// Ambil snapshot foto dari frame ARKit (bukan layar — `ARSCNView` Metal
-    /// gak ke-tangkep `drawHierarchy`), bikin `Finding` dari poligon, terus
-    /// perlakukan sama kayak hasil deteksi ML (terima + lanjut). Marker 3D-nya
-    /// di-reset biar bersih buat tandai titik lainnya (kalau user mau lanjut).
-    private func saveManualArea() {
-        guard manualCorners.count >= 3,
-              let image = viewModel.currentFrameSnapshot()
-        else { return }
-
-        if let finding = viewModel.buildManualFinding(corners: manualCorners, snapshot: image) {
-            viewModel.acceptManualFinding(finding, photo: image)
-        }
-        // Bersihin marker + titik buat sesi berikutnya.
-        manualCorners.removeAll()
-        manualResetToken += 1
     }
 
     // MARK: Panel bawah — jepret & lampu
