@@ -27,6 +27,20 @@ enum RiskClassifierError: LocalizedError {
 }
 
 struct RiskClassifierService {
+    /// Satu-satunya instance yang boleh dipakai. `nil` kalau modelnya gagal
+    /// dimuat dari bundle.
+    ///
+    /// Bikin `RiskClassifierService()` itu MAHAL — `MLModel(contentsOf:)` baca
+    /// dan deserialisasi model dari disk, dan itu jalan SINKRON di thread yang
+    /// manggil. Sebelum ini tiap pemanggil bikin instance sendiri, jadi model
+    /// yang sama dimuat tiga kali dalam satu alur: sekali waktu ngerakit hasil
+    /// di layar loading, sekali lagi waktu ReportView dibangun, plus sekali di
+    /// AppDataStore. Dua yang pertama jatuh persis di jalur yang user tungguin.
+    ///
+    /// `static let` di Swift itu lazy DAN thread-safe, jadi model-nya baru
+    /// dimuat pas pertama kali dipakai, terus dipakai ulang seterusnya.
+    static let shared = try? RiskClassifierService()
+
     private let model: MLModel
 
     /// Run dengan .cpuOnly biar gak SIGABRT di GPU/ANE.

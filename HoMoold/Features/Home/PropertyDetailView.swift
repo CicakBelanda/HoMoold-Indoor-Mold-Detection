@@ -28,7 +28,116 @@ struct PropertyDetailView: View {
         _viewModel = StateObject(wrappedValue: PropertyDetailViewModel(store: store, propertyID: propertyID))
     }
 
+    // Body-nya DIPECAH: `content` (list-nya) dipisah dari rantai modifier di
+    // bawah. Waktu semuanya numpuk di satu ekspresi, Swift nyerah dengan
+    // "unable to type-check this expression in reasonable time" — SwiftUI
+    // ngebangun satu tipe generik raksasa dari tiap modifier yang dirantai, dan
+    // biayanya naik jauh lebih cepat daripada jumlah barisnya. Kejadian pas
+    // `.tint` ditambahin ke empat alert di bawah; HomeListView kena hal yang
+    // sama sebelumnya. Kalau nambah sesuatu di sini dan compiler-nya mulai
+    // lemot, pecah lagi.
     var body: some View {
+        content
+        .navigationTitle(viewModel.property?.name ?? "")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        renameText = viewModel.property?.name ?? ""
+                        showRenameAlert = true
+                    } label: {
+                        Label("Rename House", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        showDeletePropertyConfirm = true
+                    } label: {
+                        Label("Delete House", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                }
+                // Kontrol chrome — warna label bawaan, bukan brand.
+                .tint(.primary)
+                .accessibilityLabel("House options")
+            }
+        }
+        .fullScreenCover(isPresented: $showAddInspection) {
+            if let property = viewModel.property {
+                InspectionFlowView(store: store, existingProperty: property)
+            }
+        }
+        .sheet(item: $roomPendingEdit) { room in
+            EditRoomConditionSheet(room: room) { hasAC, hasWindow, dampness, wallCrack in
+                if let propertyID = viewModel.property?.id {
+                    store.updateRoomCondition(
+                        roomID: room.id, ofProperty: propertyID,
+                        hasAC: hasAC, hasWindow: hasWindow, dampness: dampness, wallCrack: wallCrack
+                    )
+                }
+            }
+        }
+        .alert(
+            "Delete Room",
+            isPresented: Binding(
+                get: { roomPendingDelete != nil },
+                set: { if !$0 { roomPendingDelete = nil } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
+                    store.deleteRoom(roomID: roomID, fromProperty: propertyID)
+                }
+                roomPendingDelete = nil
+            }
+        } message: {
+            Text("This room's inspection result will be deleted. This can't be undone.")
+        }
+        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let id = viewModel.property?.id {
+                    store.deleteProperty(id: id)
+                }
+                dismiss()
+            }
+        } message: {
+            Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This can't be undone.")
+        }
+        // Alert bawaan, sama kayak modal isi-nama yang lain — bentuk & tombolnya
+        // diserahin ke sistem.
+        .alert(
+            "Rename Room",
+            isPresented: Binding(
+                get: { roomPendingRename != nil },
+                set: { if !$0 { roomPendingRename = nil } }
+            )
+        ) {
+            TextField("Room name", text: $roomNameInput)
+            Button("Cancel", role: .cancel) { roomPendingRename = nil }
+            Button("Save") {
+                let name = roomNameInput.trimmingCharacters(in: .whitespaces)
+                if !name.isEmpty,
+                   let roomID = roomPendingRename?.id,
+                   let propertyID = viewModel.property?.id {
+                    store.renameRoom(roomID: roomID, ofProperty: propertyID, to: name)
+                }
+                roomPendingRename = nil
+            }.keyboardShortcut(.defaultAction)
+        }
+        .alert("Rename House", isPresented: $showRenameAlert) {
+            TextField("House name", text: $renameText)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                let name = renameText.trimmingCharacters(in: .whitespaces)
+                guard !name.isEmpty, let id = viewModel.property?.id else { return }
+                store.renameProperty(id: id, to: name)
+            }.keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private var content: some View {
         List {
             if let priceText = viewModel.property?.priceText {
                 Text(priceText)
@@ -132,103 +241,6 @@ struct PropertyDetailView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .background(LinearGradient.hoomoldHome.ignoresSafeArea())
-        .navigationTitle(viewModel.property?.name ?? "")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button {
-                        renameText = viewModel.property?.name ?? ""
-                        showRenameAlert = true
-                    } label: {
-                        Label("Rename House", systemImage: "pencil")
-                    }
-                    Button(role: .destructive) {
-                        showDeletePropertyConfirm = true
-                    } label: {
-                        Label("Delete House", systemImage: "trash")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                }
-                // Kontrol chrome — warna label bawaan, bukan brand.
-                .tint(.primary)
-                .accessibilityLabel("House options")
-            }
-        }
-        .fullScreenCover(isPresented: $showAddInspection) {
-            if let property = viewModel.property {
-                InspectionFlowView(store: store, existingProperty: property)
-            }
-        }
-        .sheet(item: $roomPendingEdit) { room in
-            EditRoomConditionSheet(room: room) { hasAC, hasWindow, dampness, wallCrack in
-                if let propertyID = viewModel.property?.id {
-                    store.updateRoomCondition(
-                        roomID: room.id, ofProperty: propertyID,
-                        hasAC: hasAC, hasWindow: hasWindow, dampness: dampness, wallCrack: wallCrack
-                    )
-                }
-            }
-        }
-        .alert(
-            "Delete Room",
-            isPresented: Binding(
-                get: { roomPendingDelete != nil },
-                set: { if !$0 { roomPendingDelete = nil } }
-            )
-        ) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                if let roomID = roomPendingDelete?.id, let propertyID = viewModel.property?.id {
-                    store.deleteRoom(roomID: roomID, fromProperty: propertyID)
-                }
-                roomPendingDelete = nil
-            }
-        } message: {
-            Text("This room's inspection result will be deleted. This can't be undone.")
-        }
-        .alert("Delete House", isPresented: $showDeletePropertyConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                if let id = viewModel.property?.id {
-                    store.deleteProperty(id: id)
-                }
-                dismiss()
-            }
-        } message: {
-            Text("All inspection data in \"\(viewModel.property?.name ?? "")\" will be deleted too. This can't be undone.")
-        }
-        // Alert bawaan, sama kayak modal isi-nama yang lain — bentuk & tombolnya
-        // diserahin ke sistem.
-        .alert(
-            "Rename Room",
-            isPresented: Binding(
-                get: { roomPendingRename != nil },
-                set: { if !$0 { roomPendingRename = nil } }
-            )
-        ) {
-            TextField("Room name", text: $roomNameInput)
-            Button("Cancel", role: .cancel) { roomPendingRename = nil }
-            Button("Save") {
-                let name = roomNameInput.trimmingCharacters(in: .whitespaces)
-                if !name.isEmpty,
-                   let roomID = roomPendingRename?.id,
-                   let propertyID = viewModel.property?.id {
-                    store.renameRoom(roomID: roomID, ofProperty: propertyID, to: name)
-                }
-                roomPendingRename = nil
-            }.keyboardShortcut(.defaultAction)
-        }
-        .alert("Rename House", isPresented: $showRenameAlert) {
-            TextField("House name", text: $renameText)
-            Button("Cancel", role: .cancel) {}
-            Button("Save") {
-                let name = renameText.trimmingCharacters(in: .whitespaces)
-                guard !name.isEmpty, let id = viewModel.property?.id else { return }
-                store.renameProperty(id: id, to: name)
-            }.keyboardShortcut(.defaultAction)
-        }
     }
 }
 

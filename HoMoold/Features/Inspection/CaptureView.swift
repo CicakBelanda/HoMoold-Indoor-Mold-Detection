@@ -45,18 +45,11 @@ struct CaptureView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if arSession.isLiDARSupported {
-                // Ukuran view ini dilaporin ke view model: dia yang nentuin
-                // bagian mana dari frame kamera yang beneran kelihatan, dan
-                // hasil jepretannya dipotong persis segitu — lihat PreviewCrop
-                // di CaptureViewModel.
-                ARPassthroughView(session: arSession.session)
-                    .ignoresSafeArea()
-                    .onGeometryChange(for: CGSize.self) { $0.size } action: { viewModel.previewSize = $0 }
-                scanningLayer
-            } else {
-                unsupportedView
-            }
+            // NGGAK ada lagi gerbang "device ini nggak didukung". LiDAR cuma
+            // buat ngukur luas; deteksi jamurnya jalan di gambar kamera biasa.
+            // Di iPhone non-Pro layar ini tetap kepake penuh — yang hilang cuma
+            // angka cm²-nya, dan itu dibilangin lewat `noLiDARNote` di bawah.
+            scanningLayer
 
             if let captured = viewModel.captured {
                 previewLayer(captured)
@@ -78,19 +71,45 @@ struct CaptureView: View {
 
     // MARK: - Scanning
 
-    /// Chrome kamera sesuai Figma 1339:7845 / 7812: dua panel kaca (atas &
-    /// bawah) dengan sudut dalam membulat, pil status ngambang di tengah atas.
+    /// Susunannya niru app Camera bawaan: panel hitam solid di atas, jendela
+    /// kamera di tengah, panel hitam solid di bawah.
+    ///
+    /// Preview-nya sengaja DI DALAM VStack ini, bukan lapisan full-bleed di
+    /// belakang chrome-nya. Itu bukan cuma soal tampilan: hasil jepretan
+    /// dipotong persis seluas view preview (lihat PreviewCrop di
+    /// CaptureViewModel), jadi kalau ada bagian preview yang ketutupan panel,
+    /// foto hasilnya bakal ngandung isi yang user nggak pernah lihat. Ditaruh
+    /// di antara dua panel, seluruh preview dijamin kelihatan.
     private var scanningLayer: some View {
         VStack(spacing: 0) {
             topPanel
 
-            statusPill
-                .padding(.top, 34)
+            ZStack(alignment: .top) {
+                cameraPreview
 
-            Spacer()
+                statusPill
+                    .padding(.top, 20)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             bottomPanel
         }
+    }
+
+    /// Jendela kamera 3:4 — rasio yang sama persis dengan frame sensor ARKit
+    /// setelah diputar ke portrait.
+    ///
+    /// Ini yang bikin "yang dijepret = yang dipreview" jadi gratis: waktu rasio
+    /// view-nya sama dengan rasio frame-nya, aspect-fill nggak motong apa-apa,
+    /// jadi nggak ada isi yang kebuang. Versi full-bleed sebelumnya bikin frame
+    /// 3:4 dipaksa ngisi layar yang jauh lebih jangkung — kiri-kanannya kepotong
+    /// habis.
+    private var cameraPreview: some View {
+        ARPassthroughView(session: arSession.session)
+            .aspectRatio(3.0 / 4.0, contentMode: .fit)
+            // Ukuran view ini dilaporin ke view model: dia yang nentuin bagian
+            // mana dari frame kamera yang beneran kelihatan.
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { viewModel.previewSize = $0 }
     }
 
     // MARK: Panel atas — tombol tutup, bantuan, bar progres
@@ -140,17 +159,31 @@ struct CaptureView: View {
 
             progressBar
                 .padding(.horizontal, 26)
+
+            noLiDARNote
         }
         .padding(.top, 8)
         .padding(.bottom, 12)
-        .background {
-            UnevenRoundedRectangle(
-                bottomLeadingRadius: 40,
-                bottomTrailingRadius: 40,
-                style: .continuous
-            )
-            .fill(.black.opacity(0.45))
-            .ignoresSafeArea(edges: .top)
+        // Hitam SOLID dan LURUS, kayak app Camera bawaan. Dulu kapsul kaca
+        // hitam 45% dengan sudut bawah membulat 40pt — itu ngambang di atas
+        // gambar kamera, jadi tepi jendelanya nggak pernah jelas dan preview
+        // yang keintip di balik panel bikin bingung batas fotonya sampai mana.
+        .background(Color.black.ignoresSafeArea(edges: .top))
+    }
+
+    /// Satu baris kecil buat device tanpa LiDAR. Sengaja BUKAN pil status yang
+    /// di tengah layar: itu tempatnya panduan yang berubah-ubah ("Detected,
+    /// hold steady"), dan kalau ditempelin peringatan permanen di situ,
+    /// panduannya jadi ketutup terus. Ini keadaan device yang nggak bakal
+    /// berubah — cukup dinyatakan sekali, tenang, di pinggir.
+    @ViewBuilder
+    private var noLiDARNote: some View {
+        if !arSession.isLiDARSupported {
+            Text("No LiDAR on this device — mold is still detected, but the area can't be measured.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 26)
         }
     }
 
@@ -224,15 +257,7 @@ struct CaptureView: View {
             .padding(.horizontal, 32)
         }
         .padding(.vertical, 24)
-        .background {
-            UnevenRoundedRectangle(
-                topLeadingRadius: 40,
-                topTrailingRadius: 40,
-                style: .continuous
-            )
-            .fill(.black.opacity(0.45))
-            .ignoresSafeArea(edges: .bottom)
-        }
+        .background(Color.black.ignoresSafeArea(edges: .bottom))
     }
 
     /// Jepret MANUAL — nggak ada auto-capture lagi (lihat CaptureViewModel).
@@ -436,26 +461,6 @@ struct CaptureView: View {
             return "Lighting is too dim — move to a brighter area or turn on the flash."
         }
         return nil
-    }
-
-    private var unsupportedView: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "sensor.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.white)
-            Text("No LiDAR sensor")
-                .font(.headline)
-                .foregroundStyle(.white)
-            Text("Measuring mold area only works on an iPhone/iPad Pro with LiDAR.")
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.8))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
-            Button("Skip without photos") { finish() }
-                .buttonStyle(.pillProminent)
-                .padding(.horizontal, 40)
-                .padding(.top, 8)
-        }
     }
 
     private func finish() {

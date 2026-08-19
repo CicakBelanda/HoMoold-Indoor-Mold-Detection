@@ -82,7 +82,7 @@ final class InspectionFlowState: ObservableObject {
         let score = min(95, capturedFindings.count * 12)
         // Level keparahan (0–3) dari total luas jamur — input `Mold` model.
         let totalArea = capturedFindings.compactMap(\.areaCM2).reduce(0, +)
-        let moldLevel = totalArea > 0 ? MoldSeverity.severity(fromAreaCM2: totalArea).level : 0
+        let moldLevel = MoldSeverity.level(fromAreaCM2: totalArea, findingCount: capturedFindings.count)
 
         // Risiko yang DISIMPAN diambil dari RiskClassifier — sumber yang sama
         // dengan yang dipakai halaman Report. Kalau modelnya gagal jalan (mis.
@@ -120,8 +120,8 @@ final class InspectionFlowState: ObservableObject {
         let t = temperature ?? WeatherDefaults.temperature
         let h = humidity ?? WeatherDefaults.humidity
         let totalArea = capturedFindings.compactMap(\.areaCM2).reduce(0, +)
-        let moldLevel = totalArea > 0 ? MoldSeverity.severity(fromAreaCM2: totalArea).level : 0
-        return (try? RiskClassifierService())?.predict(
+        let moldLevel = MoldSeverity.level(fromAreaCM2: totalArea, findingCount: capturedFindings.count)
+        return RiskClassifierService.shared?.predict(
             temperature: t, humidity: h,
             hasAC: hasAC, hasWindow: hasWindow,
             dampness: dampness, wallCrack: wallCrack,

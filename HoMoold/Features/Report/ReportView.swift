@@ -111,7 +111,15 @@ struct ReportView: View {
                 photoIndex = min(photoIndex, max(photos.count - 1, 0))
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        // `safeAreaBar`, BUKAN `safeAreaInset`. Ini API bar bawaan iOS 26: sistem
+        // sendiri yang ngegambar latarnya — Liquid Glass, ketebalan, garis
+        // pemisah, dan perilakunya waktu konten ke-scroll di belakangnya.
+        //
+        // Sempat dibikin manual (`safeAreaInset` + `.background(.bar)` +
+        // `Divider()`), dan itu salah arah: `.bar` itu material generasi lama,
+        // hasilnya bar buatan yang MIRIP punya sistem tapi nggak pernah sama.
+        // Jangan dibalikin ke sana.
+        .safeAreaBar(edge: .bottom) {
             bottomBar
         }
     }
@@ -379,7 +387,6 @@ struct ReportView: View {
                 .buttonStyle(.pillProminent)
             }
             .padding(.horizontal, 22)
-            .padding(.bottom, 12)
         }
     }
 }

@@ -25,7 +25,7 @@ final class AppDataStore: ObservableObject {
     /// Dipakai buat ngitung ulang `riskLevel` waktu kondisi ruangan diubah —
     /// lihat `recomputeRiskLevel`. `nil` kalau model-nya gagal dimuat; dalam
     /// kasus itu rate-nya dibiarin apa adanya.
-    private let classifier = try? RiskClassifierService()
+    private let classifier = RiskClassifierService.shared
 
     private static let fileURL: URL = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

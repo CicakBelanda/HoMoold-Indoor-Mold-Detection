@@ -2,7 +2,7 @@
   "images" : [
     { "idiom" : "universal", "scale" : "1x" },
     { "idiom" : "universal", "scale" : "2x" },
-    { "filename" : "guidance-step2.png", "idiom" : "universal", "scale" : "3x" }
+    { "filename" : "guidance-illustration.png", "idiom" : "universal", "scale" : "3x" }
   ],
   "info" : { "author" : "xcode", "version" : 1 }
 }

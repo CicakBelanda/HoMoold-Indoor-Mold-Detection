@@ -2,8 +2,14 @@
 //  GuidanceView.swift
 //  HoMoold
 //
-//  Layar "Guidance Page (2 Step)" di Figma (1339:7252 & 1339:7270) — carousel
-//  2 halaman yang ngajarin cara motret, muncul pas kamera mau dibuka.
+//  Layar "Guidance Page" di Figma (1058:3012) — satu halaman yang ngajarin cara
+//  motret, muncul pas kamera mau dibuka.
+//
+//  Dulu carousel 2 halaman. Halaman keduanya ("No mold exist in the room —
+//  you can skip and fill the checkbox on the next step") dibuang: layar ini
+//  cuma kebuka kalau user UDAH nyentang "Visible Mold" di form kondisi, jadi
+//  halaman yang ngajarin cara bilang "nggak ada jamur" nggak pernah relevan
+//  buat orang yang lagi lihat halaman ini.
 //
 //  Layar ini SATU-SATUNYA surface gelap di app (app-nya dipaksa light mode).
 //  Latarnya foto ruangan yang diredupin, teks putih. Makanya di sini nggak boleh
@@ -15,29 +21,15 @@ import SwiftUI
 struct GuidanceView: View {
     @ObservedObject var flow: InspectionFlowState
 
-    @State private var pageIndex = 0
-
-    private let pages = GuidancePage.all
-
     var body: some View {
         ZStack {
             background
 
             VStack(spacing: 0) {
-                // Carousel manual — `TabView(.page)` nggak mau pindah halaman
-                // waktu index-nya diubah dari tombol Continue. Lihat catatan di
-                // PagedCarousel.
-                PagedCarousel(items: pages, index: $pageIndex) { page in
-                    GuidancePageView(page: page)
-                }
-
-                PageDots(
-                    count: pages.count,
-                    index: pageIndex,
-                    activeColor: Theme.color.textOnDark,
-                    inactiveColor: Theme.color.textOnDark.opacity(0.35)
-                )
-                .padding(.bottom, 18)
+                // Satu halaman — carousel, titik halaman, dan state indeksnya
+                // ikut dibuang. PagedCarousel-nya sendiri masih kepakai di
+                // ReportView, jadi komponennya tetap ada.
+                GuidancePageView(page: .step)
 
                 Button("What does mold look like?") {
                     flow.path.append(.moldReference)
@@ -46,7 +38,7 @@ struct GuidanceView: View {
                 .foregroundStyle(Theme.color.textOnDarkSecondary)
                 .padding(.bottom, 18)
 
-                Button(isLastPage ? "Open camera" : "Continue") { advance() }
+                Button("Open camera") { flow.path.append(.capture) }
                     .buttonStyle(.pillProminent)
                     .padding(.horizontal, Theme.Metric.guidanceHorizontalPadding)
             }
@@ -80,43 +72,24 @@ struct GuidanceView: View {
         .ignoresSafeArea()
     }
 
-    private var isLastPage: Bool { pageIndex >= pages.count - 1 }
-
-    private func advance() {
-        if isLastPage {
-            flow.path.append(.capture)
-        } else {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                pageIndex += 1
-            }
-        }
-    }
 }
 
 // MARK: - Page model
 
 /// Copy diambil verbatim dari Figma — termasuk yang gramatikanya nyeleneh
 /// ("get closed"), biar nggak beda sama desain.
-struct GuidancePage: Identifiable {
-    let id = UUID()
+struct GuidancePage {
     var illustration: String
     var title: String
     var subtitle: String
 
-    /// DUA halaman — sesuai nama frame-nya di Figma, "(2 Step)". Perbandingan
-    /// Mold/Mildew/Dampness ada di layar sendiri (MoldReferenceView).
-    static let all: [GuidancePage] = [
-        GuidancePage(
-            illustration: "GuidanceStep1",
-            title: "Look around for any visible mold",
-            subtitle: "if you find some get closed and take a photo"
-        ),
-        GuidancePage(
-            illustration: "GuidanceStep2",
-            title: "No mold exist in the room",
-            subtitle: "you can skip and fill the checkbox on the next step"
-        ),
-    ]
+    /// Satu-satunya halaman. Perbandingan Mold vs Dampness ada di layar sendiri
+    /// (MoldReferenceView), dijangkau lewat tautan di bawah ilustrasi.
+    static let step = GuidancePage(
+        illustration: "GuidanceIllustration",
+        title: "Look around for any visible mold",
+        subtitle: "if you find some get closed and take a photo"
+    )
 }
 
 // MARK: - Single page
@@ -128,10 +101,21 @@ private struct GuidancePageView: View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
 
+            // `.screen` — ilustrasinya digambar DI ATAS latar hitam pekat
+            // (alpha 1.0, bukan transparan; udah dicek per-piksel). Kalau
+            // ditaruh apa adanya di layar ini, yang muncul kotak hitam
+            // bertepi tajam di atas foto ruangan yang jadi latar.
+            //
+            // Blend `.screen` bikin hitam murni jadi nggak ngaruh apa-apa
+            // (hasilnya = warna latar), sementara bagian terang ilustrasinya
+            // tetap terang. Jadi latar hitamnya hilang sendiri tanpa perlu
+            // ngedit asetnya. Kalau suatu saat asetnya diganti versi yang
+            // latarnya beneran transparan, baris ini bisa dibuang.
             Image(page.illustration)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity)
+                .blendMode(.screen)
 
             Spacer(minLength: 32)
 

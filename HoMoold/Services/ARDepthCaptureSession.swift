@@ -24,11 +24,15 @@ final class ARDepthCaptureSession: ObservableObject {
 
     var session: ARSession { controller.session }
 
+    /// Sesi kameranya JALAN TERUS, ada LiDAR atau enggak.
+    ///
+    /// Dulu di sini `return` kalau device-nya nggak dukung sceneDepth, jadi
+    /// iPhone non-Pro nggak bisa motret sama sekali. Padahal LiDAR cuma dipakai
+    /// buat NGUKUR LUAS — deteksi jamurnya jalan di gambar kamera biasa lewat
+    /// Vision + CoreML, dan itu nggak butuh depth apa pun. Yang hilang tanpa
+    /// LiDAR cuma angka cm²-nya.
     func start() {
-        guard ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) else {
-            isLiDARSupported = false
-            return
-        }
+        isLiDARSupported = ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth)
         controller.onTrackingMessage = { [weak self] message in
             Task { @MainActor in self?.trackingMessage = message }
         }
@@ -57,11 +61,16 @@ private final class ARController: NSObject, @unchecked Sendable {
 
     func start() {
         let config = ARWorldTrackingConfiguration()
-        config.frameSemantics.insert(.sceneDepth)
-        // smoothedSceneDepth (temporally filtered, kurang jitter) dipakai kalau
-        // device-nya dukung — MoldMeasureViewModel fallback ke sceneDepth kalau nil.
+        // Frame semantics-nya DICEK DULU sebelum dipasang. Naruh `.sceneDepth`
+        // di device yang nggak dukung bikin ARKit nolak konfigurasinya, dan
+        // sesinya gagal jalan — layar kamera jadi hitam, bukan cuma kehilangan
+        // depth.
         if ARWorldTrackingConfiguration.supportsFrameSemantics(.smoothedSceneDepth) {
+            // Versi yang udah difilter antar-frame (jitter-nya lebih kecil).
             config.frameSemantics.insert(.smoothedSceneDepth)
+        }
+        if ARWorldTrackingConfiguration.supportsFrameSemantics(.sceneDepth) {
+            config.frameSemantics.insert(.sceneDepth)
         }
         session.run(config)
     }

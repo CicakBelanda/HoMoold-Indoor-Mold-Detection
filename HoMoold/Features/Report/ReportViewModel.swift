@@ -32,7 +32,7 @@ final class ReportViewModel: ObservableObject {
         self.inspection = inspection
         self.source = source
         self.isReadOnly = isReadOnly
-        self.classifier = try? RiskClassifierService()
+        self.classifier = RiskClassifierService.shared
     }
 
     /// Cache hasil model. Double-optional disengaja: `nil` = belum pernah
@@ -124,7 +124,14 @@ final class ReportViewModel: ObservableObject {
 
     /// Level keparahan jamur sebagai teks, buat kartu "Mold Severity".
     var moldSeverityText: String {
-        MoldSeverity.label(forLevel: inspection.moldSeverityLevel)
+        // Ada jamur tapi nggak satu pun keukur (device tanpa LiDAR) — jangan
+        // nulis "Low", itu ngaku udah ngukur dan hasilnya kecil. Yang benar:
+        // kita emang nggak tau. Angka yang masuk ke model tetap level 1 sebagai
+        // lantai, lihat MoldSeverity.level(fromAreaCM2:findingCount:).
+        if inspection.totalAreaCM2 == nil && !inspection.findings.isEmpty {
+            return "Not measured"
+        }
+        return MoldSeverity.label(forLevel: inspection.moldSeverityLevel)
     }
 
     /// Warna kartu risiko — lewat Theme biar konsisten sama pil risiko di kartu
@@ -313,9 +320,10 @@ final class ReportViewModel: ObservableObject {
     /// kali fotonya berubah — kalau nggak, angkanya bohong.
     private func recomputeSeverity() {
         let totalArea = inspection.findings.compactMap(\.areaCM2).reduce(0, +)
-        inspection.moldSeverityLevel = totalArea > 0
-            ? MoldSeverity.severity(fromAreaCM2: totalArea).level
-            : 0
+        inspection.moldSeverityLevel = MoldSeverity.level(
+            fromAreaCM2: totalArea,
+            findingCount: inspection.findings.count
+        )
         // Keparahan itu input model, jadi prediksinya harus dihitung ulang.
         cachedPrediction = nil
 
