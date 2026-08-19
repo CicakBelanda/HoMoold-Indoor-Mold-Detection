@@ -15,7 +15,8 @@
 //  report nggak kedip — plus ngasih waktu buat kebaca disclaimer AI-nya.
 //
 //  Indikator loading-nya wordmark itu sendiri: mulai abu-abu, lalu warnanya
-//  naik dari bawah ke atas sampai penuh. Spinner bundar bawaan dibuang — dua
+//  ngisi dari kiri ke kanan sampai penuh — arah baca, jadi kebaca kayak
+//  wordmark-nya lagi ditulis. Spinner bundar bawaan dibuang — dua
 //  indikator di satu layar bikin mata bingung harus lihat yang mana, dan
 //  spinner generik nggak ngasih apa-apa yang logo ini nggak bisa kasih.
 //
@@ -84,8 +85,22 @@ struct AnalyzingLoadingView: View {
         .toolbar(.hidden, for: .navigationBar)
         .task {
             startFilling()
+
+            // Kerjaannya duluan, baru SISA waktunya yang ditunggu.
+            //
+            // Sebelumnya `sleep` dipanggil SETELAH `buildResultInspection()`
+            // tanpa ngitung apa-apa, jadi durasinya JUMLAH dua-duanya: kerjaan
+            // + 2,6 detik penuh. Sekarang angka itu jadi LANTAI — kalau
+            // kerjaannya makan 400ms, yang ditunggu tinggal 2,2 detik.
+            let clock = ContinuousClock()
+            let started = clock.now
             flow.buildResultInspection()
-            try? await Task.sleep(for: minimumDisplayDuration)
+
+            let remaining = minimumDisplayDuration - (clock.now - started)
+            if remaining > .zero {
+                try? await Task.sleep(for: remaining)
+            }
+
             guard flow.resultInspection != nil else { return }
             // GANTI path, jangan append: kalau loading ditinggal di stack, balik
             // dari report bakal mendarat di sini dan `task` jalan lagi — langsung
@@ -97,7 +112,7 @@ struct AnalyzingLoadingView: View {
     // MARK: - Logo
 
     /// Dua salinan logo yang ditumpuk: yang bawah abu-abu pucat (selalu penuh),
-    /// yang atas berwarna tapi ditutup mask yang tumbuh dari bawah.
+    /// yang atas berwarna tapi ditutup mask yang tumbuh dari kiri.
     ///
     /// Sengaja pakai `.grayscale()` + mask, BUKAN `.renderingMode(.template)` +
     /// dua warna: aset logonya PNG berwarna, bukan glyph satu warna, jadi kalau
@@ -124,20 +139,20 @@ struct AnalyzingLoadingView: View {
                     .opacity(0.3)
 
                 logoImage
-                    .mask(alignment: .bottom) {
-                        // Tepi atasnya dibikin melunak, bukan garis lurus —
-                        // batas yang tajam di wordmark setipis ini kebaca kayak
-                        // gambarnya kepotong, bukan kayak lagi keisi.
+                    .mask(alignment: .leading) {
+                        // Tepi kanannya dibikin melunak, bukan garis lurus —
+                        // biar kebaca kayak lagi DITULIS dari kiri ke kanan,
+                        // bukan kayak kotak yang digeser-geser.
                         LinearGradient(
                             stops: [
                                 .init(color: .white, location: 0),
                                 .init(color: .white, location: 0.8),
                                 .init(color: .white.opacity(0), location: 1),
                             ],
-                            startPoint: .bottom,
-                            endPoint: .top
+                            startPoint: .leading,
+                            endPoint: .trailing
                         )
-                        .frame(height: logoHeight * fillLevel)
+                        .frame(width: logoWidth * fillLevel)
                     }
             }
             .frame(width: logoWidth, height: logoHeight)
@@ -152,7 +167,7 @@ struct AnalyzingLoadingView: View {
             .scaledToFit()
     }
 
-    /// Isinya naik sekali dari 0 ke penuh, pas selama layar ini nongol — jadi
+    /// Isinya jalan sekali dari 0 ke penuh, pas selama layar ini nongol — jadi
     /// begitu penuh, halamannya pindah. Sengaja BUKAN animasi berulang: kalau
     /// ngulang, user baca itu sebagai "masih lama", padahal justru sebaliknya.
     private func startFilling() {

@@ -68,7 +68,7 @@ struct ReportView: View {
                 recommendationsCard
             }
             .padding(.horizontal, 22)
-            .padding(.top, 12)
+            .padding(.top, 4)
             .padding(.bottom, 24)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
@@ -111,7 +111,15 @@ struct ReportView: View {
                 photoIndex = min(photoIndex, max(photos.count - 1, 0))
             }
         }
-        .safeAreaInset(edge: .bottom) {
+        // `safeAreaBar`, BUKAN `safeAreaInset`. Ini API bar bawaan iOS 26: sistem
+        // sendiri yang ngegambar latarnya — Liquid Glass, ketebalan, garis
+        // pemisah, dan perilakunya waktu konten ke-scroll di belakangnya.
+        //
+        // Sempat dibikin manual (`safeAreaInset` + `.background(.bar)` +
+        // `Divider()`), dan itu salah arah: `.bar` itu material generasi lama,
+        // hasilnya bar buatan yang MIRIP punya sistem tapi nggak pernah sama.
+        // Jangan dibalikin ke sana.
+        .safeAreaBar(edge: .bottom) {
             bottomBar
         }
     }
@@ -157,7 +165,7 @@ struct ReportView: View {
             // bingung (panah "maju" tapi kartunya gerak ke kiri), padahal galeri
             // foto di iOS emang polanya geser. Yang di-loop indeksnya, bukan
             // fotonya — `photoCard` butuh tau posisinya buat preview & hapus.
-            VStack() {
+            VStack(spacing: 6) {
                 // Tingginya IKUT lebar halaman, bukan angka tetap — kartunya
                 // harus persegi. Lebar halaman = lebar carousel dikurangi
                 // intipan halaman sebelah, jadi tingginya dihitung dari situ.
@@ -173,7 +181,7 @@ struct ReportView: View {
 
                 if photos.count > 1 {
                     PageDots(count: photos.count, index: photoIndex)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 4)
                 }
             }
         }
@@ -379,7 +387,6 @@ struct ReportView: View {
                 .buttonStyle(.pillProminent)
             }
             .padding(.horizontal, 22)
-            .padding(.bottom, 12)
         }
     }
 }

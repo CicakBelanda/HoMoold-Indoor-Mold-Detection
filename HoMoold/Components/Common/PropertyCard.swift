@@ -88,6 +88,9 @@ struct PropertyCard: View {
             Text(relativeDate(property.lastInspectionDate))
                 .font(Theme.font.caption)
                 .foregroundStyle(Theme.color.textSecondary)
+                // Yang ngalah duluan kalau baris ini kesempitan — tanggal
+                // kepotong masih kebaca, jumlah kamar yang ilang enggak.
+                .lineLimit(1)
         }
     }
 
@@ -106,32 +109,69 @@ struct PropertyCard: View {
         return formatter.string(from: date)
     }
 
-    /// Baris jumlah ruangan per tipe: ikon + angka, dipisah JARAK doang.
+    /// Jumlah ruangan per tipe, satu chip per tipe.
     ///
-    /// Garis hairline antar tipe dibuang — tiap butirnya udah punya ikon
-    /// sendiri, jadi batasnya kebaca tanpa garis, dan garisnya cuma nambah
-    /// coretan di kartu yang isinya sedikit.
+    /// Dulu ikon + angka polos yang cuma dipisah jarak, dan itu masalahnya:
+    /// jarak DI DALAM satu pasang (ikon↔angka) hampir sama dengan jarak ANTAR
+    /// pasang, jadi sekilas nggak jelas angka "1" itu punya ikon di kirinya
+    /// atau di kanannya. Dibungkus kapsul, batas tiap kelompoknya jadi nggak
+    /// bisa salah baca.
+    ///
+    /// Kapsulnya idiom yang sama dengan chip kondisi di kartu ruangan
+    /// (PropertyDetailView) — dua-duanya "beberapa fakta kecil sejajar".
     private var roomCountRow: some View {
-        HStack(spacing: 14) {
-            ForEach(Array(roomCounts.enumerated()), id: \.element.type) { _, entry in
-                Label {
-                    Text("\(entry.count)")
-                } icon: {
-                    Image(systemName: entry.type.chipIconName)
-                }
-                .font(Theme.font.footnote)
-                .foregroundStyle(Theme.color.textPrimary)
-                .labelStyle(.titleAndIcon)
+        HStack(spacing: 6) {
+            ForEach(roomCounts, id: \.type) { entry in
+                roomCountChip(type: entry.type, count: entry.count)
             }
         }
+        // INI yang bikin angkanya kadang ilang.
+        //
+        // Ikon itu ukurannya tetap, tapi `Text` angkanya lentur. Waktu rumahnya
+        // punya empat tipe ruangan, baris ini plus tanggal di kanan kelebihan
+        // lebar — dan yang dikorbanin SwiftUI ya yang lentur: angkanya
+        // dikompres sampai nol lebar, jadi yang kelihatan tinggal ikonnya
+        // doang. Yang kena bisa acak, makanya kelihatan kayak muncul-nggak-muncul.
+        //
+        // `fixedSize` bikin chip-nya nggak bisa diciutin sama sekali. Kalau
+        // ruangnya beneran kurang, yang ngalah tanggalnya (lihat
+        // `lastUpdatedLabel`) — itu info yang jauh lebih bisa ditebak user
+        // daripada jumlah kamar.
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    /// Risiko sengaja NGGAK disebut — kartunya nggak nampilin itu, dan label
-    /// aksesibilitas yang nyebut sesuatu yang nggak ada di layar bikin
-    /// pengguna VoiceOver dapat gambaran yang beda dari pengguna lain.
+    private func roomCountChip(type: RoomType, count: Int) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: type.chipIconName)
+                .font(.caption)
+                // Ikonnya beda-beda lebar (`sofa` jauh lebih lebar dari
+                // `shower`), dan itu bikin chip-nya kelihatan nggak serata.
+                // Dikasih lebar tetap biar semua chip sama bentuknya.
+                .frame(width: 16)
+
+            Text("\(count)")
+                // `monospacedDigit` biar lebarnya nggak goyang waktu angkanya
+                // berubah 1 -> 2 -> 10.
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+        }
+        .foregroundStyle(Theme.color.textPrimary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(Theme.color.fieldFill, in: Capsule())
+    }
+
     private var accessibilityDescription: String {
-        let rooms = property.rooms.count
-        let roomText = rooms == 0 ? "no rooms yet" : "\(rooms) room\(rooms == 1 ? "" : "s")"
+        // Rinciannya dibacain per tipe — chip-nya ada di dalam elemen gabungan,
+        // jadi label masing-masing nggak kebaca sendiri-sendiri.
+        let roomText: String
+        if roomCounts.isEmpty {
+            roomText = "no rooms yet"
+        } else {
+            roomText = roomCounts
+                .map { "\($0.count) \($0.type.rawValue.lowercased())" }
+                .joined(separator: ", ")
+        }
         return "\(property.name), \(property.location.displayText), \(roomText)"
     }
 }

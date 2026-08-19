@@ -98,7 +98,11 @@ struct FullScreenImageViewer: View {
             .buttonStyle(.glass)
             .buttonBorderShape(.circle)
             .controlSize(.large)
-            .tint(.white)
+            // `.black` literal, BUKAN `.primary`. App ini dikunci light mode
+            // (lihat HoMooldApp), jadi sekarang dua-duanya sama-sama hitam —
+            // tapi kalau dark mode suatu saat dibuka, `.primary` bakal balik
+            // jadi putih dan ngebatalin permintaan ini diam-diam.
+            .tint(.black)
             .padding(20)
             .accessibilityLabel("Close")
         }

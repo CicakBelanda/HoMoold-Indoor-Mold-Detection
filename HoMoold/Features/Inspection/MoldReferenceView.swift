@@ -4,9 +4,15 @@
 //
 //  Figma 1339:7921 — referensi visual "yang mana jamur, yang mana bukan".
 //
-//  Ini jawaban buat masalah nyata: orang awam nggak bisa mbedain jamur, mildew,
-//  dan sekadar noda lembap. Padahal bedanya penting — model cuma dilatih buat
+//  Ini jawaban buat masalah nyata: orang awam nggak bisa mbedain jamur dari
+//  sekadar noda lembap. Padahal bedanya penting — model cuma dilatih buat
 //  jamur, jadi noda lembap yang difoto sebagai jamur bikin laporannya ngaco.
+//
+//  Kategori "Mildew" DIBUANG. Di Figma sekarang cuma ada dua kartu (Mold dan
+//  Damp), dan itu keputusan yang benar: buat user yang lagi berdiri di depan
+//  tembok, pertanyaannya cuma "ini difoto apa nggak". Kategori ketiga yang
+//  jawabannya sama dengan Damp ("jangan difoto") cuma nambah bacaan tanpa
+//  ngubah keputusan.
 //
 //  BUKAN bagian alur maju. Di-push dari GuidanceView, dari form kondisi, dan
 //  dari tombol "?" di kamera — terus di-pop lagi. Makanya tombolnya "Got it".
@@ -20,7 +26,7 @@ struct MoldReferenceView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                intro
+//                intro
 
                 ForEach(MoldCategory.all) { category in
                     categoryCard(category)
@@ -61,7 +67,7 @@ struct MoldReferenceView: View {
     /// Satu kalimat pembuka. Tanpa ini halamannya langsung nyodorin tiga kartu
     /// tanpa ngasih tau kenapa bedanya penting.
     private var intro: some View {
-        Text("Only mold should be photographed. Mildew and damp stains look similar, but they are recorded on the condition form instead.")
+        Text("Only mold should be photographed. Damp stains look similar, but they are recorded on the condition form instead.")
             .font(Theme.font.subheadline)
             .foregroundStyle(Theme.color.textOnDarkSecondary)
             .multilineTextAlignment(.center)
@@ -145,36 +151,17 @@ struct MoldReferenceView: View {
         )
     }
 
-    /// Mold pakai FOTO asli (283x183 di Figma) karena teksturnya yang harus
-    /// dikenali. Mildew & Dampness pakai kartu contoh putih — bentuk dan
-    /// warnanya yang dibandingin, bukan satu foto spesifik.
-    @ViewBuilder
+    /// Dua-duanya FOTO asli (283x183 di Figma). Dampness dulu pakai dua kartu
+    /// ilustrasi putih, tapi ilustrasi nggak nunjukin yang justru harus dilihat
+    /// user: noda lembap itu RATA dan mulus, sementara jamur bertekstur. Cuma
+    /// foto beneran yang nyampein beda itu.
     private func sampleArea(_ category: MoldCategory) -> some View {
-        switch category.samples {
-        case .photo(let name):
-            Image(name)
-                .resizable()
-                .scaledToFill()
-                .frame(height: 168)
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-        case .swatches(let names):
-            HStack(spacing: 12) {
-                ForEach(Array(names.enumerated()), id: \.offset) { _, name in
-                    Image(name)
-                        .resizable()
-                        .scaledToFit()
-                        .padding(22)
-                        .frame(height: 110)
-                        .frame(maxWidth: .infinity)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Theme.color.cardOnDark)
-                        )
-                }
-            }
-        }
+        Image(category.photo)
+            .resizable()
+            .scaledToFill()
+            .frame(height: 168)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
@@ -187,13 +174,9 @@ private struct MoldCategory: Identifiable {
     var accent: Color
     /// Yang boleh difoto cuma jamur — dua lainnya justru bikin hasilnya ngaco.
     var shouldPhotograph: Bool
-    var samples: Samples
+    /// Nama aset foto contohnya di Assets.xcassets.
+    var photo: String
     var traits: [Trait]
-
-    enum Samples {
-        case photo(String)
-        case swatches([String])
-    }
 
     struct Trait: Identifiable {
         let id = UUID()
@@ -213,7 +196,7 @@ private struct MoldCategory: Identifiable {
             title: "Mold",
             accent: Theme.color.riskLow,
             shouldPhotograph: true,
-            samples: .photo("MoldPhoto"),
+            photo: "MoldPhoto",
             traits: [
                 Trait(
                     label: "Raised, velvety texture",
@@ -230,30 +213,10 @@ private struct MoldCategory: Identifiable {
             ]
         ),
         MoldCategory(
-            title: "Mildew",
-            accent: Theme.color.riskHigh,
-            shouldPhotograph: false,
-            samples: .swatches(["MoldSample", "MoldSample"]),
-            traits: [
-                Trait(
-                    label: "Flat, powdery layer",
-                    detail: "Sits flush against the wall like dust. Wipes away far more easily than mold."
-                ),
-                Trait(
-                    label: "Stays on the surface",
-                    detail: "Doesn't penetrate the material, so the wall underneath is still intact."
-                ),
-                Trait(
-                    label: "White, gray or pale yellow",
-                    detail: "Much lighter than mold, closer to chalk than to a dark stain."
-                ),
-            ]
-        ),
-        MoldCategory(
             title: "Dampness",
             accent: Theme.color.riskHigh,
             shouldPhotograph: false,
-            samples: .swatches(["DampnessSample", "DampnessSample"]),
+            photo: "DampPhoto",
             traits: [
                 Trait(
                     label: "Water staining and rings",

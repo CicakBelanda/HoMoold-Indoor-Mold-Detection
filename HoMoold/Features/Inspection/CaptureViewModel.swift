@@ -222,7 +222,9 @@ final class CaptureViewModel: ObservableObject {
     func start() {
         modelUnavailable = detector == nil
         arSession.start()
-        guard arSession.isLiDARSupported else { return }
+        // Scanning-nya jalan terus, ada LiDAR atau enggak — yang dibutuhin cuma
+        // gambar kamera. Dulu di sini `return` kalau nggak ada LiDAR, jadi di
+        // iPhone non-Pro timer-nya nggak pernah nyala dan deteksinya mati total.
         timer = Timer.scheduledTimer(withTimeInterval: tickInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -330,11 +332,13 @@ final class CaptureViewModel: ObservableObject {
         // Pas lagi preview atau lagi proses jepretan, scanning-nya berhenti dulu.
         guard captured == nil, !isCapturing, !isProcessing,
               let detector, let frame = arSession.currentFrame() else { return }
-        guard let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth else {
-            isWaitingForDepth = true
-            return
-        }
-        isWaitingForDepth = false
+        // Depth-nya OPSIONAL. `isWaitingForDepth` cuma berlaku buat device yang
+        // PUNYA LiDAR tapi datanya belum siap — di device tanpa LiDAR itu
+        // bukan keadaan sementara, jadi jangan nampilin "Waiting for LiDAR..."
+        // yang nggak akan pernah kelar.
+        let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth
+        isWaitingForDepth = arSession.isLiDARSupported && depthData == nil
+        if isWaitingForDepth { return }
         isProcessing = true
 
         let pixelBuffer = frame.capturedImage
@@ -368,7 +372,7 @@ final class CaptureViewModel: ObservableObject {
 
             let best = detections.max { $0.confidence < $1.confidence }
             var depth: Float?
-            if let best {
+            if let best, let depthData {
                 depth = ARAreaCalculator.measure(
                     box: best.uiKitBoundingBox,
                     depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
@@ -476,10 +480,10 @@ final class CaptureViewModel: ObservableObject {
 
     func capture() {
         guard captured == nil, !isCapturing, let detector, let frame = arSession.currentFrame() else { return }
-        guard let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth else {
-            captureError = "LiDAR depth data isn't ready yet. Try again in a moment."
-            return
-        }
+        // Depth boleh nil. Kalau nggak ada, jepretannya tetap jalan — cuma
+        // luasnya yang nggak keukur. Di device yang PUNYA LiDAR tapi datanya
+        // belum siap, `tick()` udah nahan tombolnya lewat isWaitingForDepth.
+        let depthData = frame.smoothedSceneDepth ?? frame.sceneDepth
         isCapturing = true
         captureError = nil
 
@@ -521,17 +525,23 @@ final class CaptureViewModel: ObservableObject {
                 // lihat, dan fotonya nanti juga nggak ngandung bagian itu.
                 guard let visibleBox = PreviewCrop.remap(box, into: visible) else { continue }
                 let hasMask = instance.maskPixelCount > 0
-                let measurement = hasMask
-                    ? ARAreaCalculator.measure(
-                        mask: instance, depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
-                        intrinsics: intrinsics, imageResolution: imageResolution)
-                    : ARAreaCalculator.measure(
-                        box: box, depthMap: depthData.depthMap, confidenceMap: depthData.confidenceMap,
-                        intrinsics: intrinsics, imageResolution: imageResolution)
+                let measurement: ARAreaCalculator.Measurement? = depthData.flatMap { depth in
+                    hasMask
+                        ? ARAreaCalculator.measure(
+                            mask: instance, depthMap: depth.depthMap, confidenceMap: depth.confidenceMap,
+                            intrinsics: intrinsics, imageResolution: imageResolution)
+                        : ARAreaCalculator.measure(
+                            box: box, depthMap: depth.depthMap, confidenceMap: depth.confidenceMap,
+                            intrinsics: intrinsics, imageResolution: imageResolution)
+                }
 
                 var areaText: String?
                 var note: String?
-                if let measurement {
+                if depthData == nil {
+                    // Beda sebabnya, jadi beda kalimatnya: ini device-nya yang
+                    // emang nggak punya sensor, bukan pengukuran yang gagal.
+                    note = "this device has no LiDAR, so the area can't be measured"
+                } else if let measurement {
                     if measurement.depthMeters < Self.minRangeMeters {
                         note = "too close, area is less accurate"
                     } else if measurement.depthMeters > Self.maxRangeMeters {

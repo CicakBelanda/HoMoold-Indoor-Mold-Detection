@@ -52,6 +52,20 @@ enum MoldSeverity {
         }
     }
 
+    /// Level 0–3 buat input model, dihitung dari luas DAN jumlah temuan.
+    ///
+    /// Kalau ADA temuan tapi luasnya nol atau nggak keukur — persis yang
+    /// kejadian di iPhone tanpa LiDAR — hasilnya `.level1`, BUKAN `.none`.
+    ///
+    /// Ini penting: `.none` bikin laporan nulis "No Mold" DAN ngirim `Mold = 0`
+    /// ke RiskClassifier, padahal fotonya jelas ada jamurnya. Model jadi
+    /// ngitung risiko seolah ruangannya bersih. Level 1 itu lantai yang jujur —
+    /// jamurnya ada, cuma nggak ketahuan seberapa luas.
+    static func level(fromAreaCM2 area: Double, findingCount: Int) -> Int {
+        if area > 0 { return severity(fromAreaCM2: area).level }
+        return findingCount > 0 ? level1.level : none.level
+    }
+
     var color: Color {
         switch self {
         case .none: return Theme.color.textSecondary
