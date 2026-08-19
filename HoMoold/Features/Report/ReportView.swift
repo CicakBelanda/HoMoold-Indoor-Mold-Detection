@@ -68,7 +68,7 @@ struct ReportView: View {
                 recommendationsCard
             }
             .padding(.horizontal, 22)
-            .padding(.top, 12)
+            .padding(.top, 4)
             .padding(.bottom, 24)
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
         }
@@ -165,7 +165,7 @@ struct ReportView: View {
             // bingung (panah "maju" tapi kartunya gerak ke kiri), padahal galeri
             // foto di iOS emang polanya geser. Yang di-loop indeksnya, bukan
             // fotonya — `photoCard` butuh tau posisinya buat preview & hapus.
-            VStack() {
+            VStack(spacing: 6) {
                 // Tingginya IKUT lebar halaman, bukan angka tetap — kartunya
                 // harus persegi. Lebar halaman = lebar carousel dikurangi
                 // intipan halaman sebelah, jadi tingginya dihitung dari situ.
@@ -181,7 +181,7 @@ struct ReportView: View {
 
                 if photos.count > 1 {
                     PageDots(count: photos.count, index: photoIndex)
-                        .padding(.bottom, 10)
+                        .padding(.bottom, 4)
                 }
             }
         }
