@@ -1,4 +1,4 @@
-# HoMoold — Indoor Mold Detection for Property Due Diligence
+# HoMoold — Indoor Mold Detection
 
 HoMoold is an iOS app that helps **second-hand property seekers (buyers)**
 inspect a house or room for indoor mold and produce a clear **mold-growth risk report**
